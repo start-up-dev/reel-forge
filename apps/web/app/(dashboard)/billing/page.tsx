@@ -10,29 +10,30 @@ import { useUser } from "@/lib/hooks/use-user";
 import { PlanType } from "@repo/types";
 
 const planLabels: Record<PlanType, string> = {
-  [PlanType.None]: "Free / Trial",
+  [PlanType.None]: "No Plan",
+  [PlanType.TryOut]: "Try Out",
   [PlanType.Starter]: "Starter",
   [PlanType.Pro]: "Pro",
 };
 
 const plans = [
   {
-    name: "Trial",
-    price: "$2",
+    name: "Try Out",
+    price: "$5",
     period: "one time",
-    planType: PlanType.None,
-    features: ["1 video credit", "All subtitle styles", "20+ AI voices", "1080×1920 MP4 output"],
+    planType: PlanType.TryOut,
+    features: ["3 video credits", "All subtitle styles", "20+ AI voices", "1080×1920 MP4 output"],
   },
   {
     name: "Starter",
-    price: "$29",
+    price: "$49",
     period: "/ month",
     planType: PlanType.Starter,
     features: ["5 videos per day", "150 videos per month", "All platforms", "BGM library", "Email notifications"],
   },
   {
     name: "Pro",
-    price: "$79",
+    price: "$99",
     period: "/ month",
     planType: PlanType.Pro,
     highlight: true,
@@ -70,9 +71,9 @@ export default function BillingPage() {
   }
 
   const dailyUsed = user?.videosToday ?? 0;
-  const dailyLimit = user?.dailyLimit || 1;
+  const dailyLimit = currentPlan === PlanType.None ? 0 : (user?.dailyLimit ?? 0);
   const monthlyUsed = user?.videosThisMonth ?? 0;
-  const monthlyLimit = user?.monthlyLimit || 1;
+  const monthlyLimit = currentPlan === PlanType.None ? 0 : (user?.monthlyLimit ?? 0);
   const currentPlan = user?.plan ?? PlanType.None;
 
   return (
@@ -86,19 +87,21 @@ export default function BillingPage() {
             <p className="text-sm text-[var(--text-muted)]">Current Plan</p>
             <div className="mt-1 flex items-center gap-2">
               <h3 className="text-xl font-semibold text-[var(--text-primary)]">
-                {planLabels[currentPlan]}
+                {currentPlan === PlanType.None ? "No Active Plan" : planLabels[currentPlan]}
               </h3>
-              <Badge
-                variant={
-                  currentPlan === PlanType.Pro
-                    ? "primary"
-                    : currentPlan === PlanType.Starter
-                      ? "secondary"
-                      : "default"
-                }
-              >
-                {planLabels[currentPlan]}
-              </Badge>
+              {currentPlan !== PlanType.None && (
+                <Badge
+                  variant={
+                    currentPlan === PlanType.Pro
+                      ? "primary"
+                      : currentPlan === PlanType.Starter
+                        ? "secondary"
+                        : "default"
+                  }
+                >
+                  {planLabels[currentPlan]}
+                </Badge>
+              )}
             </div>
           </div>
           {currentPlan !== PlanType.None && (
@@ -127,8 +130,8 @@ export default function BillingPage() {
               </span>
             </div>
             <ProgressBar
-              value={(dailyUsed / dailyLimit) * 100}
-              color={dailyUsed >= dailyLimit ? "danger" : dailyUsed / dailyLimit > 0.8 ? "warning" : "primary"}
+              value={dailyLimit > 0 ? (dailyUsed / dailyLimit) * 100 : 0}
+              color={dailyLimit > 0 && dailyUsed >= dailyLimit ? "danger" : dailyLimit > 0 && dailyUsed / dailyLimit > 0.8 ? "warning" : "primary"}
             />
           </div>
           <div>
@@ -139,22 +142,47 @@ export default function BillingPage() {
               </span>
             </div>
             <ProgressBar
-              value={(monthlyUsed / monthlyLimit) * 100}
-              color={monthlyUsed >= monthlyLimit ? "danger" : monthlyUsed / monthlyLimit > 0.8 ? "warning" : "primary"}
+              value={monthlyLimit > 0 ? (monthlyUsed / monthlyLimit) * 100 : 0}
+              color={monthlyLimit > 0 && monthlyUsed >= monthlyLimit ? "danger" : monthlyLimit > 0 && monthlyUsed / monthlyLimit > 0.8 ? "warning" : "primary"}
             />
           </div>
         </div>
 
         {currentPlan === PlanType.None && (
           <p className="mt-4 text-sm text-[var(--text-muted)]">
-            You&apos;re on the Trial plan.{" "}
+            You don&apos;t have an active plan.{" "}
             <Link href="#plans" className="text-[var(--accent-primary)] hover:underline">
-              Upgrade to Starter or Pro
+              Try Out for $5
             </Link>{" "}
-            for daily video creation.
+            or subscribe to Starter or Pro for daily video creation.
           </p>
         )}
       </section>
+
+      {/* Dev tools */}
+      {process.env.NODE_ENV === "development" && (
+        <section className="rounded-xl border border-dashed border-[var(--accent-warning)] bg-[var(--bg-surface)] p-4">
+          <p className="mb-3 text-xs font-semibold uppercase tracking-wide text-[var(--accent-warning)]">
+            Dev Tools
+          </p>
+          <div className="flex flex-wrap gap-2">
+            {([PlanType.TryOut, PlanType.Starter, PlanType.Pro] as const).map((p) => (
+              <button
+                key={p}
+                onClick={() => handleUpgrade(planLabels[p])}
+                disabled={!!checkoutLoading || currentPlan === p}
+                className="rounded-lg border border-[var(--accent-warning)] px-3 py-1.5 text-xs font-medium text-[var(--accent-warning)] hover:bg-[var(--accent-warning)] hover:text-black transition-colors disabled:opacity-40"
+              >
+                {checkoutLoading === planLabels[p] ? (
+                  <Loader2 className="inline h-3 w-3 animate-spin" />
+                ) : (
+                  `Simulate ${planLabels[p]}`
+                )}
+              </button>
+            ))}
+          </div>
+        </section>
+      )}
 
       {/* Plan comparison */}
       <section id="plans">

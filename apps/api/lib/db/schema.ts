@@ -11,7 +11,7 @@ import {
 
 // ─── Enums ────────────────────────────────────────────────────────────────────
 
-export const planTypeEnum = pgEnum("plan_type", ["none", "starter", "pro"]);
+export const planTypeEnum = pgEnum("plan_type", ["none", "try_out", "starter", "pro"]);
 
 export const platformEnum = pgEnum("platform", [
   "tiktok",

@@ -2,6 +2,7 @@
 
 export enum PlanType {
   None = "none",
+  TryOut = "try_out",
   Starter = "starter",
   Pro = "pro",
 }
