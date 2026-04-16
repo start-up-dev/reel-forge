@@ -110,7 +110,7 @@ export default function LibraryPage() {
       <div className="mb-6 flex items-center justify-between gap-4">
         <div>
           <h2 className="text-2xl font-semibold text-[var(--text-primary)]">
-            Video Library
+            My Videos
           </h2>
           {!loading && (
             <p className="mt-1 text-sm text-[var(--text-muted)]">
@@ -178,14 +178,14 @@ export default function LibraryPage() {
           <div>
             <h3 className="text-base font-semibold text-[var(--text-primary)]">No videos yet</h3>
             <p className="mt-1 text-sm text-[var(--text-secondary)]">
-              Videos you create across all projects will appear here.
+              Videos you generate will appear here once they&apos;re ready.
             </p>
           </div>
           <Link
             href="/dashboard"
             className="rounded-lg bg-[var(--accent-primary)] px-5 py-2.5 text-sm font-medium text-white transition-opacity hover:opacity-90"
           >
-            Go to Dashboard
+            Create your first video
           </Link>
         </div>
       )}

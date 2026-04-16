@@ -13,7 +13,7 @@ import {
 
 const navItems = [
   { href: "/dashboard", label: "Projects", icon: FolderOpen },
-  { href: "/library", label: "Library", icon: Library },
+  { href: "/library", label: "My Videos", icon: Library },
   { href: "/settings", label: "Settings", icon: Settings },
   { href: "/billing", label: "Billing", icon: CreditCard },
 ];

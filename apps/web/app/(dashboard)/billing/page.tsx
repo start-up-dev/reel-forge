@@ -70,11 +70,11 @@ export default function BillingPage() {
     );
   }
 
+  const currentPlan = user?.plan ?? PlanType.None;
   const dailyUsed = user?.videosToday ?? 0;
   const dailyLimit = currentPlan === PlanType.None ? 0 : (user?.dailyLimit ?? 0);
   const monthlyUsed = user?.videosThisMonth ?? 0;
   const monthlyLimit = currentPlan === PlanType.None ? 0 : (user?.monthlyLimit ?? 0);
-  const currentPlan = user?.plan ?? PlanType.None;
 
   return (
     <div className="mx-auto max-w-3xl space-y-8">
