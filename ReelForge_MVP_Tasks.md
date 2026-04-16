@@ -274,77 +274,77 @@ Tasks are ordered by dependency. Each phase can largely begin after the previous
 
 ### 5.1 Wizard Infrastructure
 
-- [ ] Build wizard page `/videos/[id]` with persistent wizard header
-- [ ] Implement step progress bar (7 steps, icons, labels, completed/active/pending states)
-- [ ] Implement step routing: URL param or query param for current step (e.g. `?step=2`)
-- [ ] Implement "Save Draft" auto-save — debounced `PATCH /api/videos/:id` on any field change
-- [ ] Implement back-navigation with confirm dialog if progress would be lost
-- [ ] Implement redirect logic: if user visits `/videos/:id`, send them to the correct step based on `videos.status`
+- [x] Build wizard page `/videos/[id]` with persistent wizard header
+- [x] Implement step progress bar (7 steps, icons, labels, completed/active/pending states)
+- [x] Implement step routing: URL param or query param for current step (e.g. `?step=2`)
+- [x] Implement "Save Draft" auto-save — debounced `PATCH /api/videos/:id` on any field change
+- [x] Implement back-navigation with confirm dialog if progress would be lost
+- [x] Implement redirect logic: if user visits `/videos/:id`, send them to the correct step based on `videos.status`
 
 ### 5.2 Step 1 — Idea Input UI
 
-- [ ] Build Brainstorm / Direct mode toggle
-- [ ] Build idea textarea with character counter
-- [ ] Build idea card grid (3 cards, selectable with active state); each card has a **title** (1 line) and **body** (2–3 lines) — match PRD §7.6 JSON shape: `{ title, body }`
-- [ ] Build "Tips for great ideas" expandable hint section below the textarea (UI spec §7 Step 1)
-- [ ] Loading state for brainstorm generation (BRAINSTORM_PENDING status → spinner on cards)
-- [ ] Wire "Use This Idea" → saves idea to `videos.idea`, triggers `POST /api/videos/:id/script` (sets SCRIPT_PENDING), advances to Step 2
+- [x] Build Brainstorm / Direct mode toggle
+- [x] Build idea textarea with character counter
+- [x] Build idea card grid (3 cards, selectable with active state); each card has a **title** (1 line) and **body** (2–3 lines) — match PRD §7.6 JSON shape: `{ title, body }`
+- [x] Build "Tips for great ideas" expandable hint section below the textarea (UI spec §7 Step 1)
+- [x] Loading state for brainstorm generation (BRAINSTORM_PENDING status → spinner on cards)
+- [x] Wire "Use This Idea" → saves idea to `videos.idea`, triggers `POST /api/videos/:id/script` (sets SCRIPT_PENDING), advances to Step 2
 
 ### 5.3 Step 2 — Script Review UI
 
-- [ ] Build editable script textarea
-- [ ] Implement live word count indicator with color-coded range status
-- [ ] Implement estimated duration progress bar
-- [ ] Build Regenerate button with confirm popover (if manually edited)
-- [ ] Wire "Approve Script" → saves script, advances to Step 3
+- [x] Build editable script textarea
+- [x] Implement live word count indicator with color-coded range status
+- [x] Implement estimated duration progress bar
+- [x] Build Regenerate button with confirm popover (if manually edited)
+- [x] Wire "Approve Script" → saves script, advances to Step 3
 
 ### 5.4 Step 3 — Voiceover Review UI
 
-- [ ] Build custom audio player (waveform display, controls, playback speed)
-- [ ] Build Regenerate Voice button
-- [ ] Wire "Approve Voice" → advances to Step 4
+- [x] Build custom audio player (waveform display, controls, playback speed)
+- [x] Build Regenerate Voice button
+- [x] Wire "Approve Voice" → advances to Step 4
 
 ### 5.5 Step 4 — Scene Review UI
 
-- [ ] Build scene card grid (2-col desktop, 1-col mobile)
-- [ ] Build per-scene image area with skeleton loader, loaded state, error state
-- [ ] Display `textExcerpt` on each scene card to show which script segment it covers
-- [ ] Build visual prompt collapsible section with inline edit mode
-- [ ] Build per-scene action buttons (Regenerate, Edit Prompt, Upload Image)
-- [ ] Build image upload flow: file picker → `POST /api/videos/:id/scenes/:index/upload-url` → PUT to GCS → `PATCH /api/videos/:id/scenes/:index` to confirm `base_image_url`
-- [ ] Build per-scene approval checkbox
-- [ ] Build "Approve All Scenes" bulk action button
-- [ ] Build video title inline edit (pencil icon → editable, calls `PATCH /api/videos/:id`) per UI spec §7 wizard header
-- [ ] Build "Regenerate All" button
+- [x] Build scene card grid (2-col desktop, 1-col mobile)
+- [x] Build per-scene image area with skeleton loader, loaded state, error state
+- [x] Display `textExcerpt` on each scene card to show which script segment it covers
+- [x] Build visual prompt collapsible section with inline edit mode
+- [x] Build per-scene action buttons (Regenerate, Edit Prompt, Upload Image)
+- [x] Build image upload flow: file picker → `POST /api/videos/:id/scenes/:index/upload-url` → PUT to GCS → `PATCH /api/videos/:id/scenes/:index` to confirm `base_image_url`
+- [x] Build per-scene approval checkbox
+- [x] Build "Approve All Scenes" bulk action button
+- [x] Build video title inline edit (pencil icon → editable, calls `PATCH /api/videos/:id`) per UI spec §7 wizard header
+- [x] Build "Regenerate All" button
 
 ### 5.6 Step 5 — Subtitle & BGM UI
 
-- [ ] Build 4-card subtitle style picker with preview screenshots
-- [ ] Build BGM toggle
-- [ ] Build BGM track library (horizontal scroll row, preview playback)
-- [ ] Build volume slider (0–100%)
+- [x] Build 4-card subtitle style picker with preview screenshots
+- [x] Build BGM toggle
+- [x] Build BGM track library (horizontal scroll row, preview playback)
+- [x] Build volume slider (0–100%)
 - [ ] Build "Generate Video" button — before calling submit, check `users.trial_paid`; if false, open Trial Payment Modal (Phase 11.2) instead of submitting
-- [ ] Wire "Generate Video" (post-payment) → calls `POST /api/videos/:id/submit`
+- [x] Wire "Generate Video" (post-payment) → calls `POST /api/videos/:id/submit`
 
 ### 5.7 Step 6 — Processing Screen UI
 
 > ⚠️ Depends on Phase 6.4 (SSE endpoint). Build UI shell first; wire SSE in Phase 6.4.
 
-- [ ] Build vertical progress timeline with SSE-driven state updates
-- [ ] Implement SSE client connection to `GET /api/videos/:id/status-stream`
-- [ ] Implement live queue position display (`queue_position` from SSE event)
-- [ ] Implement estimated wait time: `queue_position × avg_seconds_per_clip` (avg is server-computed; include in SSE payload)
-- [ ] Implement "You can leave this page" messaging
-- [ ] Implement failed state with Retry button
-- [ ] Handle SSE reconnect logic on connection drop
+- [x] Build vertical progress timeline with SSE-driven state updates
+- [ ] Implement SSE client connection to `GET /api/videos/:id/status-stream` (deferred to Phase 6.4; currently uses polling)
+- [x] Implement live queue position display (`queue_position` from SSE event)
+- [x] Implement estimated wait time: `queue_position × avg_seconds_per_clip` (avg is server-computed; include in SSE payload)
+- [x] Implement "You can leave this page" messaging
+- [x] Implement failed state with Retry button
+- [ ] Handle SSE reconnect logic on connection drop (deferred to Phase 6.4)
 
 ### 5.8 Step 7 — Video Ready UI
 
-- [ ] Build success state with animation
-- [ ] Build in-page video player
-- [ ] Build Download MP4 button
-- [ ] Build "Copy Shareable Link" button with toast feedback
-- [ ] Build "Make Another Video" shortcut
+- [x] Build success state with animation
+- [x] Build in-page video player
+- [x] Build Download MP4 button
+- [x] Build "Copy Shareable Link" button with toast feedback
+- [x] Build "Make Another Video" shortcut
 
 ---
 

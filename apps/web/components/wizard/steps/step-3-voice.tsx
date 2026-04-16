@@ -1,0 +1,264 @@
+"use client";
+
+import { useEffect, useRef, useState } from "react";
+import {
+  Pause,
+  Play,
+  RefreshCw,
+  Rewind,
+  SkipForward,
+} from "lucide-react";
+import { VideoStatus } from "@repo/types";
+import { formatDuration } from "@repo/utils";
+import { Button } from "@repo/ui/button";
+import { useApiClient, withToast } from "@/lib/api-client";
+import type { VideoDetail } from "@/lib/api-client";
+import { cn } from "@repo/ui/utils";
+
+interface Step3VoiceProps {
+  video: VideoDetail;
+  onVideoUpdate: (v: VideoDetail) => void;
+  onAdvance: () => void;
+}
+
+const SPEEDS = [0.75, 1, 1.25, 1.5] as const;
+
+export function Step3Voice({ video, onVideoUpdate, onAdvance }: Step3VoiceProps) {
+  const api = useApiClient();
+  const audioRef = useRef<HTMLAudioElement>(null);
+  const [playing, setPlaying] = useState(false);
+  const [currentTime, setCurrentTime] = useState(0);
+  const [duration, setDuration] = useState(video.durationSeconds ?? 0);
+  const [speed, setSpeed] = useState<(typeof SPEEDS)[number]>(1);
+  const [approving, setApproving] = useState(false);
+  const [regenerating, setRegenerating] = useState(false);
+  const isPending = video.status === VideoStatus.VoicePending;
+
+  // Poll while voice is generating
+  useEffect(() => {
+    if (!isPending) return;
+    const interval = setInterval(async () => {
+      const result = await withToast(
+        () => api.videos.get(video.id),
+        "Failed to check voice status"
+      );
+      if (result?.data && result.data.status !== VideoStatus.VoicePending) {
+        onVideoUpdate(result.data);
+        clearInterval(interval);
+      }
+    }, 3000);
+    return () => clearInterval(interval);
+  }, [isPending, api, video.id, onVideoUpdate]);
+
+  function togglePlay() {
+    if (!audioRef.current) return;
+    if (playing) {
+      audioRef.current.pause();
+    } else {
+      void audioRef.current.play();
+    }
+  }
+
+  function seek(delta: number) {
+    if (!audioRef.current) return;
+    audioRef.current.currentTime = Math.max(
+      0,
+      Math.min(audioRef.current.currentTime + delta, duration)
+    );
+  }
+
+  function setPlaybackSpeed(s: (typeof SPEEDS)[number]) {
+    setSpeed(s);
+    if (audioRef.current) audioRef.current.playbackRate = s;
+  }
+
+  async function handleRegenerate() {
+    setRegenerating(true);
+    setPlaying(false);
+    const result = await withToast(
+      () => api.videos.generateVoice(video.id),
+      "Failed to regenerate voice"
+    );
+    if (result?.data) {
+      onVideoUpdate({ ...video, ...result.data, scenes: video.scenes });
+    }
+    setRegenerating(false);
+  }
+
+  async function handleApprove() {
+    setApproving(true);
+    const result = await withToast(
+      () => api.videos.generateScenes(video.id),
+      "Failed to start scene generation"
+    );
+    if (result?.data) {
+      onVideoUpdate(result.data);
+      onAdvance();
+    }
+    setApproving(false);
+  }
+
+  if (isPending || regenerating) {
+    return (
+      <div className="flex flex-col items-center justify-center py-32 gap-4">
+        <div className="h-10 w-10 animate-spin rounded-full border-2 border-[var(--accent-primary)] border-t-transparent" />
+        <p className="text-sm text-[var(--text-secondary)]">
+          {regenerating ? "Regenerating voice…" : "Generating your voiceover…"}
+        </p>
+      </div>
+    );
+  }
+
+  const progress = duration > 0 ? (currentTime / duration) * 100 : 0;
+
+  return (
+    <div className="mx-auto w-full max-w-xl px-4 py-10">
+      <h1 className="mb-2 text-2xl font-bold text-[var(--text-primary)]">
+        Review your voiceover
+      </h1>
+
+      {/* Voice info */}
+      <p className="mb-8 text-sm text-[var(--text-muted)]">
+        Duration: {formatDuration(Math.round(duration))}
+      </p>
+
+      {/* Audio player */}
+      {video.audioUrl && (
+        <audio
+          ref={audioRef}
+          src={video.audioUrl}
+          onPlay={() => setPlaying(true)}
+          onPause={() => setPlaying(false)}
+          onEnded={() => setPlaying(false)}
+          onTimeUpdate={() =>
+            setCurrentTime(audioRef.current?.currentTime ?? 0)
+          }
+          onLoadedMetadata={() => {
+            const d = audioRef.current?.duration ?? 0;
+            setDuration(d);
+          }}
+        />
+      )}
+
+      <div className="rounded-2xl border border-[var(--bg-border)] bg-[var(--bg-elevated)] p-6">
+        {/* Waveform (static visual) */}
+        <div className="mb-4 flex h-14 items-end gap-[2px] overflow-hidden">
+          {Array.from({ length: 60 }).map((_, i) => {
+            const played = (i / 60) * 100 < progress;
+            const height = 20 + Math.sin(i * 0.7) * 15 + Math.random() * 20;
+            return (
+              <div
+                key={i}
+                className={cn(
+                  "flex-1 rounded-full transition-colors duration-100",
+                  played
+                    ? "bg-[var(--accent-primary)]"
+                    : "bg-[var(--bg-border)]"
+                )}
+                style={{ height: `${Math.max(8, height)}%` }}
+              />
+            );
+          })}
+        </div>
+
+        {/* Progress bar (clickable) */}
+        <div
+          className="mb-4 h-1 w-full cursor-pointer overflow-hidden rounded-full bg-[var(--bg-border)]"
+          onClick={(e) => {
+            const rect = e.currentTarget.getBoundingClientRect();
+            const pct = (e.clientX - rect.left) / rect.width;
+            if (audioRef.current) {
+              audioRef.current.currentTime = pct * duration;
+            }
+          }}
+        >
+          <div
+            className="h-full rounded-full bg-[var(--accent-primary)] transition-all"
+            style={{ width: `${progress}%` }}
+          />
+        </div>
+
+        {/* Time */}
+        <div className="mb-4 flex justify-between text-xs text-[var(--text-muted)]">
+          <span>{formatDuration(Math.round(currentTime))}</span>
+          <span>{formatDuration(Math.round(duration))}</span>
+        </div>
+
+        {/* Controls */}
+        <div className="flex items-center justify-center gap-4">
+          <button
+            type="button"
+            onClick={() => seek(-5)}
+            aria-label="Rewind 5 seconds"
+            className="rounded-lg p-2 text-[var(--text-secondary)] hover:bg-[var(--bg-border)] hover:text-[var(--text-primary)]"
+          >
+            <Rewind className="h-5 w-5" />
+          </button>
+
+          <button
+            type="button"
+            onClick={togglePlay}
+            aria-label={playing ? "Pause" : "Play"}
+            className="flex h-12 w-12 items-center justify-center rounded-full bg-[var(--accent-primary)] text-white hover:bg-[var(--accent-primary)]/90 transition-colors"
+          >
+            {playing ? (
+              <Pause className="h-5 w-5" />
+            ) : (
+              <Play className="h-5 w-5 translate-x-0.5" />
+            )}
+          </button>
+
+          <button
+            type="button"
+            onClick={() => seek(5)}
+            aria-label="Skip 5 seconds"
+            className="rounded-lg p-2 text-[var(--text-secondary)] hover:bg-[var(--bg-border)] hover:text-[var(--text-primary)]"
+          >
+            <SkipForward className="h-5 w-5" />
+          </button>
+        </div>
+
+        {/* Speed */}
+        <div className="mt-4 flex justify-center gap-1.5">
+          {SPEEDS.map((s) => (
+            <button
+              key={s}
+              type="button"
+              onClick={() => setPlaybackSpeed(s)}
+              className={cn(
+                "rounded px-2 py-0.5 text-xs font-medium transition-colors",
+                speed === s
+                  ? "bg-[var(--accent-primary)] text-white"
+                  : "text-[var(--text-muted)] hover:text-[var(--text-secondary)]"
+              )}
+            >
+              {s}x
+            </button>
+          ))}
+        </div>
+      </div>
+
+      <p className="mt-3 text-center text-xs text-[var(--text-muted)]">
+        Slight variations between generations are normal.
+      </p>
+
+      {/* Actions */}
+      <div className="mt-8 flex items-center justify-between gap-3">
+        <Button
+          variant="ghost"
+          size="sm"
+          onClick={handleRegenerate}
+          loading={regenerating}
+          className="gap-1.5"
+        >
+          <RefreshCw className="h-3.5 w-3.5" />
+          Regenerate Voice
+        </Button>
+
+        <Button onClick={handleApprove} loading={approving}>
+          Approve Voice →
+        </Button>
+      </div>
+    </div>
+  );
+}

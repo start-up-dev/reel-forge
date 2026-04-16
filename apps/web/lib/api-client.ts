@@ -5,9 +5,15 @@ import type {
   ApiResponse,
   PaginatedResponse,
   Project,
+  Scene,
+  SubtitleStyle,
   User,
   Video,
 } from "@repo/types";
+
+export type VideoDetail = Video & {
+  scenes: Scene[];
+};
 
 const API_BASE = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:4000";
 
@@ -121,7 +127,7 @@ export function createApiClient(getToken: () => Promise<string | null>) {
         const query = qs.toString() ? `?${qs}` : "";
         return authedRequest(`/api/projects/${projectId}/videos${query}`);
       },
-      get(id: string): Promise<ApiResponse<Video>> {
+      get(id: string): Promise<ApiResponse<VideoDetail>> {
         return authedRequest(`/api/videos/${id}`);
       },
       create(projectId: string, title?: string): Promise<ApiResponse<Video>> {
@@ -130,8 +136,104 @@ export function createApiClient(getToken: () => Promise<string | null>) {
           body: JSON.stringify(title ? { title } : {}),
         });
       },
+      patch(
+        id: string,
+        data: Partial<
+          Pick<
+            Video,
+            | "title"
+            | "idea"
+            | "script"
+            | "subtitleStyle"
+            | "bgmEnabled"
+            | "bgmAssetId"
+            | "bgmVolume"
+          >
+        >
+      ): Promise<ApiResponse<Video>> {
+        return authedRequest(`/api/videos/${id}`, {
+          method: "PATCH",
+          body: JSON.stringify(data),
+        });
+      },
       delete(id: string): Promise<ApiResponse<null>> {
         return authedRequest(`/api/videos/${id}`, { method: "DELETE" });
+      },
+      submit(id: string): Promise<ApiResponse<Video>> {
+        return authedRequest(`/api/videos/${id}/submit`, { method: "POST" });
+      },
+      brainstorm(
+        id: string,
+        data: { topic: string }
+      ): Promise<ApiResponse<{ ideas: Array<{ title: string; body: string }> }>> {
+        return authedRequest(`/api/videos/${id}/brainstorm`, {
+          method: "POST",
+          body: JSON.stringify(data),
+        });
+      },
+      generateScript(
+        id: string,
+        data: { idea: string }
+      ): Promise<ApiResponse<Video>> {
+        return authedRequest(`/api/videos/${id}/script`, {
+          method: "POST",
+          body: JSON.stringify(data),
+        });
+      },
+      generateVoice(id: string): Promise<ApiResponse<Video>> {
+        return authedRequest(`/api/videos/${id}/voice`, { method: "POST" });
+      },
+      generateScenes(id: string): Promise<ApiResponse<VideoDetail>> {
+        return authedRequest(`/api/videos/${id}/scenes`, { method: "POST" });
+      },
+    },
+
+    // ── Scenes ────────────────────────────────────────────────────────────
+    scenes: {
+      regenerate(
+        videoId: string,
+        sceneIndex: number
+      ): Promise<ApiResponse<Scene>> {
+        return authedRequest(
+          `/api/videos/${videoId}/scenes/${sceneIndex}/regenerate`,
+          { method: "POST" }
+        );
+      },
+      uploadUrl(
+        videoId: string,
+        sceneIndex: number
+      ): Promise<ApiResponse<{ uploadUrl: string; path: string }>> {
+        return authedRequest(
+          `/api/videos/${videoId}/scenes/${sceneIndex}/upload-url`,
+          { method: "POST" }
+        );
+      },
+      update(
+        videoId: string,
+        sceneIndex: number,
+        data: Partial<
+          Pick<
+            Scene,
+            | "baseImageUrl"
+            | "baseImagePath"
+            | "visualPrompt"
+            | "approved"
+          >
+        >
+      ): Promise<ApiResponse<Scene>> {
+        return authedRequest(`/api/videos/${videoId}/scenes/${sceneIndex}`, {
+          method: "PATCH",
+          body: JSON.stringify(data),
+        });
+      },
+      updateSubtitleStyle(
+        videoId: string,
+        style: SubtitleStyle
+      ): Promise<ApiResponse<Video>> {
+        return authedRequest(`/api/videos/${videoId}`, {
+          method: "PATCH",
+          body: JSON.stringify({ subtitleStyle: style }),
+        });
       },
     },
 

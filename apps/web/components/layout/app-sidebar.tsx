@@ -2,7 +2,6 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { UserButton } from "@clerk/nextjs";
 import {
   FolderOpen,
   Library,
@@ -58,28 +57,12 @@ export function AppSidebar() {
         </ul>
       </nav>
 
-      {/* Usage meter placeholder */}
+      {/* Branding footer */}
       <div className="p-4 border-t border-[var(--bg-border)]">
-        <div className="mb-3">
-          <div className="mb-1.5 flex items-center justify-between">
-            <span className="text-xs text-[var(--text-muted)]">
-              Videos today
-            </span>
-            <span className="text-xs text-[var(--text-secondary)]">0 / 3</span>
-          </div>
-          <div className="h-1.5 w-full overflow-hidden rounded-full bg-[var(--bg-elevated)]">
-            <div className="h-full w-0 rounded-full bg-[var(--accent-primary)]" />
-          </div>
-        </div>
-        <UserButton
-          appearance={{
-            elements: {
-              userButtonBox: "flex items-center gap-2 w-full",
-              userButtonTrigger: "flex items-center gap-2 w-full",
-            },
-          }}
-          showName
-        />
+        <p className="text-[10px] font-medium text-[var(--text-muted)]">ReelForge</p>
+        <p className="text-[10px] text-[var(--text-muted)] opacity-60">
+          by makereal.io · © {new Date().getFullYear()}
+        </p>
       </div>
     </aside>
   );
