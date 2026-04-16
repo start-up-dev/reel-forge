@@ -58,7 +58,11 @@ await app.register(usersRoutes, { prefix: "/api/users" });
 // All routes below require a valid Clerk JWT + an existing user row in the DB.
 
 await app.register(async (authScope) => {
-  authScope.addHook("onRequest", requireAuth);
+  // Clerk populates req.auth in a "preHandler" hook (its default hookName).
+  // requireAuth must run at the same stage — AFTER Clerk — so it also uses
+  // "preHandler". Using "onRequest" here fires before Clerk sets req.auth,
+  // which causes the "clerkPlugin should be registered before getAuth" error.
+  authScope.addHook("preHandler", requireAuth);
 
   await authScope.register(projectsRoutes, { prefix: "/api" });
   await authScope.register(videosRoutes, { prefix: "/api" });

@@ -1,10 +1,12 @@
 "use client";
 
 import { useState, useEffect, useCallback } from "react";
+import { useAuth } from "@clerk/nextjs";
 import type { Project } from "@repo/types";
 import { useApiClient } from "../api-client";
 
 export function useProjects() {
+  const { isLoaded, isSignedIn } = useAuth();
   const api = useApiClient();
   const [projects, setProjects] = useState<Project[]>([]);
   const [loading, setLoading] = useState(true);
@@ -24,13 +26,17 @@ export function useProjects() {
   }, [api]);
 
   useEffect(() => {
+    // Wait for Clerk to finish loading before making authenticated requests.
+    // Without this guard, getToken() returns null and the API returns 401.
+    if (!isLoaded || !isSignedIn) return;
     void load();
-  }, [load]);
+  }, [isLoaded, isSignedIn, load]);
 
   return { projects, loading, error, refetch: load };
 }
 
 export function useProject(id: string) {
+  const { isLoaded, isSignedIn } = useAuth();
   const api = useApiClient();
   const [project, setProject] = useState<Project | null>(null);
   const [loading, setLoading] = useState(true);
@@ -51,8 +57,9 @@ export function useProject(id: string) {
   }, [api, id]);
 
   useEffect(() => {
+    if (!isLoaded || !isSignedIn) return;
     void load();
-  }, [load]);
+  }, [isLoaded, isSignedIn, load]);
 
   return { project, loading, error, refetch: load };
 }

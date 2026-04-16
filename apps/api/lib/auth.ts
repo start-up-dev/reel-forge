@@ -1,4 +1,4 @@
-import { getAuth } from "@clerk/fastify";
+import { clerkClient, getAuth } from "@clerk/fastify";
 import { eq } from "drizzle-orm";
 import type { FastifyReply, FastifyRequest } from "fastify";
 import { db } from "./db/index.js";
@@ -39,12 +39,43 @@ export async function requireAuth(
     .limit(1);
 
   if (!user) {
-    return reply.status(401).send({
-      error: {
-        code: "USER_NOT_FOUND",
-        message: "User record not found. Please complete sign-up.",
-      },
-    });
+    // User authenticated via Clerk but has no DB row yet — this happens in dev
+    // when the Clerk webhook can't reach localhost. Auto-create from Clerk data.
+    try {
+      const clerkUser = await clerkClient().users.getUser(clerkId);
+      const primaryEmail = clerkUser.emailAddresses.find(
+        (e) => e.id === clerkUser.primaryEmailAddressId,
+      );
+      if (!primaryEmail) {
+        return reply.status(401).send({
+          error: { code: "USER_NOT_FOUND", message: "No primary email on Clerk user." },
+        });
+      }
+      const [created] = await db
+        .insert(users)
+        .values({
+          id: clerkId,
+          email: primaryEmail.emailAddress,
+          firstName: clerkUser.firstName ?? null,
+          lastName: clerkUser.lastName ?? null,
+        })
+        .onConflictDoUpdate({
+          target: users.id,
+          set: {
+            email: primaryEmail.emailAddress,
+            firstName: clerkUser.firstName ?? null,
+            lastName: clerkUser.lastName ?? null,
+            updatedAt: new Date(),
+          },
+        })
+        .returning();
+      request.currentUser = created;
+      return;
+    } catch {
+      return reply.status(401).send({
+        error: { code: "USER_NOT_FOUND", message: "User record not found. Please complete sign-up." },
+      });
+    }
   }
 
   request.currentUser = user;

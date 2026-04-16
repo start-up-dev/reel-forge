@@ -1,9 +1,11 @@
 import { useAuth } from "@clerk/nextjs";
+import { useMemo } from "react";
 import { toast } from "sonner";
 import type {
   ApiResponse,
   PaginatedResponse,
   Project,
+  User,
   Video,
 } from "@repo/types";
 
@@ -40,8 +42,9 @@ async function request<T>(
   });
 
   if (res.status === 401) {
-    // Redirect to sign-in — handled by Clerk middleware, but just in case
-    window.location.href = "/sign-in";
+    // Throw — Clerk middleware handles the actual redirect at the route level.
+    // Never do window.location.href here: the session may simply not be loaded
+    // yet, which would cause an infinite redirect loop with the sign-in page.
     throw new ApiError(401, "Unauthorized");
   }
 
@@ -126,6 +129,26 @@ export function createApiClient(getToken: () => Promise<string | null>) {
       },
     },
 
+    // ── Users ─────────────────────────────────────────────────────────────
+    users: {
+      me(): Promise<ApiResponse<User>> {
+        return authedRequest("/api/users/me");
+      },
+      update(
+        data: Partial<
+          Pick<
+            User,
+            "firstName" | "lastName" | "onboardingComplete"
+          > & { emailNotifyReady?: boolean; emailNotifyFailed?: boolean }
+        >
+      ): Promise<ApiResponse<User>> {
+        return authedRequest("/api/users/me", {
+          method: "PATCH",
+          body: JSON.stringify(data),
+        });
+      },
+    },
+
     // ── Assets ────────────────────────────────────────────────────────────
     assets: {
       bgm(): Promise<ApiResponse<unknown[]>> {
@@ -135,6 +158,26 @@ export function createApiClient(getToken: () => Promise<string | null>) {
         return authedRequest("/api/assets/voices");
       },
     },
+
+    // ── Library (all videos across projects) ──────────────────────────────
+    library: {
+      list(params?: {
+        page?: number;
+        limit?: number;
+        projectId?: string;
+        status?: string;
+        search?: string;
+      }): Promise<PaginatedResponse<Video>> {
+        const qs = new URLSearchParams();
+        if (params?.page) qs.set("page", String(params.page));
+        if (params?.limit) qs.set("limit", String(params.limit));
+        if (params?.projectId) qs.set("projectId", params.projectId);
+        if (params?.status) qs.set("status", params.status);
+        if (params?.search) qs.set("search", params.search);
+        const query = qs.toString() ? `?${qs}` : "";
+        return authedRequest(`/api/videos${query}`);
+      },
+    },
   };
 }
 
@@ -142,7 +185,10 @@ export function createApiClient(getToken: () => Promise<string | null>) {
 
 export function useApiClient() {
   const { getToken } = useAuth();
-  return createApiClient(() => getToken());
+  // Memoize so the returned object is stable across re-renders.
+  // Without this, every render produces a new `api` reference, which causes
+  // useCallback/useEffect dependencies to fire in an infinite loop.
+  return useMemo(() => createApiClient(() => getToken()), [getToken]);
 }
 
 /* ── Utility: wrap an API call with toast error handling ────────────────── */

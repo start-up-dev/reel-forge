@@ -1,10 +1,12 @@
 "use client";
 
 import { useState, useEffect, useCallback } from "react";
+import { useAuth } from "@clerk/nextjs";
 import type { Video } from "@repo/types";
 import { useApiClient } from "../api-client";
 
 export function useVideos(projectId: string) {
+  const { isLoaded, isSignedIn } = useAuth();
   const api = useApiClient();
   const [videos, setVideos] = useState<Video[]>([]);
   const [loading, setLoading] = useState(true);
@@ -39,8 +41,9 @@ export function useVideos(projectId: string) {
   );
 
   useEffect(() => {
+    if (!isLoaded || !isSignedIn) return;
     void load(1);
-  }, [load]);
+  }, [isLoaded, isSignedIn, load]);
 
   return {
     videos,
@@ -54,6 +57,7 @@ export function useVideos(projectId: string) {
 }
 
 export function useVideo(id: string) {
+  const { isLoaded, isSignedIn } = useAuth();
   const api = useApiClient();
   const [video, setVideo] = useState<Video | null>(null);
   const [loading, setLoading] = useState(true);
@@ -74,8 +78,9 @@ export function useVideo(id: string) {
   }, [api, id]);
 
   useEffect(() => {
+    if (!isLoaded || !isSignedIn) return;
     void load();
-  }, [load]);
+  }, [isLoaded, isSignedIn, load]);
 
   return { video, loading, error, refetch: load };
 }

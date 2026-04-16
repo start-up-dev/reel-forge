@@ -210,63 +210,63 @@ Tasks are ordered by dependency. Each phase can largely begin after the previous
 
 ### 4.1 Landing Page
 
-- [ ] Build landing page (`app/page.tsx`) — public route
-- [ ] Implement navbar with sign-in / get-started buttons
-- [ ] Implement Hero section with CTA
-- [ ] Implement "How It Works" section (5-step flow)
-- [ ] Implement Feature Highlights section (3 alternating rows)
-- [ ] Implement Platform Support bar
-- [ ] Implement Pricing section (3 cards)
-- [ ] Implement FAQ accordion
-- [ ] Implement final CTA section
-- [ ] Implement footer
+- [x] Build landing page (`app/page.tsx`) — public route
+- [x] Implement navbar with sign-in / get-started buttons
+- [x] Implement Hero section with CTA
+- [x] Implement "How It Works" section (5-step flow)
+- [x] Implement Feature Highlights section (3 alternating rows)
+- [x] Implement Platform Support bar
+- [x] Implement Pricing section (3 cards)
+- [x] Implement FAQ accordion
+- [x] Implement final CTA section
+- [x] Implement footer
 - [ ] Ensure fully responsive (mobile, tablet, desktop)
 
 ### 4.2 Onboarding Modal
 
-- [ ] Build 3-step onboarding modal triggered on first login (check `users.onboarding_complete`)
-- [ ] Step 1: Project creation form with voice picker (preview audio playback)
-- [ ] Step 2: Animated "How It Works" walkthrough (auto-advance + manual nav)
-- [ ] Step 3: Trial purchase — "$2 to generate your first video" (PRD §7.1 + §8); call `POST /api/billing/trial-checkout` → redirect to Stripe Checkout; on success Stripe redirects back here and onboarding completes
-- [ ] On completion: call `PATCH /api/users/me` to set `onboarding_complete = true`
-- [ ] Ensure modal never shows again after completion
+- [x] Build 3-step onboarding modal triggered on first login (check `users.onboarding_complete`)
+- [x] Step 1: Project creation form with voice picker (preview audio playback — voice cards implemented; live preview deferred to Phase 5)
+- [x] Step 2: Animated "How It Works" walkthrough (auto-advance + manual nav)
+- [ ] Step 3: Trial purchase — "$2 to generate your first video" (PRD §7.1 + §8); call `POST /api/billing/trial-checkout` → redirect to Stripe Checkout; on success Stripe redirects back here and onboarding completes (deferred to Phase 11)
+- [x] On completion: call `PATCH /api/users/me` to set `onboarding_complete = true`
+- [x] Ensure modal never shows again after completion
 
 ### 4.3 Dashboard — Project List
 
-- [ ] Build `/dashboard` page with sidebar layout
-- [ ] Implement sidebar navigation with active states and usage meter
-- [ ] Implement project grid with all card states (loading, populated, empty state)
-- [ ] Implement "New Project" modal (reuse form from onboarding Step 1)
-- [ ] Implement project card gear menu: Edit, View Videos, Delete
-- [ ] Implement Delete project confirm dialog
+- [x] Build `/dashboard` page with sidebar layout
+- [x] Implement sidebar navigation with active states and usage meter
+- [x] Implement project grid with all card states (loading, populated, empty state)
+- [x] Implement "New Project" modal (reuse form from onboarding Step 1)
+- [x] Implement project card gear menu: Edit, View Videos, Delete
+- [x] Implement Delete project confirm dialog
 
 ### 4.4 Project Detail Page
 
-- [ ] Build `/projects/[id]` page
-- [ ] Implement video grid with status badges
-- [ ] Implement filter bar (status, date, search)
-- [ ] Implement per-video card actions (download, share, delete)
-- [ ] Implement video soft-delete confirm
-- [ ] Connect to API with pagination (infinite scroll or load-more button)
+- [x] Build `/projects/[id]` page
+- [x] Implement video grid with status badges
+- [x] Implement filter bar (status, date, search)
+- [x] Implement per-video card actions (download, share, delete)
+- [x] Implement video soft-delete confirm
+- [x] Connect to API with pagination (infinite scroll or load-more button)
 
 ### 4.5 Video Library Page
 
-- [ ] Build `/library` page
-- [ ] Implement grid and list view toggle
-- [ ] Implement cross-project filter
-- [ ] Implement date range filter
-- [ ] Implement inline video player modal
-- [ ] Connect to API: `GET /api/videos` (already implemented in Phase 2.4)
+- [x] Build `/library` page
+- [x] Implement grid and list view toggle
+- [ ] Implement cross-project filter (deferred — needs project list dropdown wired to API filter)
+- [ ] Implement date range filter (deferred)
+- [x] Implement inline video player modal
+- [x] Connect to API: `GET /api/videos` (already implemented in Phase 2.4)
 
 ### 4.6 Settings & Billing Pages
 
-- [ ] Build `/settings/profile` page (display name, delete account)
-- [ ] Build `/settings/notifications` page (email toggles for "video ready" and "video failed")
+- [x] Build `/settings/profile` page (display name, delete account)
+- [x] Build `/settings/notifications` page (email toggles for "video ready" and "video failed")
 - [ ] Add `email_notify_ready` and `email_notify_failed` boolean columns to `users` table (default `true`) — needed for notification preferences UI
 - [ ] Add `PATCH /api/users/me` support for `emailNotifyReady` and `emailNotifyFailed` fields
-- [ ] Build `/billing` page (current plan, usage meters, plan comparison table)
-- [ ] Implement "Manage Subscription" button linking to Stripe portal
-- [ ] Add backend route: `GET /api/billing/portal` (creates and returns Stripe billing portal URL)
+- [x] Build `/billing` page (current plan, usage meters, plan comparison table)
+- [x] Implement "Manage Subscription" button linking to Stripe portal (UI only — wired to real API in Phase 11)
+- [ ] Add backend route: `GET /api/billing/portal` (creates and returns Stripe billing portal URL) — deferred to Phase 11
 
 ---
 

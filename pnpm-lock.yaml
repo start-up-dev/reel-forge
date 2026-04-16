@@ -114,6 +114,9 @@ importers:
       '@repo/ui':
         specifier: workspace:*
         version: link:../../packages/ui
+      '@repo/utils':
+        specifier: workspace:*
+        version: link:../../packages/utils
       '@tailwindcss/postcss':
         specifier: ^4.2.2
         version: 4.2.2
