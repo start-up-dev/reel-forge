@@ -25,6 +25,7 @@
     "@google-cloud/storage": "^7.15.2",
     "@neondatabase/serverless": "^0.10.4",
     "@repo/types": "workspace:*",
+    "dotenv": "^17.2.3",
     "drizzle-orm": "^0.40.1",
     "fastify": "^5.2.0",
     "stripe": "^17.7.0",
@@ -37,6 +38,7 @@
     "@vitest/coverage-v8": "^3.1.2",
     "drizzle-kit": "^0.30.4",
     "eslint": "^9.39.1",
+    "pino-pretty": "^13.1.2",
     "tsx": "^4.19.4",
     "typescript": "5.9.2",
     "vitest": "^3.1.2"

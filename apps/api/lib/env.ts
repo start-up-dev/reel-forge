@@ -1,4 +1,18 @@
+import { existsSync } from "node:fs";
+import { dirname, resolve } from "node:path";
+import { fileURLToPath } from "node:url";
+import { config as loadDotenv } from "dotenv";
 import { z } from "zod";
+
+const currentDir = dirname(fileURLToPath(import.meta.url));
+const apiRoot = resolve(currentDir, "..");
+const workspaceRoot = resolve(apiRoot, "..", "..");
+
+for (const envPath of [resolve(apiRoot, ".env"), resolve(workspaceRoot, ".env")]) {
+  if (existsSync(envPath)) {
+    loadDotenv({ path: envPath });
+  }
+}
 
 const envSchema = z.object({
   NODE_ENV: z
