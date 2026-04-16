@@ -42,7 +42,7 @@ export async function requireAuth(
     // User authenticated via Clerk but has no DB row yet — this happens in dev
     // when the Clerk webhook can't reach localhost. Auto-create from Clerk data.
     try {
-      const clerkUser = await clerkClient().users.getUser(clerkId);
+      const clerkUser = await clerkClient.users.getUser(clerkId);
       const primaryEmail = clerkUser.emailAddresses.find(
         (e) => e.id === clerkUser.primaryEmailAddressId,
       );
