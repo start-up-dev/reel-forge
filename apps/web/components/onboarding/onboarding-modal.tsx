@@ -2,7 +2,6 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { toast } from "sonner";
 import {
   Sparkles,
   Mic,
@@ -12,7 +11,6 @@ import {
   CheckCircle,
   ArrowRight,
   Loader2,
-  X,
 } from "lucide-react";
 import { CreateProjectModal } from "@/components/dashboard/create-project-modal";
 import { useApiClient, withToast } from "@/lib/api-client";
@@ -27,7 +25,6 @@ interface OnboardingModalProps {
 export function OnboardingModal({ onComplete }: OnboardingModalProps) {
   const [step, setStep] = useState(1);
   const [createdProject, setCreatedProject] = useState<Project | null>(null);
-  const [showProjectForm, setShowProjectForm] = useState(true);
   const api = useApiClient();
   const router = useRouter();
 

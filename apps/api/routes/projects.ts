@@ -1,4 +1,4 @@
-import { and, eq, isNull } from "drizzle-orm";
+import { and, desc, eq, isNull } from "drizzle-orm";
 import type { FastifyInstance } from "fastify";
 import { z } from "zod";
 import { db } from "../lib/db/index.js";
@@ -35,7 +35,7 @@ export async function projectsRoutes(fastify: FastifyInstance): Promise<void> {
       .select()
       .from(projects)
       .where(and(eq(projects.userId, user.id), isNull(projects.deletedAt)))
-      .orderBy(projects.updatedAt);
+      .orderBy(desc(projects.updatedAt));
 
     return reply.send({ data: rows });
   });

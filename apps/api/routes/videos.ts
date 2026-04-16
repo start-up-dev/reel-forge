@@ -1,4 +1,4 @@
-import { and, asc, eq, isNull, sql } from "drizzle-orm";
+import { and, asc, desc, eq, ilike, isNull, sql } from "drizzle-orm";
 import type { FastifyInstance } from "fastify";
 import { z } from "zod";
 import { db } from "../lib/db/index.js";
@@ -6,7 +6,7 @@ import { clipRequests, projects, scenes, users, videos } from "../lib/db/schema.
 import { checkQuota } from "../lib/quota.js";
 
 const createVideoBody = z.object({
-  title: z.string().min(1).max(200),
+  title: z.string().min(1).max(200).default("Untitled Video"),
 });
 
 const PAGE_SIZE = 20;
@@ -50,7 +50,7 @@ export async function videosRoutes(fastify: FastifyInstance): Promise<void> {
             isNull(videos.deletedAt),
           ),
         )
-        .orderBy(videos.updatedAt)
+        .orderBy(desc(videos.updatedAt))
         .limit(PAGE_SIZE)
         .offset(offset);
 
@@ -112,7 +112,7 @@ export async function videosRoutes(fastify: FastifyInstance): Promise<void> {
         });
       }
 
-      const parsed = createVideoBody.safeParse(request.body);
+      const parsed = createVideoBody.safeParse(request.body ?? {});
       if (!parsed.success) {
         return reply.status(400).send({
           error: { code: "VALIDATION_ERROR", message: parsed.error.message },
@@ -216,25 +216,34 @@ export async function videosRoutes(fastify: FastifyInstance): Promise<void> {
   );
 
   // GET /api/videos — all videos for the authenticated user across projects (Library)
-  fastify.get<{ Querystring: { page?: string } }>(
+  fastify.get<{
+    Querystring: { page?: string; search?: string; status?: string; projectId?: string };
+  }>(
     "/videos",
     async (request, reply) => {
       const user = request.currentUser!;
       const page = Math.max(1, parseInt(request.query.page ?? "1", 10));
+      const { search, status, projectId } = request.query;
       const offset = (page - 1) * PAGE_SIZE;
+
+      const conditions = [eq(videos.userId, user.id), isNull(videos.deletedAt)];
+      if (search?.trim()) conditions.push(ilike(videos.title, `%${search.trim()}%`));
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      if (status) conditions.push(eq(videos.status, status as any));
+      if (projectId) conditions.push(eq(videos.projectId, projectId));
 
       const rows = await db
         .select()
         .from(videos)
-        .where(and(eq(videos.userId, user.id), isNull(videos.deletedAt)))
-        .orderBy(videos.updatedAt)
+        .where(and(...conditions))
+        .orderBy(desc(videos.updatedAt))
         .limit(PAGE_SIZE)
         .offset(offset);
 
       const countResult = await db
         .select({ count: sql<number>`count(*)::int` })
         .from(videos)
-        .where(and(eq(videos.userId, user.id), isNull(videos.deletedAt)));
+        .where(and(...conditions));
       const total = countResult[0]?.count ?? 0;
 
       return reply.send({

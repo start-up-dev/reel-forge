@@ -10,7 +10,6 @@ import {
   Sparkles,
   Mic,
   Image,
-  Film,
   Download,
 } from "lucide-react";
 

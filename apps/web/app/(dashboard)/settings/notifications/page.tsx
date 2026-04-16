@@ -46,7 +46,9 @@ export default function NotificationsPage() {
     if (user) {
       // These fields may not exist yet on the user object until the DB column is added;
       // default to true for both.
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       setNotifyReady((user as any).emailNotifyReady ?? true);
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       setNotifyFailed((user as any).emailNotifyFailed ?? true);
     }
   }, [user]);
@@ -81,6 +83,7 @@ export default function NotificationsPage() {
         </p>
         {user && (
           <p className="mt-2 text-xs text-[var(--text-muted)]">
+            {/* eslint-disable-next-line @typescript-eslint/no-explicit-any */}
             Sent to: <span className="text-[var(--text-secondary)]">{(user as any).email ?? "your email"}</span>
           </p>
         )}

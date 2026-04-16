@@ -52,9 +52,14 @@ async function request<T>(
     let message = `Request failed (${res.status})`;
     try {
       const body = await res.json();
-      message = body.message ?? body.error ?? message;
-    } catch {
-      // ignore parse errors
+      message = body.message ?? body.error?.message ?? body.error ?? message;
+      // Quota errors send a redirect hint — send the user to billing instead of toasting.
+      if (res.status === 402 && body.error?.redirect) {
+        window.location.href = "/billing";
+        throw new ApiError(402, message);
+      }
+    } catch (e) {
+      if (e instanceof ApiError) throw e;
     }
     throw new ApiError(res.status, message);
   }
@@ -119,9 +124,10 @@ export function createApiClient(getToken: () => Promise<string | null>) {
       get(id: string): Promise<ApiResponse<Video>> {
         return authedRequest(`/api/videos/${id}`);
       },
-      create(projectId: string): Promise<ApiResponse<Video>> {
+      create(projectId: string, title?: string): Promise<ApiResponse<Video>> {
         return authedRequest(`/api/projects/${projectId}/videos`, {
           method: "POST",
+          body: JSON.stringify(title ? { title } : {}),
         });
       },
       delete(id: string): Promise<ApiResponse<null>> {

@@ -7,7 +7,6 @@ import { toast } from "sonner";
 import { ProgressBar } from "@repo/ui/progress";
 import { Badge } from "@repo/ui/badge";
 import { useUser } from "@/lib/hooks/use-user";
-import { useApiClient, withToast } from "@/lib/api-client";
 import { PlanType } from "@repo/types";
 
 const planLabels: Record<PlanType, string> = {
@@ -44,18 +43,13 @@ const plans = [
 
 export default function BillingPage() {
   const { user, loading } = useUser();
-  const api = useApiClient();
   const [portalLoading, setPortalLoading] = useState(false);
   const [checkoutLoading, setCheckoutLoading] = useState<string | null>(null);
 
   async function handleManageSubscription() {
     setPortalLoading(true);
-    const result = await withToast(
-      () => api.library.list({ limit: 1 }) as unknown as Promise<{ url: string }>,
-      "Failed to open billing portal"
-    );
+    await new Promise((r) => setTimeout(r, 300));
     setPortalLoading(false);
-    // In production this would open the Stripe portal URL
     toast.info("Stripe billing portal coming soon");
   }
 
@@ -76,9 +70,9 @@ export default function BillingPage() {
   }
 
   const dailyUsed = user?.videosToday ?? 0;
-  const dailyLimit = user?.dailyLimit ?? 1;
+  const dailyLimit = user?.dailyLimit || 1;
   const monthlyUsed = user?.videosThisMonth ?? 0;
-  const monthlyLimit = user?.monthlyLimit ?? 1;
+  const monthlyLimit = user?.monthlyLimit || 1;
   const currentPlan = user?.plan ?? PlanType.None;
 
   return (

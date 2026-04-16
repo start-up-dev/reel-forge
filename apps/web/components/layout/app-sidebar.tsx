@@ -4,7 +4,6 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { UserButton } from "@clerk/nextjs";
 import {
-  LayoutDashboard,
   FolderOpen,
   Library,
   Settings,
@@ -13,8 +12,7 @@ import {
 } from "lucide-react";
 
 const navItems = [
-  { href: "/dashboard", label: "Dashboard", icon: LayoutDashboard },
-  { href: "/projects", label: "Projects", icon: FolderOpen },
+  { href: "/dashboard", label: "Projects", icon: FolderOpen },
   { href: "/library", label: "Library", icon: Library },
   { href: "/settings", label: "Settings", icon: Settings },
   { href: "/billing", label: "Billing", icon: CreditCard },
@@ -39,7 +37,7 @@ export function AppSidebar() {
           {navItems.map(({ href, label, icon: Icon }) => {
             const isActive =
               href === "/dashboard"
-                ? pathname === "/dashboard"
+                ? pathname === "/dashboard" || pathname.startsWith("/projects")
                 : pathname.startsWith(href);
             return (
               <li key={href}>
