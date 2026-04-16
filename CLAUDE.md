@@ -12,6 +12,10 @@ Three spec files live at the repo root (not tracked in git). Read these before m
 | `ReelForge_UI_UX_Spec.md` | Design system (colors, typography, spacing), page-by-page UI specs for every screen and component |
 | `ReelForge_MVP_Tasks.md` | Phase-by-phase task list with completion status; the source of truth for what's done and what to build next |
 
+## Task Tracking Rule
+
+**After completing any task or sub-task from `ReelForge_MVP_Tasks.md`, immediately update that file by changing `- [ ]` to `- [x]` for the completed item.** Do this as part of the same session — never defer it. `ReelForge_MVP_Tasks.md` is the single source of truth for build progress.
+
 Key facts from the PRD:
 - ReelForge routes video clip generation through an **operator browser extension** (Chrome MV3) that drives Grok Imagine's web UI — this avoids per-clip API costs and is central to the architecture.
 - The AI pipeline: **Claude** (script) → **ElevenLabs** (voiceover) → **Grok Imagine** (base images + video clips) → **FFmpeg on Cloud Run** (assembly).

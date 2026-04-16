@@ -68,8 +68,8 @@ Tasks are ordered by dependency. Each phase can largely begin after the previous
   - `clip_requests`
 - [x] Add all indexes: `projects(user_id)`, `videos(user_id, project_id, status)`, `clip_requests(status, queued_at)`, `clip_requests(video_id)`, `scenes(video_id)`
 - [x] Configure `drizzle.config.ts` pointing to Neon dev database
-- [ ] Run initial migration — apply schema to dev database
-- [ ] Verify all FK constraints and indexes via `psql` or Drizzle Studio
+- [x] Run initial migration — apply schema to dev database
+- [x] Verify all FK constraints and indexes via `psql` or Drizzle Studio
 
 ### 1.2 Shared Types Package
 
@@ -97,17 +97,17 @@ Tasks are ordered by dependency. Each phase can largely begin after the previous
 
 ### 2.1 Fastify App Bootstrap
 
-- [ ] Initialize `apps/api` as a Node.js + TypeScript project
-- [ ] Install Fastify and plugins: `@fastify/cors`, `@fastify/helmet`, `@fastify/multipart`, `@fastify/sensible`
-- [ ] Set up Fastify server entry point with graceful shutdown
-- [ ] Configure CORS to allow requests from the Next.js app domain
-- [ ] Set up environment variable loading (`dotenv` / Zod schema validation for required env vars)
-- [ ] Create `apps/api/lib/auth.ts` — Clerk JWT verification middleware using `@clerk/fastify`
-- [ ] Apply auth middleware to all routes except `/health` and `/api/billing/webhook`
+- [x] Initialize `apps/api` as a Node.js + TypeScript project
+- [x] Install Fastify and plugins: `@fastify/cors`, `@fastify/helmet`, `@fastify/multipart`, `@fastify/sensible`
+- [x] Set up Fastify server entry point with graceful shutdown
+- [x] Configure CORS to allow requests from the Next.js app domain
+- [x] Set up environment variable loading (`dotenv` / Zod schema validation for required env vars)
+- [x] Create `apps/api/lib/auth.ts` — Clerk JWT verification middleware using `@clerk/fastify`
+- [x] Apply auth middleware to all routes except `/health` and `/api/billing/webhook`
 
 ### 2.2 GCP Storage Helper
 
-- [ ] Create `apps/api/lib/storage.ts`:
+- [x] Create `apps/api/lib/storage.ts`:
   - `generateSignedUploadUrl(path, contentType, expiresInMinutes)` — returns a signed URL for PUT
   - `generateSignedReadUrl(path, expiresInMinutes)` — returns a signed URL for GET
   - `deleteObject(path)` — deletes a GCS object
@@ -115,42 +115,42 @@ Tasks are ordered by dependency. Each phase can largely begin after the previous
 
 ### 2.3 Project CRUD Routes
 
-- [ ] `GET /api/projects` — list projects for authenticated user, ordered by `updated_at` desc
-- [ ] `POST /api/projects` — create project, validate all required fields
-- [ ] `GET /api/projects/:id` — get single project (enforce `user_id` ownership check)
-- [ ] `PUT /api/projects/:id` — update project settings (enforce ownership)
-- [ ] `DELETE /api/projects/:id` — soft delete (set `deleted_at`)
-- [ ] Write integration tests for all 5 project endpoints
+- [x] `GET /api/projects` — list projects for authenticated user, ordered by `updated_at` desc
+- [x] `POST /api/projects` — create project, validate all required fields
+- [x] `GET /api/projects/:id` — get single project (enforce `user_id` ownership check)
+- [x] `PUT /api/projects/:id` — update project settings (enforce ownership)
+- [x] `DELETE /api/projects/:id` — soft delete (set `deleted_at`)
+- [x] Write integration tests for all 5 project endpoints
 
 ### 2.4 Video CRUD Routes
 
-- [ ] `GET /api/projects/:id/videos` — list videos in project with pagination
-- [ ] `POST /api/projects/:id/videos` — create new video (DRAFT status), enforce quota check before allowing creation
-- [ ] `GET /api/videos/:id` — get video with all scenes and clip_request statuses
-- [ ] `DELETE /api/videos/:id` — soft delete video, queue async GCS asset cleanup
-- [ ] Write integration tests for video CRUD endpoints
+- [x] `GET /api/projects/:id/videos` — list videos in project with pagination
+- [x] `POST /api/projects/:id/videos` — create new video (DRAFT status), enforce quota check before allowing creation
+- [x] `GET /api/videos/:id` — get video with all scenes and clip_request statuses
+- [x] `DELETE /api/videos/:id` — soft delete video, queue async GCS asset cleanup
+- [x] Write integration tests for video CRUD endpoints
 
 ### 2.5 Quota Enforcement Middleware
 
-- [ ] Create `apps/api/lib/quota.ts` — reusable quota check function:
+- [x] Create `apps/api/lib/quota.ts` — reusable quota check function:
   - Reads `plan`, `trial_paid`, `trial_video_remaining`, `videos_today`, `videos_this_month`, `daily_limit`, `monthly_limit` from users table
   - Returns `{ allowed: boolean, reason: string, redirect?: string }`
-- [ ] Wire quota check into `POST /api/projects/:id/videos`
-- [ ] Create `POST /api/billing/webhook` handler to update `users.plan`, `users.daily_limit`, `users.monthly_limit` on Stripe events:
+- [x] Wire quota check into `POST /api/projects/:id/videos`
+- [x] Create `POST /api/billing/webhook` handler to update `users.plan`, `users.daily_limit`, `users.monthly_limit` on Stripe events:
   - `checkout.session.completed` (trial payment)
   - `customer.subscription.created`
   - `customer.subscription.updated`
   - `customer.subscription.deleted`
-- [ ] Verify Stripe webhook signature on every request
+- [x] Verify Stripe webhook signature on every request
 
 ### 2.6 Assets Routes
 
-- [ ] `GET /api/assets/bgm` — list BGM tracks from a `bgm_tracks` config (JSON file or DB table)
-- [ ] `GET /api/assets/voices` — return curated list of ElevenLabs voice IDs with names, preview URLs, and language tags
+- [x] `GET /api/assets/bgm` — list BGM tracks from a `bgm_tracks` config (JSON file or DB table)
+- [x] `GET /api/assets/voices` — return curated list of ElevenLabs voice IDs with names, preview URLs, and language tags
 
 ### 2.7 Deploy API to Cloud Run (dev)
 
-- [ ] Create `apps/api/Dockerfile`
+- [x] Create `apps/api/Dockerfile`
 - [ ] Configure Cloud Run service: min instances 1, max instances 10, 1GB RAM
 - [ ] Deploy API to GCP Cloud Run dev environment
 - [ ] Verify health check endpoint returns 200
@@ -188,7 +188,7 @@ Tasks are ordered by dependency. Each phase can largely begin after the previous
 - [ ] Build `/sign-in` page (Clerk `<SignIn />` component, custom-themed card layout)
 - [ ] Test OAuth flow with Google
 - [ ] Handle Clerk webhook `user.created` → create row in `users` table via `POST /api/users/sync`
-- [ ] Implement `POST /api/users/sync` backend route
+- [x] Implement `POST /api/users/sync` backend route
 
 ### 3.4 API Client
 

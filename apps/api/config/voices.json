@@ -1,0 +1,74 @@
+[
+  {
+    "id": "21m00Tcm4TlvDq8ikWAM",
+    "name": "Rachel",
+    "gender": "female",
+    "accent": "American",
+    "language": "en",
+    "previewUrl": "https://storage.googleapis.com/eleven-public-prod/premade/voices/21m00Tcm4TlvDq8ikWAM/df3a0f0b-11a2-4e3c-a32e-43f4b39c86fa.mp3",
+    "tags": ["calm", "narration", "professional"]
+  },
+  {
+    "id": "pNInz6obpgDQGcFmaJgB",
+    "name": "Adam",
+    "gender": "male",
+    "accent": "American",
+    "language": "en",
+    "previewUrl": "https://storage.googleapis.com/eleven-public-prod/premade/voices/pNInz6obpgDQGcFmaJgB/e0d8a4d4-e01d-4b9b-8d33-7b0e5e9c64e4.mp3",
+    "tags": ["deep", "narration", "professional"]
+  },
+  {
+    "id": "EXAVITQu4vr4xnSDxMaL",
+    "name": "Bella",
+    "gender": "female",
+    "accent": "American",
+    "language": "en",
+    "previewUrl": "https://storage.googleapis.com/eleven-public-prod/premade/voices/EXAVITQu4vr4xnSDxMaL/c4fe34df-e2e2-4a08-8a39-ee1a47d0b4b0.mp3",
+    "tags": ["warm", "conversational", "friendly"]
+  },
+  {
+    "id": "VR6AewLTigWG4xSOukaG",
+    "name": "Arnold",
+    "gender": "male",
+    "accent": "American",
+    "language": "en",
+    "previewUrl": "https://storage.googleapis.com/eleven-public-prod/premade/voices/VR6AewLTigWG4xSOukaG/66e83dc2-6a33-4b61-b87f-a4d26b172f9f.mp3",
+    "tags": ["confident", "energetic", "strong"]
+  },
+  {
+    "id": "ThT5KcBeYPX3keUQqHPh",
+    "name": "Dorothy",
+    "gender": "female",
+    "accent": "British",
+    "language": "en",
+    "previewUrl": "https://storage.googleapis.com/eleven-public-prod/premade/voices/ThT5KcBeYPX3keUQqHPh/981f0855-6598-48d2-9f8f-b6d92fbbe3fc.mp3",
+    "tags": ["british", "pleasant", "clear"]
+  },
+  {
+    "id": "TxGEqnHWrfWFTfGW9XjX",
+    "name": "Josh",
+    "gender": "male",
+    "accent": "American",
+    "language": "en",
+    "previewUrl": "https://storage.googleapis.com/eleven-public-prod/premade/voices/TxGEqnHWrfWFTfGW9XjX/364b3a15-60c5-432d-9e5e-9c7e18e89f18.mp3",
+    "tags": ["young", "casual", "energetic"]
+  },
+  {
+    "id": "ErXwobaYiN019PkySvjV",
+    "name": "Antoni",
+    "gender": "male",
+    "accent": "American",
+    "language": "en",
+    "previewUrl": "https://storage.googleapis.com/eleven-public-prod/premade/voices/ErXwobaYiN019PkySvjV/9a2b7466-8834-4f01-be59-75dd46f0f2c7.mp3",
+    "tags": ["smooth", "well-rounded", "narrative"]
+  },
+  {
+    "id": "piTKgcLEGmPE4e6mEKli",
+    "name": "Nicole",
+    "gender": "female",
+    "accent": "American",
+    "language": "en",
+    "previewUrl": "https://storage.googleapis.com/eleven-public-prod/premade/voices/piTKgcLEGmPE4e6mEKli/c269a54a-e2bc-44d0-bb46-4ed2666d6340.mp3",
+    "tags": ["whisper", "asmr", "intimate"]
+  }
+]

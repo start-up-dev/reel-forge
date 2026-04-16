@@ -1,0 +1,82 @@
+[
+  {
+    "id": "bgm_energetic_01",
+    "name": "Electric Rush",
+    "category": "Energetic",
+    "duration": 120,
+    "gcsPath": "assets/bgm/bgm_energetic_01.mp3",
+    "previewUrl": ""
+  },
+  {
+    "id": "bgm_energetic_02",
+    "name": "Power Drive",
+    "category": "Energetic",
+    "duration": 90,
+    "gcsPath": "assets/bgm/bgm_energetic_02.mp3",
+    "previewUrl": ""
+  },
+  {
+    "id": "bgm_calm_01",
+    "name": "Morning Mist",
+    "category": "Calm",
+    "duration": 150,
+    "gcsPath": "assets/bgm/bgm_calm_01.mp3",
+    "previewUrl": ""
+  },
+  {
+    "id": "bgm_calm_02",
+    "name": "Gentle Waves",
+    "category": "Calm",
+    "duration": 120,
+    "gcsPath": "assets/bgm/bgm_calm_02.mp3",
+    "previewUrl": ""
+  },
+  {
+    "id": "bgm_motivational_01",
+    "name": "Rise Up",
+    "category": "Motivational",
+    "duration": 100,
+    "gcsPath": "assets/bgm/bgm_motivational_01.mp3",
+    "previewUrl": ""
+  },
+  {
+    "id": "bgm_motivational_02",
+    "name": "Never Quit",
+    "category": "Motivational",
+    "duration": 110,
+    "gcsPath": "assets/bgm/bgm_motivational_02.mp3",
+    "previewUrl": ""
+  },
+  {
+    "id": "bgm_cinematic_01",
+    "name": "Epic Horizon",
+    "category": "Cinematic",
+    "duration": 180,
+    "gcsPath": "assets/bgm/bgm_cinematic_01.mp3",
+    "previewUrl": ""
+  },
+  {
+    "id": "bgm_cinematic_02",
+    "name": "Celestial Journey",
+    "category": "Cinematic",
+    "duration": 200,
+    "gcsPath": "assets/bgm/bgm_cinematic_02.mp3",
+    "previewUrl": ""
+  },
+  {
+    "id": "bgm_upbeat_01",
+    "name": "Summer Vibes",
+    "category": "Upbeat",
+    "duration": 95,
+    "gcsPath": "assets/bgm/bgm_upbeat_01.mp3",
+    "previewUrl": ""
+  },
+  {
+    "id": "bgm_upbeat_02",
+    "name": "Good Times",
+    "category": "Upbeat",
+    "duration": 105,
+    "gcsPath": "assets/bgm/bgm_upbeat_02.mp3",
+    "previewUrl": ""
+  }
+]
