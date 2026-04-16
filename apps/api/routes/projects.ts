@@ -4,15 +4,24 @@ import { z } from "zod";
 import { db } from "../lib/db/index.js";
 import { projects } from "../lib/db/schema.js";
 
+const PLATFORMS = ["tiktok", "instagram", "youtube_shorts", "facebook_reels"] as const;
+const VIDEO_STYLES = ["educational", "motivational", "storytelling", "listicle", "tutorial", "pov"] as const;
+const TONES = ["casual", "professional", "humorous", "inspirational", "dramatic"] as const;
+const SUBTITLE_STYLES = ["bold_pop", "word_highlight", "minimal", "cinematic"] as const;
+
 const createProjectBody = z.object({
   name: z.string().min(1).max(120),
-  platform: z.enum(["tiktok", "instagram", "youtube_shorts", "facebook_reels"]),
-  niche: z.string().max(200).optional(),
-  targetAudience: z.string().max(200).optional(),
-  tone: z
-    .enum(["energetic", "calm", "motivational", "humorous", "professional"])
-    .optional(),
-  voiceId: z.string().optional(),
+  platform: z.enum(PLATFORMS),
+  niche: z.string().min(1).max(200),
+  language: z.string().min(1).max(50),
+  targetAudience: z.string().min(1).max(300),
+  videoStyle: z.enum(VIDEO_STYLES),
+  tone: z.enum(TONES),
+  voiceId: z.string().min(1),
+  defaultSubtitleStyle: z.enum(SUBTITLE_STYLES).optional(),
+  defaultBgmEnabled: z.boolean().optional(),
+  defaultBgmAssetId: z.string().nullable().optional(),
+  claudeSystemPrompt: z.string().max(2000).nullable().optional(),
 });
 
 const updateProjectBody = createProjectBody.partial();
@@ -42,12 +51,9 @@ export async function projectsRoutes(fastify: FastifyInstance): Promise<void> {
       });
     }
 
-    const { name, platform, niche, targetAudience, tone, voiceId } =
-      parsed.data;
-
     const [project] = await db
       .insert(projects)
-      .values({ userId: user.id, name, platform, niche, targetAudience, tone, voiceId })
+      .values({ userId: user.id, ...parsed.data })
       .returning();
 
     return reply.status(201).send({ data: project });
@@ -96,7 +102,6 @@ export async function projectsRoutes(fastify: FastifyInstance): Promise<void> {
         });
       }
 
-      // Verify ownership before updating
       const [existing] = await db
         .select({ id: projects.id })
         .from(projects)

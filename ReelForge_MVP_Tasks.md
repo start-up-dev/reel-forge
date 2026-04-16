@@ -14,13 +14,13 @@ Tasks are ordered by dependency. Each phase can largely begin after the previous
 
 - [x] Create GitHub repository (private)
 - [x] Initialize Turborepo monorepo with pnpm workspaces
-- [ ] Configure `turbo.json` with `build`, `dev`, `lint`, `test` pipelines
+- [x] Configure `turbo.json` with `build`, `dev`, `lint`, `check-types` pipelines (note: `test` pipeline not yet added)
 - [x] Configure `pnpm-workspace.yaml` to declare `apps/*` and `packages/*`
 - [x] Set up root `package.json` with shared dev dependencies (TypeScript, ESLint, Prettier)
-- [ ] Create `packages/config` with shared ESLint config, shared TypeScript `tsconfig.base.json`, and shared Tailwind config
-- [ ] Create `packages/types` package — empty scaffold with `index.ts`
-- [ ] Create `packages/utils` package — empty scaffold with `index.ts`
-- [ ] Add `.gitignore`, `.env.example` files at root
+- [x] Create shared config packages — implemented as `packages/eslint-config` + `packages/typescript-config` (no single `packages/config` — PRD §6 description differs from reality; separate packages are the correct approach)
+- [x] Create `packages/types` package — fully implemented with all interfaces and enums
+- [x] Create `packages/utils` package — fully implemented with all 5 utility functions
+- [x] Add `.gitignore`, `.env.example` files at root
 - [x] Configure Prettier with consistent formatting rules across all workspaces
 
 ### 0.2 GCP Project Setup
@@ -128,6 +128,9 @@ Tasks are ordered by dependency. Each phase can largely begin after the previous
 - [x] `POST /api/projects/:id/videos` — create new video (DRAFT status), enforce quota check before allowing creation
 - [x] `GET /api/videos/:id` — get video with all scenes and clip_request statuses
 - [x] `DELETE /api/videos/:id` — soft delete video, queue async GCS asset cleanup
+- [x] `GET /api/videos` — all videos for the authenticated user across projects (Library) — already implemented
+- [x] `PATCH /api/videos/:id` — update draft video fields (title, idea, script, subtitle style, BGM) — already implemented
+- [x] `POST /api/videos/:id/submit` — quota-checked submission, creates clip_requests, increments counters — already implemented
 - [x] Write integration tests for video CRUD endpoints
 
 ### 2.5 Quota Enforcement Middleware
@@ -137,8 +140,8 @@ Tasks are ordered by dependency. Each phase can largely begin after the previous
   - Returns `{ allowed: boolean, reason: string, redirect?: string }`
 - [x] Wire quota check into `POST /api/projects/:id/videos`
 - [x] Create `POST /api/billing/webhook` handler to update `users.plan`, `users.daily_limit`, `users.monthly_limit` on Stripe events:
-  - `checkout.session.completed` (trial payment)
-  - `customer.subscription.created`
+  - `checkout.session.completed` (trial payment) — also set `trial_paid = true`, `trial_video_remaining = 1`, store `stripe_customer_id`
+  - `customer.subscription.created` — store `stripe_subscription_id`
   - `customer.subscription.updated`
   - `customer.subscription.deleted`
 - [x] Verify Stripe webhook signature on every request
@@ -161,43 +164,45 @@ Tasks are ordered by dependency. Each phase can largely begin after the previous
 
 ### 3.1 Next.js Bootstrap
 
-- [ ] Initialize `apps/web` with Next.js 16.1 (App Router)
-- [ ] Install and configure Tailwind CSS
-- [ ] Install and configure shadcn/ui (initialize with dark theme)
-- [ ] Install Clerk SDK for Next.js 16 (`@clerk/nextjs`)
-- [ ] Set up `proxy.ts` at app root — protect `/dashboard`, `/projects`, `/videos`, `/library`, `/settings`, `/billing` routes
-- [ ] Create layout files: root `layout.tsx` (Clerk provider), authenticated `layout.tsx` (sidebar + nav)
-- [ ] Set up global CSS with design system CSS variables from the UI/UX spec
+- [x] Initialize `apps/web` with Next.js 16.1 (App Router)
+- [x] Install and configure Tailwind CSS
+- [x] Install and configure shadcn/ui (initialize with dark theme)
+- [x] Install Clerk SDK for Next.js 16 (`@clerk/nextjs`)
+- [x] Set up `proxy.ts` at app root — protect `/dashboard`, `/projects`, `/videos`, `/library`, `/settings`, `/billing` routes (Next.js 16 renamed `middleware.ts` → `proxy.ts` and `middleware()` → `proxy()` — PRD was correct)
+- [x] Create layout files: root `layout.tsx` (Clerk provider), authenticated `layout.tsx` (sidebar + nav)
+- [x] Set up global CSS with design system CSS variables from the UI/UX spec
 
 ### 3.2 Design System Components
 
-- [ ] Implement color palette as CSS variables in `globals.css`
-- [ ] Create reusable `Button` component (Primary, Secondary, Ghost, Danger variants + loading state)
-- [ ] Create `Card` component with standard padding and shadow
-- [ ] Create `Badge` / `Pill` component
-- [ ] Create `Skeleton` loader component (shimmer animation)
-- [ ] Create `Toast` notification system (using shadcn Sonner or custom)
-- [ ] Create `Modal` / `Dialog` wrapper component
-- [ ] Create `Confirm` dialog component (simple popover + typed-confirmation variant)
-- [ ] Create `EmptyState` component (accepts illustration, heading, body, action button)
-- [ ] Create `ProgressBar` component
+- [x] Implement color palette as CSS variables in `globals.css`
+- [x] Create reusable `Button` component (Primary, Secondary, Ghost, Danger variants + loading state)
+- [x] Create `Card` component with standard padding and shadow
+- [x] Create `Badge` / `Pill` component
+- [x] Create `Skeleton` loader component (shimmer animation)
+- [x] Create `Toast` notification system (Sonner via `<Toaster />` in dashboard layout)
+- [x] Create `Modal` / `Dialog` wrapper component
+- [x] Create `Confirm` dialog component (simple popover + typed-confirmation variant)
+- [x] Create `EmptyState` component (accepts illustration, heading, body, action button)
+- [x] Create `ProgressBar` component
 
 ### 3.3 Auth Pages
 
-- [ ] Build `/sign-up` page (Clerk `<SignUp />` component, custom-themed card layout)
-- [ ] Build `/sign-in` page (Clerk `<SignIn />` component, custom-themed card layout)
+- [x] Build `/sign-up` page (Clerk `<SignUp />` component, custom-themed card layout)
+- [x] Build `/sign-in` page (Clerk `<SignIn />` component, custom-themed card layout)
 - [ ] Test OAuth flow with Google
-- [ ] Handle Clerk webhook `user.created` → create row in `users` table via `POST /api/users/sync`
-- [x] Implement `POST /api/users/sync` backend route
+- [ ] Configure Clerk webhook in dashboard → point to `POST /api/users/sync` with `user.created` event
+- [x] Implement `POST /api/users/sync` backend route (inserts user with Clerk ID as text PK)
+- [x] Implement `GET /api/users/me` — return authenticated user profile
+- [x] Implement `PATCH /api/users/me` — update `onboarding_complete`, `firstName`, `lastName`
 
 ### 3.4 API Client
 
-- [ ] Create `apps/web/lib/api-client.ts` — typed fetch wrapper:
+- [x] Create `apps/web/lib/api-client.ts` — typed fetch wrapper:
   - Automatically attaches Clerk JWT to `Authorization` header
   - Handles `401` → redirect to sign-in
   - Handles generic errors → toast notification
   - Typed response wrappers using `packages/types`
-- [ ] Create custom React hooks for each resource: `useProjects()`, `useProject(id)`, `useVideo(id)`, `useVideos(projectId)`
+- [x] Create custom React hooks for each resource: `useProjects()`, `useProject(id)`, `useVideo(id)`, `useVideos(projectId)`
 
 ---
 
@@ -222,7 +227,7 @@ Tasks are ordered by dependency. Each phase can largely begin after the previous
 - [ ] Build 3-step onboarding modal triggered on first login (check `users.onboarding_complete`)
 - [ ] Step 1: Project creation form with voice picker (preview audio playback)
 - [ ] Step 2: Animated "How It Works" walkthrough (auto-advance + manual nav)
-- [ ] Step 3: Confirmation screen with "Go to Dashboard" CTA
+- [ ] Step 3: Trial purchase — "$2 to generate your first video" (PRD §7.1 + §8); call `POST /api/billing/trial-checkout` → redirect to Stripe Checkout; on success Stripe redirects back here and onboarding completes
 - [ ] On completion: call `PATCH /api/users/me` to set `onboarding_complete = true`
 - [ ] Ensure modal never shows again after completion
 
@@ -251,13 +256,14 @@ Tasks are ordered by dependency. Each phase can largely begin after the previous
 - [ ] Implement cross-project filter
 - [ ] Implement date range filter
 - [ ] Implement inline video player modal
-- [ ] Connect to API: `GET /api/videos` (all videos for user, paginated)
-- [ ] Add backend route: `GET /api/videos` listing all user's videos across projects
+- [ ] Connect to API: `GET /api/videos` (already implemented in Phase 2.4)
 
 ### 4.6 Settings & Billing Pages
 
 - [ ] Build `/settings/profile` page (display name, delete account)
-- [ ] Build `/settings/notifications` page (email toggles)
+- [ ] Build `/settings/notifications` page (email toggles for "video ready" and "video failed")
+- [ ] Add `email_notify_ready` and `email_notify_failed` boolean columns to `users` table (default `true`) — needed for notification preferences UI
+- [ ] Add `PATCH /api/users/me` support for `emailNotifyReady` and `emailNotifyFailed` fields
 - [ ] Build `/billing` page (current plan, usage meters, plan comparison table)
 - [ ] Implement "Manage Subscription" button linking to Stripe portal
 - [ ] Add backend route: `GET /api/billing/portal` (creates and returns Stripe billing portal URL)
@@ -279,9 +285,10 @@ Tasks are ordered by dependency. Each phase can largely begin after the previous
 
 - [ ] Build Brainstorm / Direct mode toggle
 - [ ] Build idea textarea with character counter
-- [ ] Build idea card grid (3 cards, selectable with active state)
-- [ ] Loading state for brainstorm generation
-- [ ] Wire "Use This Idea" → saves idea, advances to Step 2
+- [ ] Build idea card grid (3 cards, selectable with active state); each card has a **title** (1 line) and **body** (2–3 lines) — match PRD §7.6 JSON shape: `{ title, body }`
+- [ ] Build "Tips for great ideas" expandable hint section below the textarea (UI spec §7 Step 1)
+- [ ] Loading state for brainstorm generation (BRAINSTORM_PENDING status → spinner on cards)
+- [ ] Wire "Use This Idea" → saves idea to `videos.idea`, triggers `POST /api/videos/:id/script` (sets SCRIPT_PENDING), advances to Step 2
 
 ### 5.3 Step 2 — Script Review UI
 
@@ -301,11 +308,13 @@ Tasks are ordered by dependency. Each phase can largely begin after the previous
 
 - [ ] Build scene card grid (2-col desktop, 1-col mobile)
 - [ ] Build per-scene image area with skeleton loader, loaded state, error state
+- [ ] Display `textExcerpt` on each scene card to show which script segment it covers
 - [ ] Build visual prompt collapsible section with inline edit mode
 - [ ] Build per-scene action buttons (Regenerate, Edit Prompt, Upload Image)
-- [ ] Build image upload (file picker → preview → save)
+- [ ] Build image upload flow: file picker → `POST /api/videos/:id/scenes/:index/upload-url` → PUT to GCS → `PATCH /api/videos/:id/scenes/:index` to confirm `base_image_url`
 - [ ] Build per-scene approval checkbox
 - [ ] Build "Approve All Scenes" bulk action button
+- [ ] Build video title inline edit (pencil icon → editable, calls `PATCH /api/videos/:id`) per UI spec §7 wizard header
 - [ ] Build "Regenerate All" button
 
 ### 5.6 Step 5 — Subtitle & BGM UI
@@ -314,15 +323,17 @@ Tasks are ordered by dependency. Each phase can largely begin after the previous
 - [ ] Build BGM toggle
 - [ ] Build BGM track library (horizontal scroll row, preview playback)
 - [ ] Build volume slider (0–100%)
-- [ ] Build "Generate Video" button with trial payment gate (payment modal if not paid)
-- [ ] Wire "Generate Video" → calls `POST /api/videos/:id/submit`
+- [ ] Build "Generate Video" button — before calling submit, check `users.trial_paid`; if false, open Trial Payment Modal (Phase 11.2) instead of submitting
+- [ ] Wire "Generate Video" (post-payment) → calls `POST /api/videos/:id/submit`
 
 ### 5.7 Step 6 — Processing Screen UI
 
+> ⚠️ Depends on Phase 6.4 (SSE endpoint). Build UI shell first; wire SSE in Phase 6.4.
+
 - [ ] Build vertical progress timeline with SSE-driven state updates
 - [ ] Implement SSE client connection to `GET /api/videos/:id/status-stream`
-- [ ] Implement live queue position display
-- [ ] Implement estimated wait time calculation
+- [ ] Implement live queue position display (`queue_position` from SSE event)
+- [ ] Implement estimated wait time: `queue_position × avg_seconds_per_clip` (avg is server-computed; include in SSE payload)
 - [ ] Implement "You can leave this page" messaging
 - [ ] Implement failed state with Retry button
 - [ ] Handle SSE reconnect logic on connection drop
@@ -342,12 +353,13 @@ Tasks are ordered by dependency. Each phase can largely begin after the previous
 ### 6.1 Claude — Script Generation
 
 - [ ] Create `apps/api/services/claude.ts`:
-  - `generateIdeas(projectContext, topic)` → returns array of 3 idea objects
+  - `generateIdeas(projectContext, topic)` → returns `Array<{ title: string; body: string }>` (3 items)
   - `generateScript(projectContext, idea)` → returns plain text script
-  - `splitScenes(script, audioDurationSeconds)` → returns array of scene objects with visual prompts and duration hints
-- [ ] Assemble system prompt dynamically from project fields (platform, niche, tone, etc.)
-- [ ] Implement `POST /api/videos/:id/brainstorm` — calls `generateIdeas`, stores result temporarily
-- [ ] Implement `POST /api/videos/:id/script` — calls `generateScript`, stores in `videos.script`, updates status to `SCRIPT_READY`
+  - `splitScenes(script, audioDurationSeconds)` → returns `Array<{ scene_index, text_excerpt, visual_prompt, duration_hint_seconds }>`
+- [ ] Assemble system prompt dynamically from project fields: `platform`, `niche`, `language`, `target_audience`, `video_style`, `tone`, `claude_system_prompt` (all now in `projects` table)
+- [ ] Implement `POST /api/videos/:id/brainstorm` — set status to `BRAINSTORM_PENDING` → async call `generateIdeas` → store result in a temp cache (Redis or in-memory) → SSE or polling for result
+- [ ] Implement `POST /api/videos/:id/script` — set status to `SCRIPT_PENDING` → async call `generateScript` → store in `videos.script` → update status to `SCRIPT_READY`
+- [ ] All AI calls are async (status transitions: `*_PENDING` → `*_READY` or `FAILED`) — UI polls SSE; never block HTTP response
 - [ ] Implement error handling: API errors → set `videos.status = FAILED` + store error message
 - [ ] Write unit tests for prompt assembly logic
 
@@ -355,7 +367,7 @@ Tasks are ordered by dependency. Each phase can largely begin after the previous
 
 - [ ] Create `apps/api/services/elevenlabs.ts`:
   - `generateVoiceover(script, voiceId)` → returns `{ audioBuffer, wordTimestamps }`
-  - Handle `model_id: "eleven_v3"`, `with_timestamps: true`, `output_format: "mp3_44100_128"`
+  - Handle `model_id: "eleven_multilingual_v3"` (PRD §7.5), `with_timestamps: true`, `output_format: "mp3_44100_128"`
 - [ ] Implement `POST /api/videos/:id/voice`:
   - Call ElevenLabs API
   - Upload `audio.mp3` to GCS at `videos/{id}/audio.mp3`
@@ -367,33 +379,30 @@ Tasks are ordered by dependency. Each phase can largely begin after the previous
 
 - [ ] Create `apps/api/services/grok-image.ts`:
   - `generateImage(prompt)` → returns image URL
-- [ ] Implement scene splitting via Claude call inside `POST /api/videos/:id/scenes`:
-  - Call Claude `splitScenes()`
-  - Create `scenes` rows in DB
-  - Fire all image generation requests in parallel (`Promise.allSettled`)
-  - Upload each base image to GCS at `videos/{id}/scenes/{n}/base_image.jpg`
-  - Update each scene's `base_image_url` in DB
-  - Update video status to `SCENES_READY`
+- [ ] Implement `POST /api/videos/:id/scenes` (async): set `SCENES_PENDING` → call `splitScenes()` → insert scenes rows (with `text_excerpt`, `visual_prompt`, `scene_index`) → fire all Grok Image calls in parallel → upload to GCS → update `scenes.base_image_url` + `scenes.base_image_path` → set `SCENES_READY`
 - [ ] Implement `POST /api/videos/:id/scenes/:index/regenerate` — single scene image regeneration
-- [ ] Handle image upload from user (`POST /api/videos/:id/scenes/:index/upload-url` + update scene on complete)
+- [ ] Implement `POST /api/videos/:id/scenes/:index/upload-url` — generate signed GCS upload URL for user-supplied base image
+- [ ] Implement `PATCH /api/videos/:id/scenes/:index` — called by client after PUT to GCS to confirm `base_image_url` and `base_image_path` in DB
 
 ### 6.4 SSE Status Stream
 
 - [ ] Implement `GET /api/videos/:id/status-stream`:
   - Establish SSE connection, set appropriate headers
   - Poll DB every 2 seconds for status changes
-  - Push events: `{ type: 'status_update', data: { status, queue_position?, clips_done?, clips_total? } }`
+  - Push events: `{ type: 'status_update', data: { status, queue_position?, clips_done?, clips_total?, estimated_wait_seconds? } }`
+  - `queue_position`: count of `clip_requests` with `status='queued'` and `queued_at < this video's first queued_at`
+  - `estimated_wait_seconds`: `queue_position × 30` (approx 30s avg per clip; refine post-MVP)
   - Auto-close connection when status reaches `COMPLETE` or `FAILED`
   - Handle client disconnect cleanup
 
 ### 6.5 Video Submission
 
-- [ ] Implement `POST /api/videos/:id/submit`:
-  - Run quota check (daily + monthly + trial)
-  - If trial not paid: return `402` with `{ redirect: 'trial_checkout' }`
-  - Create one `clip_requests` row per scene (status: `queued`, `queued_at: now()`)
-  - Update video status to `CLIPS_QUEUED`
-  - Update `users.videos_today` and `users.videos_this_month` atomically
+- [x] `POST /api/videos/:id/submit` already implemented in Phase 2.4. Confirm it:
+  - Validates `SCENES_READY` status and all approved scenes have `base_image_url`
+  - Denormalises `visual_prompt` + `base_image_url` onto each `clip_requests` row
+  - Creates one `clip_requests` row per approved scene with `userId`, `visualPrompt`, `baseImageUrl`
+  - Updates video status to `CLIPS_QUEUED`
+  - Increments `videos_today`, `videos_this_month`, decrements `trial_video_remaining`
 
 ---
 
@@ -405,14 +414,15 @@ Tasks are ordered by dependency. Each phase can largely begin after the previous
 - [ ] Implement `GET /api/operator/queue`:
   - Accept `?batch_size=N` query param (default 30, max 50)
   - Run atomic `UPDATE clip_requests SET status='processing', claimed_at=NOW() WHERE id IN (SELECT id FROM clip_requests WHERE status='queued' ORDER BY queued_at ASC LIMIT N FOR UPDATE SKIP LOCKED) RETURNING *`
-  - For each claimed request, generate a fresh 60-minute signed GCS read URL from `base_image_path`
-  - Return array of claimed requests with fresh `base_image_url`
+  - `visual_prompt` and `base_image_url` are already on the `clip_requests` row (denormalised at submit time) — no join required
+  - Return array with all fields the extension needs: `id`, `videoId`, `sceneIndex`, `visualPrompt`, `baseImageUrl`
 - [ ] Implement `POST /api/operator/clips/:id/upload-url`:
   - Verify clip_request exists and is in `processing` status
   - Return a signed GCS upload URL for `videos/{video_id}/scenes/{scene_index}/clip.mp4`
 - [ ] Implement `POST /api/operator/clips/:id/complete`:
   - Set `clip_requests.status = 'done'`, `processed_at = NOW()`, `clip_url = {gcs_path}`
   - Update corresponding `scenes.clip_url`
+  - Update corresponding `scenes.clip_url` (lookup by `videoId + sceneIndex`)
   - Check if all clips for `video_id` are done — if so, dispatch GCP Cloud Task to trigger FFmpeg assembly
   - Update video status to `ASSEMBLY_PENDING` when task is dispatched
 - [ ] Implement `POST /api/operator/clips/:id/fail`:
@@ -533,7 +543,7 @@ Tasks are ordered by dependency. Each phase can largely begin after the previous
 - [ ] **Step 2 — Concatenate**: generate `clips_list.txt`, run `ffmpeg -f concat` to produce `concatenated.mp4`
 - [ ] **Step 3 — Mix audio**:
   - Without BGM: simple overlay of voiceover onto video
-  - With BGM: sidechain ducking using `sidechaincompress` filter (BGM ducks under voiceover)
+  - With BGM: use `amix` filter with `volume={bgm_volume / 100}` (PRD §12; `bgm_volume` is integer 0–100)
 - [ ] **Step 4 — Generate subtitles**: implement `apps/worker/subtitles.ts`:
   - Parse `word_timestamps.json`
   - For `bold_pop` / `word_highlight`: one ASS event per word
@@ -542,10 +552,11 @@ Tasks are ordered by dependency. Each phase can largely begin after the previous
   - Output `subtitles.ass` file
 - [ ] **Step 5 — Burn subtitles**: `ffmpeg -vf "ass=subtitles.ass"` with final encoding settings (H.264 CRF 23, AAC 192k)
 - [ ] **Step 6 — Upload and notify**:
+  - Set video status to `ASSEMBLY_PROCESSING` before upload begins
   - Upload `final.mp4` to `videos/{id}/output.mp4` in GCS
   - Generate 30-day signed URL for output
   - Update PostgreSQL: `videos.status = 'COMPLETE'`, `videos.output_url`, `videos.duration_seconds`
-  - Call Resend API to send "Video Ready" email
+  - Call Resend API to send "Video Ready" email (only if `users.email_notify_ready = true`)
   - Clean up all `/tmp/{id}/` files and intermediate GCS assets
 
 ### 9.4 Error Handling & Idempotency
@@ -618,11 +629,11 @@ Tasks are ordered by dependency. Each phase can largely begin after the previous
 
 ## Phase 13 — Shareable Links & Video Library Polish
 
-- [ ] Implement shareable video link generation: `GET /api/videos/:id/share` — generates a 7-day signed GCS URL for `output.mp4` and returns a `/watch/:token` route
-- [ ] Build `/watch/[token]` public page — no auth required, just the video player + basic metadata
-- [ ] Implement video delete: `DELETE /api/videos/:id` — soft delete in DB + queue GCS asset cleanup job
+- [ ] Implement shareable link: `GET /api/videos/:id/share` — stores a short-lived token in DB (`expires_at = now() + 7 days`), returns app URL `/watch/{token}` (not a raw GCS URL — keeps expiry control in-app)
+- [ ] Add `share_tokens` table to schema: `id (uuid)`, `video_id (uuid)`, `token (text, unique)`, `expires_at (timestamp)`; generate migration
+- [ ] Build `/watch/[token]` public page — verify token not expired, serve video player + title (no auth required)
 - [ ] Implement GCS cleanup Cloud Task: `POST /api/jobs/cleanup-deleted-assets` — deletes GCS objects for soft-deleted videos
-- [ ] Add `GET /api/videos` endpoint listing all videos for the authenticated user across projects (for Library page)
+- [ ] ~~Add `GET /api/videos`~~ — already implemented in Phase 2.4
 
 ---
 
@@ -654,7 +665,15 @@ Tasks are ordered by dependency. Each phase can largely begin after the previous
 - [ ] Verify Stripe webhook rejects requests with invalid signature
 - [ ] Verify Clerk JWT rejection on all authenticated endpoints (try invalid / expired token)
 
-### 14.4 Performance Testing
+### 14.4 Accessibility Testing
+
+- [ ] Verify visible focus rings on all interactive elements (keyboard navigation through wizard without mouse)
+- [ ] Verify all icon-only buttons have `aria-label` attributes
+- [ ] Verify wizard steps are keyboard navigable (Tab order, Enter/Space to activate)
+- [ ] Verify color contrast meets WCAG AA for all text on background color combinations
+- [ ] Test with screen reader (VoiceOver / NVDA) on sign-up and wizard flows
+
+### 14.5 Performance Testing
 
 - [ ] Verify script generation completes in < 8 seconds under load
 - [ ] Verify voiceover generation completes in < 15 seconds

@@ -4,7 +4,6 @@ import {
   integer,
   pgEnum,
   pgTable,
-  real,
   text,
   timestamp,
   uuid,
@@ -21,19 +20,23 @@ export const platformEnum = pgEnum("platform", [
   "facebook_reels",
 ]);
 
+// PRD §7.2 — corrected values (was: cinematic, vlog, animated, documentary)
 export const videoStyleEnum = pgEnum("video_style", [
-  "cinematic",
-  "vlog",
-  "animated",
-  "documentary",
+  "educational",
+  "motivational",
+  "storytelling",
+  "listicle",
+  "tutorial",
+  "pov",
 ]);
 
+// PRD §7.2 — corrected values (was: energetic, calm, motivational, humorous, professional)
 export const toneEnum = pgEnum("tone", [
-  "energetic",
-  "calm",
-  "motivational",
-  "humorous",
+  "casual",
   "professional",
+  "humorous",
+  "inspirational",
+  "dramatic",
 ]);
 
 export const subtitleStyleEnum = pgEnum("subtitle_style", [
@@ -43,6 +46,7 @@ export const subtitleStyleEnum = pgEnum("subtitle_style", [
   "cinematic",
 ]);
 
+// PRD §7.3 — added ASSEMBLY_PROCESSING between ASSEMBLY_PENDING and COMPLETE
 export const videoStatusEnum = pgEnum("video_status", [
   "DRAFT",
   "BRAINSTORM_PENDING",
@@ -55,7 +59,7 @@ export const videoStatusEnum = pgEnum("video_status", [
   "CLIPS_QUEUED",
   "CLIPS_PROCESSING",
   "ASSEMBLY_PENDING",
-  "ASSEMBLING",
+  "ASSEMBLY_PROCESSING",
   "COMPLETE",
   "FAILED",
 ]);
@@ -69,20 +73,27 @@ export const clipRequestStatusEnum = pgEnum("clip_request_status", [
 
 // ─── Tables ───────────────────────────────────────────────────────────────────
 
+/**
+ * users — PK is the Clerk user ID (text), per PRD §9.
+ * No separate clerkId column — Clerk ID IS the primary key.
+ */
 export const users = pgTable("users", {
-  id: uuid("id").primaryKey().defaultRandom(),
-  clerkId: text("clerk_id").notNull().unique(),
+  id: text("id").primaryKey(),                          // Clerk user ID
   email: text("email").notNull().unique(),
   firstName: text("first_name"),
   lastName: text("last_name"),
   plan: planTypeEnum("plan").notNull().default("none"),
   stripeCustomerId: text("stripe_customer_id").unique(),
+  stripeSubscriptionId: text("stripe_subscription_id"),
   trialPaid: boolean("trial_paid").notNull().default(false),
-  trialVideoRemaining: integer("trial_video_remaining").notNull().default(1),
+  trialVideoRemaining: integer("trial_video_remaining").notNull().default(0), // Fixed: default 0, set to 1 on $2 payment
   videosToday: integer("videos_today").notNull().default(0),
   videosThisMonth: integer("videos_this_month").notNull().default(0),
   dailyLimit: integer("daily_limit").notNull().default(0),
   monthlyLimit: integer("monthly_limit").notNull().default(0),
+  lastResetAt: timestamp("last_reset_at", { withTimezone: true })
+    .notNull()
+    .defaultNow(),
   onboardingComplete: boolean("onboarding_complete").notNull().default(false),
   createdAt: timestamp("created_at", { withTimezone: true })
     .notNull()
@@ -92,19 +103,31 @@ export const users = pgTable("users", {
     .defaultNow(),
 });
 
+/**
+ * projects — userId is text FK referencing users.id (Clerk ID).
+ * Added: language, videoStyle, defaultSubtitleStyle, defaultBgmEnabled,
+ *        defaultBgmAssetId, claudeSystemPrompt (all per PRD §7.2 / §9).
+ * Fixed: niche, targetAudience, voiceId are now required (notNull) per PRD §7.2.
+ */
 export const projects = pgTable(
   "projects",
   {
     id: uuid("id").primaryKey().defaultRandom(),
-    userId: uuid("user_id")
+    userId: text("user_id")
       .notNull()
       .references(() => users.id, { onDelete: "cascade" }),
     name: text("name").notNull(),
     platform: platformEnum("platform").notNull(),
-    niche: text("niche"),
-    targetAudience: text("target_audience"),
-    tone: toneEnum("tone"),
-    voiceId: text("voice_id"),
+    niche: text("niche").notNull(),
+    language: text("language").notNull(),
+    targetAudience: text("target_audience").notNull(),
+    videoStyle: videoStyleEnum("video_style").notNull(),
+    tone: toneEnum("tone").notNull(),
+    voiceId: text("voice_id").notNull(),
+    defaultSubtitleStyle: subtitleStyleEnum("default_subtitle_style"),
+    defaultBgmEnabled: boolean("default_bgm_enabled").notNull().default(false),
+    defaultBgmAssetId: text("default_bgm_asset_id"),
+    claudeSystemPrompt: text("claude_system_prompt"),
     deletedAt: timestamp("deleted_at", { withTimezone: true }),
     createdAt: timestamp("created_at", { withTimezone: true })
       .notNull()
@@ -116,11 +139,15 @@ export const projects = pgTable(
   (t) => [index("projects_user_id_idx").on(t.userId)],
 );
 
+/**
+ * videos — userId is text FK.
+ * Fixed: bgmVolume is integer 0–100 (was: real 0.0–1.0, PRD §9 says integer).
+ */
 export const videos = pgTable(
   "videos",
   {
     id: uuid("id").primaryKey().defaultRandom(),
-    userId: uuid("user_id")
+    userId: text("user_id")
       .notNull()
       .references(() => users.id, { onDelete: "cascade" }),
     projectId: uuid("project_id")
@@ -132,13 +159,13 @@ export const videos = pgTable(
     script: text("script"),
     audioUrl: text("audio_url"),
     wordTimestampsUrl: text("word_timestamps_url"),
-    durationSeconds: real("duration_seconds"),
+    durationSeconds: integer("duration_seconds"),
     subtitleStyle: subtitleStyleEnum("subtitle_style")
       .notNull()
       .default("bold_pop"),
     bgmEnabled: boolean("bgm_enabled").notNull().default(false),
     bgmAssetId: text("bgm_asset_id"),
-    bgmVolume: real("bgm_volume").notNull().default(0.3),
+    bgmVolume: integer("bgm_volume").notNull().default(30),   // Fixed: integer 0–100
     outputUrl: text("output_url"),
     error: text("error"),
     deletedAt: timestamp("deleted_at", { withTimezone: true }),
@@ -155,6 +182,12 @@ export const videos = pgTable(
   ],
 );
 
+/**
+ * scenes — added textExcerpt (PRD §9 + spec Step 4 scene card).
+ * Renamed: index → sceneIndex to match PRD §7.6 JSON shape.
+ * Kept: baseImagePath, clipPath for GCS asset management (not in PRD schema
+ * but needed for signed URL generation and async deletion).
+ */
 export const scenes = pgTable(
   "scenes",
   {
@@ -162,9 +195,10 @@ export const scenes = pgTable(
     videoId: uuid("video_id")
       .notNull()
       .references(() => videos.id, { onDelete: "cascade" }),
-    index: integer("index").notNull(),
+    sceneIndex: integer("scene_index").notNull(),
+    textExcerpt: text("text_excerpt").notNull(),
     visualPrompt: text("visual_prompt").notNull(),
-    durationHintSeconds: real("duration_hint_seconds"),
+    durationHintSeconds: integer("duration_hint_seconds"),
     baseImageUrl: text("base_image_url"),
     baseImagePath: text("base_image_path"),
     clipUrl: text("clip_url"),
@@ -180,6 +214,12 @@ export const scenes = pgTable(
   (t) => [index("scenes_video_id_idx").on(t.videoId)],
 );
 
+/**
+ * clip_requests — aligned to PRD §7.7 / §9.
+ * Removed: sceneId FK (not in PRD; scene linked via videoId + sceneIndex).
+ * Added: userId (for queue ownership tracking), visualPrompt, baseImageUrl
+ *        (denormalised from scenes so the extension gets everything in one query).
+ */
 export const clipRequests = pgTable(
   "clip_requests",
   {
@@ -187,10 +227,12 @@ export const clipRequests = pgTable(
     videoId: uuid("video_id")
       .notNull()
       .references(() => videos.id, { onDelete: "cascade" }),
-    sceneId: uuid("scene_id")
+    userId: text("user_id")
       .notNull()
-      .references(() => scenes.id, { onDelete: "cascade" }),
+      .references(() => users.id, { onDelete: "cascade" }),
     sceneIndex: integer("scene_index").notNull(),
+    visualPrompt: text("visual_prompt").notNull(),
+    baseImageUrl: text("base_image_url").notNull(),
     status: clipRequestStatusEnum("status").notNull().default("queued"),
     queuedAt: timestamp("queued_at", { withTimezone: true })
       .notNull()
@@ -206,7 +248,7 @@ export const clipRequests = pgTable(
   ],
 );
 
-// ─── Inferred types (re-exported for packages/types to consume) ───────────────
+// ─── Inferred types ───────────────────────────────────────────────────────────
 
 export type UserRow = typeof users.$inferSelect;
 export type NewUser = typeof users.$inferInsert;

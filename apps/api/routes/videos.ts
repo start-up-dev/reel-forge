@@ -20,7 +20,6 @@ export async function videosRoutes(fastify: FastifyInstance): Promise<void> {
       const { id: projectId } = request.params;
       const page = Math.max(1, parseInt(request.query.page ?? "1", 10));
 
-      // Verify project ownership
       const [project] = await db
         .select({ id: projects.id })
         .from(projects)
@@ -84,7 +83,6 @@ export async function videosRoutes(fastify: FastifyInstance): Promise<void> {
       const user = request.currentUser!;
       const { id: projectId } = request.params;
 
-      // Verify project ownership
       const [project] = await db
         .select({ id: projects.id })
         .from(projects)
@@ -103,7 +101,6 @@ export async function videosRoutes(fastify: FastifyInstance): Promise<void> {
         });
       }
 
-      // Quota check
       const quota = checkQuota(user);
       if (!quota.allowed) {
         return reply.status(402).send({
@@ -161,22 +158,23 @@ export async function videosRoutes(fastify: FastifyInstance): Promise<void> {
         });
       }
 
-      // Fetch scenes with their latest clip_request status
+      // Fetch scenes ordered by sceneIndex
       const sceneRows = await db
         .select()
         .from(scenes)
         .where(eq(scenes.videoId, id))
-        .orderBy(asc(scenes.index));
+        .orderBy(asc(scenes.sceneIndex));
 
       const clipRows = await db
         .select()
         .from(clipRequests)
         .where(eq(clipRequests.videoId, id));
 
-      // Attach clip request info to each scene
+      // Attach clip request info to each scene via videoId + sceneIndex
       const scenesWithClips = sceneRows.map((scene) => ({
         ...scene,
-        clipRequest: clipRows.find((c) => c.sceneId === scene.id) ?? null,
+        clipRequest:
+          clipRows.find((c) => c.sceneIndex === scene.sceneIndex) ?? null,
       }));
 
       return reply.send({ data: { ...video, scenes: scenesWithClips } });
@@ -217,7 +215,7 @@ export async function videosRoutes(fastify: FastifyInstance): Promise<void> {
     },
   );
 
-  // GET /api/videos — all videos for the authenticated user across projects (for Library)
+  // GET /api/videos — all videos for the authenticated user across projects (Library)
   fastify.get<{ Querystring: { page?: string } }>(
     "/videos",
     async (request, reply) => {
@@ -265,7 +263,7 @@ export async function videosRoutes(fastify: FastifyInstance): Promise<void> {
           .optional(),
         bgmEnabled: z.boolean().optional(),
         bgmAssetId: z.string().nullable().optional(),
-        bgmVolume: z.number().min(0).max(1).optional(),
+        bgmVolume: z.number().int().min(0).max(100).optional(), // Fixed: integer 0–100
       });
 
       const parsed = patchBody.safeParse(request.body);
@@ -303,14 +301,13 @@ export async function videosRoutes(fastify: FastifyInstance): Promise<void> {
     },
   );
 
-  // POST /api/videos/:id/submit — submit video for processing (quota + trial gate)
+  // POST /api/videos/:id/submit — submit video for clip processing
   fastify.post<{ Params: { id: string } }>(
     "/videos/:id/submit",
     async (request, reply) => {
       const user = request.currentUser!;
       const { id } = request.params;
 
-      // Re-check quota at submit time
       const quota = checkQuota(user);
       if (!quota.allowed) {
         return reply.status(402).send({
@@ -349,12 +346,12 @@ export async function videosRoutes(fastify: FastifyInstance): Promise<void> {
         });
       }
 
-      // Fetch approved scenes
+      // Fetch approved scenes ordered by sceneIndex
       const approvedScenes = await db
         .select()
         .from(scenes)
         .where(and(eq(scenes.videoId, id), eq(scenes.approved, true)))
-        .orderBy(asc(scenes.index));
+        .orderBy(asc(scenes.sceneIndex));
 
       if (approvedScenes.length === 0) {
         return reply.status(409).send({
@@ -365,29 +362,42 @@ export async function videosRoutes(fastify: FastifyInstance): Promise<void> {
         });
       }
 
-      // Create clip_requests for each approved scene
+      // Validate all approved scenes have base images before queueing
+      const missingImages = approvedScenes.filter((s) => !s.baseImageUrl);
+      if (missingImages.length > 0) {
+        return reply.status(409).send({
+          error: {
+            code: "MISSING_BASE_IMAGES",
+            message: `${missingImages.length} scene(s) are missing base images.`,
+          },
+        });
+      }
+
+      // Create clip_requests — denormalise visualPrompt and baseImageUrl from scenes
+      // so the extension can get everything it needs in a single queue-claim query.
       const clipValues = approvedScenes.map((scene) => ({
         videoId: id,
-        sceneId: scene.id,
-        sceneIndex: scene.index,
+        userId: user.id,
+        sceneIndex: scene.sceneIndex,
+        visualPrompt: scene.visualPrompt,
+        baseImageUrl: scene.baseImageUrl!, // validated above
         status: "queued" as const,
         queuedAt: new Date(),
       }));
 
       await db.insert(clipRequests).values(clipValues);
 
-      // Update video status and atomically increment usage counters
       await db
         .update(videos)
         .set({ status: "CLIPS_QUEUED", updatedAt: new Date() })
         .where(eq(videos.id, id));
 
+      // Atomically increment usage counters
       await db
         .update(users)
         .set({
           videosToday: sql`${users.videosToday} + 1`,
           videosThisMonth: sql`${users.videosThisMonth} + 1`,
-          // Decrement trial video if applicable
           trialVideoRemaining: sql`GREATEST(${users.trialVideoRemaining} - 1, 0)`,
           updatedAt: new Date(),
         })

@@ -13,19 +13,23 @@ export enum Platform {
   FacebookReels = "facebook_reels",
 }
 
+// PRD §7.2 — corrected values
 export enum VideoStyle {
-  Cinematic = "cinematic",
-  Vlog = "vlog",
-  Animated = "animated",
-  Documentary = "documentary",
+  Educational = "educational",
+  Motivational = "motivational",
+  Storytelling = "storytelling",
+  Listicle = "listicle",
+  Tutorial = "tutorial",
+  POV = "pov",
 }
 
+// PRD §7.2 — corrected values
 export enum Tone {
-  Energetic = "energetic",
-  Calm = "calm",
-  Motivational = "motivational",
-  Humorous = "humorous",
+  Casual = "casual",
   Professional = "professional",
+  Humorous = "humorous",
+  Inspirational = "inspirational",
+  Dramatic = "dramatic",
 }
 
 export enum SubtitleStyle {
@@ -35,6 +39,7 @@ export enum SubtitleStyle {
   Cinematic = "cinematic",
 }
 
+// PRD §7.3 state machine — includes ASSEMBLY_PROCESSING
 export enum VideoStatus {
   Draft = "DRAFT",
   BrainstormPending = "BRAINSTORM_PENDING",
@@ -47,7 +52,7 @@ export enum VideoStatus {
   ClipsQueued = "CLIPS_QUEUED",
   ClipsProcessing = "CLIPS_PROCESSING",
   AssemblyPending = "ASSEMBLY_PENDING",
-  Assembling = "ASSEMBLING",
+  AssemblyProcessing = "ASSEMBLY_PROCESSING",
   Complete = "COMPLETE",
   Failed = "FAILED",
 }
@@ -61,34 +66,47 @@ export enum ClipRequestStatus {
 
 // ─── Domain Types ─────────────────────────────────────────────────────────────
 
+/**
+ * User — id is the Clerk user ID (text PK), per PRD §9.
+ */
 export interface User {
-  id: string;
-  clerkId: string;
+  id: string;                       // Clerk user ID — the primary key
   email: string;
   firstName: string | null;
   lastName: string | null;
   plan: PlanType;
   stripeCustomerId: string | null;
+  stripeSubscriptionId: string | null;
   trialPaid: boolean;
-  trialVideoRemaining: number;
+  trialVideoRemaining: number;      // 0 or 1; set to 1 after $2 payment
   videosToday: number;
   videosThisMonth: number;
   dailyLimit: number;
   monthlyLimit: number;
+  lastResetAt: Date;
   onboardingComplete: boolean;
   createdAt: Date;
   updatedAt: Date;
 }
 
+/**
+ * Project — all fields required per PRD §7.2.
+ */
 export interface Project {
   id: string;
   userId: string;
   name: string;
   platform: Platform;
-  niche: string | null;
-  targetAudience: string | null;
-  tone: Tone | null;
-  voiceId: string | null;
+  niche: string;
+  language: string;
+  targetAudience: string;
+  videoStyle: VideoStyle;
+  tone: Tone;
+  voiceId: string;
+  defaultSubtitleStyle: SubtitleStyle | null;
+  defaultBgmEnabled: boolean;
+  defaultBgmAssetId: string | null;
+  claudeSystemPrompt: string | null;
   deletedAt: Date | null;
   createdAt: Date;
   updatedAt: Date;
@@ -108,7 +126,7 @@ export interface Video {
   subtitleStyle: SubtitleStyle;
   bgmEnabled: boolean;
   bgmAssetId: string | null;
-  bgmVolume: number;
+  bgmVolume: number;                // integer 0–100, default 30
   outputUrl: string | null;
   error: string | null;
   deletedAt: Date | null;
@@ -116,10 +134,15 @@ export interface Video {
   updatedAt: Date;
 }
 
+/**
+ * Scene — textExcerpt added (PRD §7.6, required for scene card UI).
+ * sceneIndex renamed from index (matches PRD §7.6 JSON shape).
+ */
 export interface Scene {
   id: string;
   videoId: string;
-  index: number;
+  sceneIndex: number;
+  textExcerpt: string;
   visualPrompt: string;
   durationHintSeconds: number | null;
   baseImageUrl: string | null;
@@ -131,11 +154,18 @@ export interface Scene {
   updatedAt: Date;
 }
 
+/**
+ * ClipRequest — aligned to PRD §7.7.
+ * Removed: sceneId FK (scene linked via videoId + sceneIndex).
+ * Added: userId, visualPrompt, baseImageUrl (denormalised for extension queue).
+ */
 export interface ClipRequest {
   id: string;
   videoId: string;
-  sceneId: string;
+  userId: string;
   sceneIndex: number;
+  visualPrompt: string;
+  baseImageUrl: string;
   status: ClipRequestStatus;
   queuedAt: Date;
   claimedAt: Date | null;

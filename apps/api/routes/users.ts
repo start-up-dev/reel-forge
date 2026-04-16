@@ -50,16 +50,17 @@ export async function usersRoutes(fastify: FastifyInstance): Promise<void> {
       });
     }
 
+    // users.id IS the Clerk user ID — insert with the Clerk ID as the PK
     await db
       .insert(users)
       .values({
-        clerkId: data.id,
+        id: data.id,
         email: primaryEmail.email_address,
         firstName: data.first_name ?? null,
         lastName: data.last_name ?? null,
       })
       .onConflictDoUpdate({
-        target: users.clerkId,
+        target: users.id,
         set: {
           email: primaryEmail.email_address,
           firstName: data.first_name ?? null,

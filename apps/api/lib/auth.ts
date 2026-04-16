@@ -31,10 +31,11 @@ export async function requireAuth(
     });
   }
 
+  // users.id IS the Clerk user ID (text PK — no separate clerkId column)
   const [user] = await db
     .select()
     .from(users)
-    .where(eq(users.clerkId, clerkId))
+    .where(eq(users.id, clerkId))
     .limit(1);
 
   if (!user) {
