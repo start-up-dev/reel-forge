@@ -15,8 +15,13 @@ const PLAN_CONFIG: Record<
   string,
   { plan: "starter" | "pro"; dailyLimit: number; monthlyLimit: number }
 > = {
-  [env.STRIPE_STARTER_PRICE_ID]: { plan: "starter", dailyLimit: 3, monthlyLimit: 30 },
-  [env.STRIPE_PRO_PRICE_ID]: { plan: "pro", dailyLimit: 10, monthlyLimit: 100 },
+  [env.STRIPE_STARTER_PRICE_ID]: { plan: "starter", dailyLimit: 5, monthlyLimit: 150 },
+  [env.STRIPE_PRO_PRICE_ID]: { plan: "pro", dailyLimit: 15, monthlyLimit: 450 },
+};
+
+const PLAN_PRICE_MAP: Record<string, string> = {
+  starter: env.STRIPE_STARTER_PRICE_ID,
+  pro: env.STRIPE_PRO_PRICE_ID,
 };
 
 export async function billingRoutes(fastify: FastifyInstance): Promise<void> {
@@ -92,19 +97,18 @@ export async function billingRoutes(fastify: FastifyInstance): Promise<void> {
   );
 
   // ─── Authenticated: subscription checkout ────────────────────────────────
-  fastify.post<{ Body: { priceId?: string } }>(
+  fastify.post<{ Body: { plan?: string } }>(
     "/subscribe",
     { preHandler: requireAuth },
     async (request, reply) => {
       const user = request.currentUser!;
-      const { priceId } = request.body ?? {};
+      const { plan } = request.body ?? {};
 
-      if (
-        !priceId ||
-        ![env.STRIPE_STARTER_PRICE_ID, env.STRIPE_PRO_PRICE_ID].includes(priceId)
-      ) {
+      const priceId = plan ? PLAN_PRICE_MAP[plan] : undefined;
+
+      if (!priceId) {
         return reply.status(400).send({
-          error: { code: "INVALID_PRICE", message: "Invalid price ID." },
+          error: { code: "INVALID_PLAN", message: "Invalid plan." },
         });
       }
 
@@ -121,6 +125,43 @@ export async function billingRoutes(fastify: FastifyInstance): Promise<void> {
       return reply.send({ data: { url: session.url } });
     },
   );
+
+  // ─── Dev only: simulate plan activation without Stripe ───────────────────
+  if (env.NODE_ENV === "development") {
+    const DEV_PLAN_CONFIGS: Record<string, {
+      plan: "none" | "try_out" | "starter" | "pro";
+      dailyLimit: number;
+      monthlyLimit: number;
+      trialPaid?: boolean;
+      trialVideoRemaining?: number;
+    }> = {
+      none:    { plan: "none",    dailyLimit: 0,  monthlyLimit: 0 },
+      try_out: { plan: "try_out", dailyLimit: 0,  monthlyLimit: 0, trialPaid: true, trialVideoRemaining: 3 },
+      starter: { plan: "starter", dailyLimit: 5,  monthlyLimit: 150 },
+      pro:     { plan: "pro",     dailyLimit: 15, monthlyLimit: 450 },
+    };
+
+    fastify.post<{ Body: { plan?: string } }>(
+      "/dev-simulate",
+      { preHandler: requireAuth },
+      async (request, reply) => {
+        const user = request.currentUser!;
+        const { plan } = request.body ?? {};
+        const config = plan ? DEV_PLAN_CONFIGS[plan] : undefined;
+
+        if (!config) {
+          return reply.status(400).send({ error: { code: "INVALID_PLAN", message: "Invalid plan." } });
+        }
+
+        await db
+          .update(users)
+          .set({ ...config, updatedAt: new Date() })
+          .where(eq(users.id, user.id));
+
+        return reply.send({ data: { ok: true } });
+      },
+    );
+  }
 
   // ─── Authenticated: Stripe billing portal ────────────────────────────────
   fastify.get("/portal", { preHandler: requireAuth }, async (request, reply) => {
@@ -151,12 +192,13 @@ async function handleStripeEvent(event: Stripe.Event): Promise<void> {
       if (!userId) return;
 
       if (session.mode === "payment") {
-        // $2 trial payment — unlock 1 trial video
+        // $5 Try Out payment — unlock 3 trial videos
         await db
           .update(users)
           .set({
+            plan: "try_out",
             trialPaid: true,
-            trialVideoRemaining: 1,
+            trialVideoRemaining: 3,
             stripeCustomerId: session.customer as string | null,
             updatedAt: new Date(),
           })

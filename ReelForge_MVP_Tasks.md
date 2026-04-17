@@ -76,7 +76,7 @@ Tasks are ordered by dependency. Each phase can largely begin after the previous
 - [x] Define and export all shared interfaces in `packages/types`:
   - `User`, `Project`, `Video`, `Scene`, `ClipRequest`
   - `VideoStatus` enum (all states from the state machine)
-  - `PlanType` enum (`none`, `starter`, `pro`)
+  - `PlanType` enum (`none`, `try_out`, `starter`, `pro`) — `try_out` added for $5 one-time plan
   - `Platform` enum, `VideoStyle` enum, `Tone` enum, `SubtitleStyle` enum
   - `ClipRequestStatus` enum
   - API response shapes: `ApiResponse<T>`, `PaginatedResponse<T>`
@@ -140,7 +140,7 @@ Tasks are ordered by dependency. Each phase can largely begin after the previous
   - Returns `{ allowed: boolean, reason: string, redirect?: string }`
 - [x] Wire quota check into `POST /api/projects/:id/videos`
 - [x] Create `POST /api/billing/webhook` handler to update `users.plan`, `users.daily_limit`, `users.monthly_limit` on Stripe events:
-  - `checkout.session.completed` (trial payment) — also set `trial_paid = true`, `trial_video_remaining = 1`, store `stripe_customer_id`
+  - `checkout.session.completed` (trial payment) — also set `trial_paid = true`, `plan = "try_out"`, `trial_video_remaining = 3`, store `stripe_customer_id`
   - `customer.subscription.created` — store `stripe_subscription_id`
   - `customer.subscription.updated`
   - `customer.subscription.deleted`
@@ -265,8 +265,8 @@ Tasks are ordered by dependency. Each phase can largely begin after the previous
 - [ ] Add `email_notify_ready` and `email_notify_failed` boolean columns to `users` table (default `true`) — needed for notification preferences UI
 - [ ] Add `PATCH /api/users/me` support for `emailNotifyReady` and `emailNotifyFailed` fields
 - [x] Build `/billing` page (current plan, usage meters, plan comparison table)
-- [x] Implement "Manage Subscription" button linking to Stripe portal (UI only — wired to real API in Phase 11)
-- [ ] Add backend route: `GET /api/billing/portal` (creates and returns Stripe billing portal URL) — deferred to Phase 11
+- [x] Implement "Manage Subscription" button — wired to real `GET /api/billing/portal` API (redirects to Stripe portal)
+- [x] Add backend route: `GET /api/billing/portal` (creates and returns Stripe billing portal URL)
 
 ---
 
@@ -594,25 +594,25 @@ Tasks are ordered by dependency. Each phase can largely begin after the previous
 
 ### 11.1 Stripe Integration
 
-- [ ] Create `apps/api/services/stripe.ts`:
-  - `createTrialCheckoutSession(userId, userEmail)` → Stripe Checkout session for $2
-  - `createSubscriptionCheckoutSession(userId, userEmail, priceId)` → Stripe Checkout for Starter/Pro
-  - `createBillingPortalSession(stripeCustomerId)` → Stripe Portal URL
-- [ ] Implement `POST /api/billing/trial-checkout` — creates $2 checkout, returns session URL
-- [ ] Implement `POST /api/billing/subscribe` — creates subscription checkout, returns session URL
-- [ ] Implement `GET /api/billing/portal` — returns billing portal URL (requires `stripe_customer_id`)
-- [ ] Implement Stripe webhook handler (already scaffolded in Phase 2 quota section — complete all event types)
-- [ ] Test full trial purchase flow end-to-end in Stripe test mode
+- [x] Stripe session logic implemented inline in `apps/api/routes/billing.ts` (not extracted to a separate service file — acceptable for MVP)
+- [x] Implement `POST /api/billing/trial-checkout` — creates $5 one-time checkout, returns session URL
+- [x] Implement `POST /api/billing/subscribe` — accepts `{ plan: "starter" | "pro" }`, resolves to Stripe price ID internally, returns session URL
+- [x] Implement `GET /api/billing/portal` — returns billing portal URL (requires `stripe_customer_id`)
+- [x] Implement Stripe webhook handler — handles `checkout.session.completed`, `customer.subscription.created/updated/deleted`
+- [x] Add `POST /api/billing/dev-simulate` (dev only) — directly sets plan in DB, bypasses Stripe for local testing
+- [ ] Test full trial purchase flow end-to-end in Stripe test mode (requires real Stripe credentials in `.env`)
 
 ### 11.2 Frontend Payment Flows
 
+- [x] Wire `/billing` page to real Stripe API — "Get Try Out" → trial checkout, "Upgrade to Starter/Pro" → subscription checkout, both redirect to Stripe
+- [x] Handle `?trial_success=1` and `?subscribed=1` redirect params on `/billing` — show success toast and refetch user
 - [ ] Implement Trial Payment Modal UI (triggered from Step 5 when `trial_paid = false`)
-- [ ] "Pay $2 and Continue" → calls `POST /api/billing/trial-checkout` → redirect to Stripe Checkout
+- [ ] "Pay $5 and Continue" → calls `POST /api/billing/trial-checkout` → redirect to Stripe Checkout
 - [ ] Stripe success redirect lands back on the wizard at the correct step
 - [ ] Implement Subscription Prompt Modal (shown on Step 7 after trial video completes)
 - [ ] Implement Daily Quota Exceeded Modal
 - [ ] Implement Monthly Quota Exceeded Modal
-- [ ] Implement Upgrade button in sidebar usage meter (links to `/billing`)
+- [ ] Implement Upgrade button in header usage meter (links to `/billing`)
 
 ---
 

@@ -1,12 +1,14 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import Link from "next/link";
+import { useSearchParams } from "next/navigation";
 import { ExternalLink, CheckCircle, Loader2, ArrowUpRight } from "lucide-react";
 import { toast } from "sonner";
 import { ProgressBar } from "@repo/ui/progress";
 import { Badge } from "@repo/ui/badge";
 import { useUser } from "@/lib/hooks/use-user";
+import { useApiClient, withToast } from "@/lib/api-client";
 import { PlanType } from "@repo/types";
 
 const planLabels: Record<PlanType, string> = {
@@ -43,23 +45,51 @@ const plans = [
 ];
 
 export default function BillingPage() {
-  const { user, loading } = useUser();
+  const { user, loading, refetch } = useUser();
+  const api = useApiClient();
+  const searchParams = useSearchParams();
   const [portalLoading, setPortalLoading] = useState(false);
   const [checkoutLoading, setCheckoutLoading] = useState<string | null>(null);
 
+  useEffect(() => {
+    if (searchParams.get("trial_success") === "1") {
+      toast.success("Try Out activated! 3 videos are ready to create.");
+      void refetch();
+    } else if (searchParams.get("subscribed") === "1") {
+      toast.success("Subscription activated! Welcome aboard.");
+      void refetch();
+    }
+  }, [searchParams, refetch]);
+
   async function handleManageSubscription() {
     setPortalLoading(true);
-    await new Promise((r) => setTimeout(r, 300));
+    const result = await withToast(() => api.billing.portal(), "Failed to open billing portal");
     setPortalLoading(false);
-    toast.info("Stripe billing portal coming soon");
+    if (result?.data?.url) window.location.href = result.data.url;
   }
 
-  async function handleUpgrade(planName: string) {
-    setCheckoutLoading(planName);
-    // In production this calls POST /api/billing/subscribe
-    await new Promise((r) => setTimeout(r, 500));
+  async function handleUpgrade(plan: PlanType) {
+    if (plan === PlanType.TryOut) {
+      setCheckoutLoading(PlanType.TryOut);
+      const result = await withToast(() => api.billing.trialCheckout(), "Failed to start checkout");
+      setCheckoutLoading(null);
+      if (result?.data?.url) window.location.href = result.data.url;
+    } else if (plan === PlanType.Starter || plan === PlanType.Pro) {
+      setCheckoutLoading(plan);
+      const result = await withToast(() => api.billing.subscribe(plan), "Failed to start checkout");
+      setCheckoutLoading(null);
+      if (result?.data?.url) window.location.href = result.data.url;
+    }
+  }
+
+  async function handleDevSimulate(plan: PlanType) {
+    setCheckoutLoading(plan);
+    const result = await withToast(() => api.billing.devSimulate(plan), "Simulation failed");
     setCheckoutLoading(null);
-    toast.info("Stripe checkout coming soon");
+    if (result) {
+      toast.success(`Simulated ${planLabels[plan]} plan`);
+      void refetch();
+    }
   }
 
   if (loading) {
@@ -169,11 +199,11 @@ export default function BillingPage() {
             {([PlanType.TryOut, PlanType.Starter, PlanType.Pro] as const).map((p) => (
               <button
                 key={p}
-                onClick={() => handleUpgrade(planLabels[p])}
+                onClick={() => handleDevSimulate(p)}
                 disabled={!!checkoutLoading || currentPlan === p}
                 className="rounded-lg border border-[var(--accent-warning)] px-3 py-1.5 text-xs font-medium text-[var(--accent-warning)] hover:bg-[var(--accent-warning)] hover:text-black transition-colors disabled:opacity-40"
               >
-                {checkoutLoading === planLabels[p] ? (
+                {checkoutLoading === p ? (
                   <Loader2 className="inline h-3 w-3 animate-spin" />
                 ) : (
                   `Simulate ${planLabels[p]}`
@@ -235,7 +265,7 @@ export default function BillingPage() {
                   </div>
                 ) : (
                   <button
-                    onClick={() => handleUpgrade(plan.name)}
+                    onClick={() => handleUpgrade(plan.planType)}
                     disabled={!!checkoutLoading}
                     className={`flex items-center justify-center gap-1.5 rounded-lg py-2 text-xs font-semibold transition-opacity hover:opacity-90 disabled:opacity-50 ${
                       plan.highlight
@@ -243,7 +273,7 @@ export default function BillingPage() {
                         : "border border-[var(--bg-border)] bg-[var(--bg-elevated)] text-[var(--text-primary)]"
                     }`}
                   >
-                    {checkoutLoading === plan.name ? (
+                    {checkoutLoading === plan.planType ? (
                       <Loader2 className="h-3.5 w-3.5 animate-spin" />
                     ) : (
                       <ArrowUpRight className="h-3.5 w-3.5" />

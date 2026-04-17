@@ -267,6 +267,28 @@ export function createApiClient(getToken: () => Promise<string | null>) {
       },
     },
 
+    // ── Billing ───────────────────────────────────────────────────────────
+    billing: {
+      trialCheckout(): Promise<ApiResponse<{ url: string }>> {
+        return authedRequest("/api/billing/trial-checkout", { method: "POST" });
+      },
+      subscribe(plan: "starter" | "pro"): Promise<ApiResponse<{ url: string }>> {
+        return authedRequest("/api/billing/subscribe", {
+          method: "POST",
+          body: JSON.stringify({ plan }),
+        });
+      },
+      portal(): Promise<ApiResponse<{ url: string }>> {
+        return authedRequest("/api/billing/portal");
+      },
+      devSimulate(plan: string): Promise<ApiResponse<{ ok: boolean }>> {
+        return authedRequest("/api/billing/dev-simulate", {
+          method: "POST",
+          body: JSON.stringify({ plan }),
+        });
+      },
+    },
+
     // ── Library (all videos across projects) ──────────────────────────────
     library: {
       list(params?: {
