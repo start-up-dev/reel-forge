@@ -46,6 +46,9 @@ const envSchema = z.object({
   RESEND_API_KEY: z.string().min(1),
   RESEND_FROM_EMAIL: z.string().email(),
 
+  // Claude / Anthropic
+  ANTHROPIC_API_KEY: z.string().min(1),
+
   // App URLs
   NEXT_PUBLIC_APP_URL: z.string().url().default("http://localhost:3000"),
   API_URL: z.string().url().default("http://localhost:4000"),

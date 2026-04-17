@@ -59,7 +59,6 @@ export function WizardHeader({
   }
 
   function handleBackClick() {
-    // Only confirm if there's meaningful in-progress work (step > 1 and not complete)
     if (currentStep > 1 && currentStep < 7) {
       setShowBackConfirm(true);
     } else {
@@ -69,23 +68,21 @@ export function WizardHeader({
 
   return (
     <>
-      <header className="sticky top-0 z-40 flex h-16 items-center gap-4 border-b border-[var(--bg-border)] bg-[var(--bg-surface)] px-4 md:px-6">
-        {/* Back */}
-        <Button
-          variant="ghost"
-          size="icon"
-          onClick={handleBackClick}
-          aria-label="Back to project"
-          className="shrink-0"
-        >
-          <ArrowLeft className="h-4 w-4" />
-        </Button>
+      <header className="sticky top-0 z-40 border-b border-[var(--bg-border)] bg-[var(--bg-surface)]">
+        {/* Row 1: Back · Breadcrumb · Save Draft */}
+        <div className="flex h-12 items-center gap-3 px-4 md:px-6">
+          <Button
+            variant="ghost"
+            size="icon"
+            onClick={handleBackClick}
+            aria-label="Back to project"
+            className="shrink-0"
+          >
+            <ArrowLeft className="h-4 w-4" />
+          </Button>
 
-        {/* Title + progress — center section */}
-        <div className="flex flex-1 flex-col items-center gap-2 overflow-hidden">
-          {/* Breadcrumb title */}
-          <div className="flex items-center gap-1.5 text-sm">
-            <span className="hidden truncate text-[var(--text-muted)] sm:block">
+          <div className="flex flex-1 items-center justify-center gap-1.5 text-sm">
+            <span className="hidden max-w-[120px] truncate text-[var(--text-muted)] sm:block">
               {projectName}
             </span>
             <span className="hidden text-[var(--text-muted)] sm:block">/</span>
@@ -109,56 +106,54 @@ export function WizardHeader({
               <button
                 type="button"
                 onClick={() => setEditingTitle(true)}
-                className="group flex items-center gap-1 truncate font-medium text-[var(--text-primary)] hover:text-[var(--accent-primary)]"
+                className="group flex items-center gap-1.5 transition-colors hover:text-[var(--accent-primary)]"
                 aria-label="Edit video title"
               >
-                <span className="truncate max-w-[160px]">{videoTitle}</span>
-                <Pencil className="h-3 w-3 shrink-0 opacity-0 transition-opacity group-hover:opacity-100" />
+                <span className="max-w-[200px] truncate font-semibold text-[var(--text-primary)] transition-colors group-hover:text-[var(--accent-primary)]">
+                  {videoTitle}
+                </span>
+                <Pencil className="h-3 w-3 shrink-0 text-[var(--text-muted)] opacity-0 transition-opacity group-hover:opacity-100" />
               </button>
             )}
           </div>
 
-          {/* Step progress */}
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={onSaveDraft}
+            className={cn(
+              "shrink-0 gap-1.5 transition-all",
+              saveState === "saved" && "text-[var(--accent-success)]",
+            )}
+            aria-label="Save draft"
+          >
+            {saveState === "saved" ? (
+              <>
+                <Check className="h-3.5 w-3.5" />
+                <span className="hidden sm:block">Saved</span>
+              </>
+            ) : (
+              <>
+                <Save
+                  className={cn(
+                    "h-3.5 w-3.5",
+                    saveState === "saving" && "animate-pulse",
+                  )}
+                />
+                <span className="hidden sm:block">Save Draft</span>
+              </>
+            )}
+          </Button>
+        </div>
+
+        {/* Row 2: Step progress bar — full-width, room to breathe */}
+        <div className="px-4 pb-3 pt-1 md:px-10">
           <StepProgressBar
             currentStep={currentStep}
             maxAllowedStep={maxAllowedStep}
             onStepClick={onStepClick}
           />
-
-          {/* Mobile step indicator */}
-          <span className="text-xs text-[var(--text-muted)] md:hidden">
-            {currentStep} / 7
-          </span>
         </div>
-
-        {/* Save Draft */}
-        <Button
-          variant="ghost"
-          size="sm"
-          onClick={onSaveDraft}
-          className={cn(
-            "shrink-0 gap-1.5 transition-all",
-            saveState === "saved" && "text-[var(--accent-success)]"
-          )}
-          aria-label="Save draft"
-        >
-          {saveState === "saved" ? (
-            <>
-              <Check className="h-3.5 w-3.5" />
-              <span className="hidden sm:block">Saved</span>
-            </>
-          ) : (
-            <>
-              <Save
-                className={cn(
-                  "h-3.5 w-3.5",
-                  saveState === "saving" && "animate-pulse"
-                )}
-              />
-              <span className="hidden sm:block">Save Draft</span>
-            </>
-          )}
-        </Button>
       </header>
 
       <ConfirmDialog

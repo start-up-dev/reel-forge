@@ -103,11 +103,11 @@ export function Step1Idea({
   }
 
   return (
-    <div className="mx-auto w-full max-w-2xl px-4 py-10">
-      <h1 className="mb-2 text-2xl font-bold text-[var(--text-primary)]">
+    <div className="relative mx-auto w-full max-w-2xl px-4 py-12">
+      <h1 className="mb-3 text-3xl font-bold tracking-tight text-[var(--text-primary)]">
         What&apos;s your video about?
       </h1>
-      <p className="mb-8 text-sm text-[var(--text-secondary)]">
+      <p className="mb-8 text-base text-[var(--text-secondary)]">
         Start with a topic or paste your full idea — we&apos;ll turn it into a
         polished script.
       </p>

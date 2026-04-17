@@ -209,8 +209,10 @@ export function WizardClient({ videoId }: { videoId: string }) {
       {/* Step content with fade transition */}
       <main
         key={currentStep}
-        className="flex-1 overflow-y-auto animate-in fade-in duration-150"
+        className="relative flex-1 overflow-y-auto animate-in fade-in duration-200"
       >
+        {/* Ambient purple glow — subtle cinematic atmosphere */}
+        <div className="pointer-events-none absolute inset-x-0 top-0 h-[500px] bg-[radial-gradient(ellipse_80%_40%_at_50%_0%,rgba(124,92,252,0.07)_0%,transparent_70%)]" />
         {currentStep === 1 && (
           <Step1Idea
             video={video}

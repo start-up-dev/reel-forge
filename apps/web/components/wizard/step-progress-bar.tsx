@@ -1,5 +1,6 @@
 "use client";
 
+import React from "react";
 import {
   CheckCircle2,
   FileText,
@@ -34,29 +35,18 @@ export function StepProgressBar({
   onStepClick,
 }: StepProgressBarProps) {
   return (
-    <nav aria-label="Wizard progress" className="flex items-center gap-0">
+    <nav aria-label="Wizard progress" className="flex w-full items-start">
       {WIZARD_STEPS.map((step, index) => {
         const stepNum = index + 1;
         const isCompleted = stepNum < currentStep;
         const isActive = stepNum === currentStep;
         const isPending = stepNum > currentStep;
         const isClickable = isCompleted && stepNum <= maxAllowedStep;
+        const isLast = index === WIZARD_STEPS.length - 1;
         const Icon = isCompleted ? CheckCircle2 : step.icon;
 
         return (
-          <div key={stepNum} className="flex items-center">
-            {/* Connector line */}
-            {index > 0 && (
-              <div
-                className={cn(
-                  "h-px w-6 transition-colors duration-300 md:w-10",
-                  stepNum <= currentStep
-                    ? "bg-[var(--accent-primary)]"
-                    : "bg-[var(--bg-border)]"
-                )}
-              />
-            )}
-
+          <React.Fragment key={stepNum}>
             <button
               type="button"
               onClick={() => isClickable && onStepClick(stepNum)}
@@ -64,47 +54,58 @@ export function StepProgressBar({
               aria-current={isActive ? "step" : undefined}
               aria-label={`Step ${stepNum}: ${step.label}${isCompleted ? " (completed)" : ""}`}
               className={cn(
-                "flex flex-col items-center gap-1 transition-all duration-200",
-                isClickable
-                  ? "cursor-pointer hover:opacity-80"
-                  : "cursor-default",
-                isPending && "opacity-40"
+                "flex shrink-0 flex-col items-center gap-1.5 transition-all duration-200",
+                isClickable ? "cursor-pointer hover:opacity-80" : "cursor-default",
               )}
             >
               <div
                 className={cn(
-                  "flex h-8 w-8 items-center justify-center rounded-full border-2 transition-all duration-300",
-                  isActive &&
-                    "border-[var(--accent-primary)] bg-[var(--accent-primary)]/20 scale-110",
+                  "flex h-9 w-9 items-center justify-center rounded-full border-2 transition-all duration-300",
+                  isActive && [
+                    "scale-110 border-[var(--accent-primary)] bg-[var(--accent-primary)]/15",
+                    "shadow-[0_0_0_4px_rgba(124,92,252,0.12),0_0_20px_rgba(124,92,252,0.45)]",
+                  ],
                   isCompleted &&
-                    "border-[var(--accent-primary)] bg-[var(--accent-primary)] text-white",
-                  isPending && "border-[var(--bg-border)] bg-transparent"
+                    "border-[var(--accent-primary)] bg-[var(--accent-primary)]",
+                  isPending &&
+                    "border-[var(--bg-border)] bg-[var(--bg-elevated)] opacity-40",
                 )}
               >
                 <Icon
                   className={cn(
-                    "h-4 w-4",
+                    "h-[17px] w-[17px] transition-colors",
                     isActive && "text-[var(--accent-primary)]",
                     isCompleted && "text-white",
                     isPending && "text-[var(--text-muted)]",
-                    isActive && stepNum === 6 && "animate-spin"
+                    isActive && stepNum === 6 && "animate-spin",
                   )}
                 />
               </div>
 
-              {/* Label: hidden on mobile, shown on desktop */}
               <span
                 className={cn(
-                  "hidden text-[10px] font-medium leading-none md:block",
+                  "hidden text-[10px] font-semibold uppercase leading-none tracking-[0.08em] transition-colors md:block",
                   isActive && "text-[var(--accent-primary)]",
                   isCompleted && "text-[var(--text-secondary)]",
-                  isPending && "text-[var(--text-muted)]"
+                  isPending && "text-[var(--text-muted)] opacity-40",
                 )}
               >
                 {step.label}
               </span>
             </button>
-          </div>
+
+            {/* Connector — flex-1 so it fills available space between steps */}
+            {!isLast && (
+              <div className="mx-1.5 mt-[18px] h-px flex-1 overflow-hidden rounded-full bg-[var(--bg-border)]">
+                <div
+                  className={cn(
+                    "h-full bg-gradient-to-r from-[var(--accent-primary)] to-[var(--accent-secondary)] transition-all duration-500 ease-out",
+                    isCompleted ? "w-full" : "w-0",
+                  )}
+                />
+              </div>
+            )}
+          </React.Fragment>
         );
       })}
     </nav>

@@ -13,7 +13,7 @@ export default function WizardLayout({
         toastOptions={{
           style: {
             background: "var(--bg-elevated)",
-            border: "1px solid var(--bg-border)]",
+            border: "1px solid var(--bg-border)",
             color: "var(--text-primary)",
           },
         }}
