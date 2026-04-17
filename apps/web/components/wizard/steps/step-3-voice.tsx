@@ -34,6 +34,17 @@ export function Step3Voice({ video, onVideoUpdate, onAdvance }: Step3VoiceProps)
   const [regenerating, setRegenerating] = useState(false);
   const isPending = video.status === VideoStatus.VoicePending;
 
+  // Auto-start generation when arriving at this step with an approved script
+  const autoStartedRef = useRef(false);
+  useEffect(() => {
+    if (autoStartedRef.current || video.status !== VideoStatus.ScriptReady) return;
+    autoStartedRef.current = true;
+    onVideoUpdate({ ...video, status: VideoStatus.VoicePending });
+    void api.videos.generateVoice(video.id).catch(() => {
+      // Polling will detect the FAILED status and surface the error
+    });
+  }, [video, api, onVideoUpdate]);
+
   // Poll while voice is generating
   useEffect(() => {
     if (!isPending) return;

@@ -75,6 +75,17 @@ export async function deleteObject(path: string): Promise<void> {
 }
 
 /**
+ * Upload a Buffer directly to GCS (used by server-side AI pipelines).
+ */
+export async function uploadBuffer(
+  path: string,
+  buffer: Buffer,
+  contentType: string,
+): Promise<void> {
+  await getBucket().file(path).save(buffer, { contentType });
+}
+
+/**
  * List all object paths under the given prefix.
  */
 export async function listObjects(prefix: string): Promise<string[]> {

@@ -352,48 +352,48 @@ Tasks are ordered by dependency. Each phase can largely begin after the previous
 
 ### 6.1 Claude — Script Generation
 
-- [ ] Create `apps/api/services/claude.ts`:
+- [x] Create `apps/api/services/claude.ts`:
   - `generateIdeas(projectContext, topic)` → returns `Array<{ title: string; body: string }>` (3 items)
   - `generateScript(projectContext, idea)` → returns plain text script
   - `splitScenes(script, audioDurationSeconds)` → returns `Array<{ scene_index, text_excerpt, visual_prompt, duration_hint_seconds }>`
-- [ ] Assemble system prompt dynamically from project fields: `platform`, `niche`, `language`, `target_audience`, `video_style`, `tone`, `claude_system_prompt` (all now in `projects` table)
-- [ ] Implement `POST /api/videos/:id/brainstorm` — set status to `BRAINSTORM_PENDING` → async call `generateIdeas` → store result in a temp cache (Redis or in-memory) → SSE or polling for result
-- [ ] Implement `POST /api/videos/:id/script` — set status to `SCRIPT_PENDING` → async call `generateScript` → store in `videos.script` → update status to `SCRIPT_READY`
-- [ ] All AI calls are async (status transitions: `*_PENDING` → `*_READY` or `FAILED`) — UI polls SSE; never block HTTP response
-- [ ] Implement error handling: API errors → set `videos.status = FAILED` + store error message
+- [x] Assemble system prompt dynamically from project fields: `platform`, `niche`, `language`, `target_audience`, `video_style`, `tone`, `claude_system_prompt` (all now in `projects` table)
+- [x] Implement `POST /api/videos/:id/brainstorm` — set status to `BRAINSTORM_PENDING` → call `generateIdeas` → return ideas in response (blocking; fast enough for MVP)
+- [x] Implement `POST /api/videos/:id/script` — set status to `SCRIPT_PENDING` → call `generateScript` → store in `videos.script` → update status to `SCRIPT_READY`
+- [x] Implement error handling: API errors → set `videos.status = FAILED` + store error message
 - [ ] Write unit tests for prompt assembly logic
 
 ### 6.2 ElevenLabs — Voiceover
 
-- [ ] Create `apps/api/services/elevenlabs.ts`:
-  - `generateVoiceover(script, voiceId)` → returns `{ audioBuffer, wordTimestamps }`
-  - Handle `model_id: "eleven_multilingual_v3"` (PRD §7.5), `with_timestamps: true`, `output_format: "mp3_44100_128"`
-- [ ] Implement `POST /api/videos/:id/voice`:
-  - Call ElevenLabs API
-  - Upload `audio.mp3` to GCS at `videos/{id}/audio.mp3`
-  - Upload `word_timestamps.json` to GCS at `videos/{id}/word_timestamps.json`
-  - Update `videos.audio_url`, `videos.word_timestamps_url`, `videos.duration_seconds`
-  - Update status to `VOICE_READY`
+- [x] Create `apps/api/services/elevenlabs.ts`:
+  - `generateVoiceover(script, voiceId)` → returns `{ audioBuffer, wordTimestamps, durationSeconds }`
+  - Uses `model_id: "eleven_multilingual_v3"`, `with-timestamps` endpoint, `output_format: "mp3_44100_128"`
+  - Converts character-level timestamps to word-level `WordTimestamp[]` before saving
+- [x] Implement `POST /api/videos/:id/voice`:
+  - Validates SCRIPT_READY state; returns 202, fires generation async
+  - Uploads `audio.mp3` to GCS at `videos/{id}/audio.mp3`
+  - Uploads `word_timestamps.json` to GCS at `videos/{id}/word_timestamps.json`
+  - Updates `videos.audio_url`, `videos.word_timestamps_url`, `videos.duration_seconds`
+  - Updates status to `VOICE_READY` (or `FAILED` on error)
 
 ### 6.3 Grok Image API — Base Images
 
-- [ ] Create `apps/api/services/grok-image.ts`:
-  - `generateImage(prompt)` → returns image URL
-- [ ] Implement `POST /api/videos/:id/scenes` (async): set `SCENES_PENDING` → call `splitScenes()` → insert scenes rows (with `text_excerpt`, `visual_prompt`, `scene_index`) → fire all Grok Image calls in parallel → upload to GCS → update `scenes.base_image_url` + `scenes.base_image_path` → set `SCENES_READY`
-- [ ] Implement `POST /api/videos/:id/scenes/:index/regenerate` — single scene image regeneration
-- [ ] Implement `POST /api/videos/:id/scenes/:index/upload-url` — generate signed GCS upload URL for user-supplied base image
-- [ ] Implement `PATCH /api/videos/:id/scenes/:index` — called by client after PUT to GCS to confirm `base_image_url` and `base_image_path` in DB
+- [x] Create `apps/api/services/grok-image.ts`:
+  - `generateImage(prompt)` → returns Buffer (via xAI `grok-2-image-1212`, `b64_json` format)
+- [x] Implement `POST /api/videos/:id/scenes` (async): validates VOICE_READY → set `SCENES_PENDING` → call `splitScenes()` → insert scene rows → fire all Grok Image calls in parallel → upload to GCS → update `scenes.base_image_url` + `scenes.base_image_path` → set `SCENES_READY`
+- [x] Implement `POST /api/videos/:id/scenes/:index/regenerate` — single scene image regeneration (synchronous, ~5s)
+- [x] Implement `POST /api/videos/:id/scenes/:index/upload-url` — generate signed GCS upload URL for user-supplied base image
+- [x] Implement `PATCH /api/videos/:id/scenes/:index` — accepts `baseImagePath`, `visualPrompt`, `approved`; generates fresh signed read URL for baseImagePath
 
 ### 6.4 SSE Status Stream
 
-- [ ] Implement `GET /api/videos/:id/status-stream`:
-  - Establish SSE connection, set appropriate headers
-  - Poll DB every 2 seconds for status changes
-  - Push events: `{ type: 'status_update', data: { status, queue_position?, clips_done?, clips_total?, estimated_wait_seconds? } }`
+- [x] Implement `GET /api/videos/:id/status-stream`:
+  - Establishes SSE connection with appropriate headers (`text/event-stream`, `X-Accel-Buffering: no`)
+  - Polls DB every 2 seconds for status changes via `reply.hijack()`
+  - Pushes events: `{ type: 'status_update', data: { status, queue_position?, clips_done?, clips_total?, estimated_wait_seconds? } }`
   - `queue_position`: count of `clip_requests` with `status='queued'` and `queued_at < this video's first queued_at`
-  - `estimated_wait_seconds`: `queue_position × 30` (approx 30s avg per clip; refine post-MVP)
-  - Auto-close connection when status reaches `COMPLETE` or `FAILED`
-  - Handle client disconnect cleanup
+  - `estimated_wait_seconds`: `queue_position × 30`
+  - Auto-closes connection when status reaches `COMPLETE` or `FAILED`
+  - Handles client disconnect cleanup via `request.raw.on("close", ...)`
 
 ### 6.5 Video Submission
 
