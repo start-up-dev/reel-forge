@@ -1,0 +1,42 @@
+{
+  "manifest_version": 3,
+  "name": "ReelForge Operator",
+  "version": "1.0.0",
+  "description": "Internal operator tool for processing ReelForge video clip queue via Grok Imagine.",
+  "permissions": [
+    "tabs",
+    "storage",
+    "scripting"
+  ],
+  "host_permissions": [
+    "https://grok.com/*",
+    "https://x.com/*",
+    "http://localhost:4000/*",
+    "https://*.run.app/*"
+  ],
+  "background": {
+    "service_worker": "background/index.js",
+    "type": "module"
+  },
+  "action": {
+    "default_popup": "popup/index.html",
+    "default_icon": {
+      "16": "icons/icon16.png",
+      "48": "icons/icon48.png",
+      "128": "icons/icon128.png"
+    }
+  },
+  "options_page": "options/index.html",
+  "content_scripts": [
+    {
+      "matches": ["https://grok.com/*", "https://x.com/*"],
+      "js": ["content/index.js"],
+      "run_at": "document_idle"
+    }
+  ],
+  "icons": {
+    "16": "icons/icon16.png",
+    "48": "icons/icon48.png",
+    "128": "icons/icon128.png"
+  }
+}

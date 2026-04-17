@@ -1,0 +1,32 @@
+{
+  "name": "@repo/extension",
+  "private": true,
+  "version": "1.0.0",
+  "type": "module",
+  "description": "ReelForge operator browser extension (Chrome MV3)",
+  "scripts": {
+    "dev": "node build.mjs",
+    "build": "node build.mjs",
+    "lint": "eslint src --ext ts,tsx",
+    "check-types": "tsc --noEmit"
+  },
+  "dependencies": {
+    "react": "^19.0.0",
+    "react-dom": "^19.0.0"
+  },
+  "devDependencies": {
+    "@repo/eslint-config": "workspace:*",
+    "@repo/typescript-config": "workspace:*",
+    "@types/chrome": "^0.0.327",
+    "@types/react": "^19.0.0",
+    "@types/react-dom": "^19.0.0",
+    "@vitejs/plugin-react": "^4.4.1",
+    "autoprefixer": "^10.4.21",
+    "eslint": "^9.0.0",
+    "postcss": "^8.5.3",
+    "tailwindcss": "^3.4.17",
+    "typescript": "5.9.2",
+    "esbuild": "^0.25.12",
+    "vite": "^6.3.3"
+  }
+}

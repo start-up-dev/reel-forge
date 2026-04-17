@@ -450,68 +450,67 @@ Tasks are ordered by dependency. Each phase can largely begin after the previous
 
 ### 8.1 Extension Scaffold
 
-- [ ] Set up `apps/extension` as a Chrome Manifest V3 project with TypeScript + Vite
-- [ ] Write `manifest.json`: permissions (`tabs`, `storage`, `webRequest`), host permissions for Grok domain and API backend
-- [ ] Set up React + Tailwind for popup UI
-- [ ] Configure Vite build to output all required extension files
+- [x] Set up `apps/extension` as a Chrome Manifest V3 project with TypeScript + Vite
+- [x] Write `manifest.json`: permissions (`tabs`, `storage`, `scripting`), host permissions for Grok domain and API backend
+- [x] Set up React + Tailwind for popup UI
+- [x] Configure Vite + esbuild build to output all required extension files (`build.mjs` — three-pass: Vite for HTML pages, esbuild for background/content scripts)
 
 ### 8.2 Extension API Client
 
-- [ ] Create `apps/extension/lib/api-client.ts`:
+- [x] Create `apps/extension/src/lib/api-client.ts`:
   - Reads `backendUrl` and `operatorSecret` from `chrome.storage.local`
   - Typed methods: `claimClips(batchSize)`, `getUploadUrl(clipId)`, `completeClip(clipId, gcsPath)`, `failClip(clipId, error)`
 
 ### 8.3 Background Service Worker
 
-- [ ] Implement `background/service-worker.ts`:
+- [x] Implement `src/background/index.ts`:
   - State machine: `idle` → `running` → `idle`
   - Queue polling loop (every 3 seconds when running): calls `claimClips(batchSize)`, dispatches each to tab manager
-  - In-memory map: `tabId → clipRequestId`
+  - In-memory map: `tabId → TabEntry`
   - Tab lifecycle management: open tabs up to concurrent limit, listen for tab close events, re-open when slots free up
-  - Message passing with popup: send session stats, receive start/stop commands
+  - Message passing with popup: send session stats, receive start/stop/retry commands
 
 ### 8.4 Content Script
 
-- [ ] Implement `content/grok-inject.ts` — injected into Grok Imagine tabs:
-  - Reads `clipRequestId` and `baseImageUrl` and `visualPrompt` from tab URL params or message
-  - Polls DOM until page is fully ready (checks for prompt input field)
+- [x] Implement `src/content/index.ts` — injected into Grok Imagine tabs:
+  - Receives `clipRequestId`, `baseImageUrl`, and `visualPrompt` via `chrome.runtime.onMessage`
+  - Polls DOM until page is fully ready (MutationObserver + polling for prompt input field)
   - Downloads base image as Blob from signed URL
   - Uses configured selector to find image upload input, programmatically sets the file
   - Pastes visual prompt into the prompt textarea using configured selector
-  - If auto-click ON: waits randomized delay, clicks Generate button
+  - If auto-click ON: waits randomized delay (fast/normal/slow mode), clicks Generate button
   - If auto-click OFF: highlights Generate button in green, waits for click event
   - Polls DOM for generated video element appearance (using configured selector)
-  - On detection: captures video as Blob
-  - Calls `getUploadUrl`, uploads Blob to GCS
-  - Calls `completeClip` with GCS path
-  - Sends completion message to service worker
+  - On detection: fetches video as Blob, gets signed upload URL, uploads to GCS, calls `completeClip`
+  - Sends `CLIP_DONE` / `CLIP_FAILED` / `SELECTOR_ERROR` messages to service worker
   - On timeout (3 min): calls `failClip`, sends failure message
 
 ### 8.5 Extension Popup UI
 
-- [ ] Build popup layout (480×520px) with dark theme matching app design system
-- [ ] Build status section: queue count, connection indicator, last updated
-- [ ] Build controls: batch size input, auto-click toggle, delay mode selector, concurrent tabs input
-- [ ] Build Start/Stop button with running state (pulse animation)
-- [ ] Build session stats display
-- [ ] Build failed clips list with per-clip Retry buttons
-- [ ] Connect all controls to service worker via `chrome.runtime.sendMessage`
+- [x] Build popup layout (480×520px) with dark theme matching app design system
+- [x] Build status section: queue count, connection indicator, active tab count
+- [x] Build controls: batch size input, auto-click toggle, delay mode selector, concurrent tabs input
+- [x] Build Start/Stop button with running state (pulse animation)
+- [x] Build session stats display
+- [x] Build failed clips list with per-clip Retry buttons
+- [x] Connect all controls to service worker via `chrome.runtime.sendMessage`
 
 ### 8.6 Extension Settings / Options Page
 
-- [ ] Build options page (`options/index.html`): full-page React app
-- [ ] Build API configuration section: backend URL input, operator secret input
-- [ ] Implement "Test Connection" → calls `GET /api/health` with operator secret header
-- [ ] Build DOM selector configuration table (4 selectors, editable, stored in `chrome.storage.sync`)
-- [ ] Implement "Test Selectors" → opens Grok tab and highlights matched elements
-- [ ] Save all settings to `chrome.storage.sync` or `chrome.storage.local` as appropriate
+- [x] Build options page (`options/index.html`): full-page React app
+- [x] Build API configuration section: backend URL input, operator secret input
+- [x] Implement "Test Connection" → calls `GET /health` with operator secret header
+- [x] Build DOM selector configuration table (4 selectors, editable, stored in `chrome.storage.local`)
+- [ ] Implement "Test Selectors" → opens Grok tab and highlights matched elements (deferred — low priority for MVP)
+- [x] Save all settings to `chrome.storage.local`
 
 ### 8.7 Failure Handling & Resilience
 
-- [ ] Implement tab crash detection (tab removed event while still `processing`)
-- [ ] Implement upload retry logic (3 retries with exponential backoff)
-- [ ] Implement selector error detection and display in popup
-- [ ] Ensure all failures report to backend via `failClip` — no silent failures
+- [x] Implement tab crash detection (`chrome.tabs.onRemoved` listener while tab still in `activeTabs` map)
+- [x] Implement upload retry logic (3 retries with exponential backoff in content script)
+- [x] Implement selector error detection and display in popup (`SELECTOR_ERROR` message → banner)
+- [x] Ensure all failures report to backend via `failClip` — no silent failures
+- [x] Implement stale tab watchdog (3-minute timeout checked on every poll cycle)
 
 ---
 
