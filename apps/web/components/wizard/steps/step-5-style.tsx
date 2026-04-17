@@ -111,13 +111,15 @@ export function Step5Style({
   }
 
   function toggleTrackPreview(track: BgmTrack) {
-    if (!audioRef.current) return;
+    if (!audioRef.current || !track.previewUrl) return;
     if (playingTrackId === track.id) {
       audioRef.current.pause();
       setPlayingTrackId(null);
     } else {
+      audioRef.current.pause();
       audioRef.current.src = track.previewUrl;
-      void audioRef.current.play();
+      audioRef.current.load();
+      audioRef.current.play().catch(() => setPlayingTrackId(null));
       setPlayingTrackId(track.id);
     }
   }
@@ -252,12 +254,16 @@ export function Step5Style({
                   const isSelected = bgmAssetId === track.id;
                   const isPlaying = playingTrackId === track.id;
                   return (
-                    <button
+                    <div
                       key={track.id}
-                      type="button"
+                      role="button"
+                      tabIndex={0}
                       onClick={() => handleTrackSelect(track.id)}
+                      onKeyDown={(e) => {
+                        if (e.key === "Enter" || e.key === " ") handleTrackSelect(track.id);
+                      }}
                       className={cn(
-                        "relative flex w-36 shrink-0 flex-col gap-1 rounded-xl border p-3 text-left transition-all",
+                        "relative flex w-36 shrink-0 cursor-pointer flex-col gap-1 rounded-xl border p-3 text-left transition-all",
                         isSelected
                           ? "border-[var(--accent-primary)] bg-[var(--accent-primary)]/10"
                           : "border-[var(--bg-border)] bg-[var(--bg-elevated)] hover:border-[var(--accent-primary)]/40"
@@ -289,7 +295,7 @@ export function Step5Style({
                           )}
                         </button>
                       </div>
-                    </button>
+                    </div>
                   );
                 })}
               </div>

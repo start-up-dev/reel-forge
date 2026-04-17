@@ -302,9 +302,12 @@ function LibraryGridCard({
   return (
     <div className="group relative overflow-hidden rounded-xl border border-[var(--bg-border)] bg-[var(--bg-surface)]">
       {/* Thumbnail */}
-      <button
+      <div
+        role="button"
+        tabIndex={0}
         onClick={onPreview}
-        className="relative block w-full aspect-[9/16] overflow-hidden bg-[var(--bg-elevated)]"
+        onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") onPreview(); }}
+        className="relative block w-full cursor-pointer aspect-[9/16] overflow-hidden bg-[var(--bg-elevated)]"
       >
         <div className="absolute inset-0 flex items-center justify-center">
           <Film className="h-8 w-8 text-[var(--bg-border)]" />
@@ -359,7 +362,7 @@ function LibraryGridCard({
             <Play className="h-5 w-5 text-white" />
           </div>
         </div>
-      </button>
+      </div>
 
       {/* Label */}
       <div className="p-2.5">
