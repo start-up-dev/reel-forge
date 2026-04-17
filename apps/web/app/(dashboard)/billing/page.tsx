@@ -101,10 +101,12 @@ export default function BillingPage() {
   }
 
   const currentPlan = user?.plan ?? PlanType.None;
+  const isTryOut = currentPlan === PlanType.TryOut;
+  const trialRemaining = user?.trialVideoRemaining ?? 0;
   const dailyUsed = user?.videosToday ?? 0;
-  const dailyLimit = currentPlan === PlanType.None ? 0 : (user?.dailyLimit ?? 0);
+  const dailyLimit = currentPlan === PlanType.None || isTryOut ? 0 : (user?.dailyLimit ?? 0);
   const monthlyUsed = user?.videosThisMonth ?? 0;
-  const monthlyLimit = currentPlan === PlanType.None ? 0 : (user?.monthlyLimit ?? 0);
+  const monthlyLimit = currentPlan === PlanType.None || isTryOut ? 0 : (user?.monthlyLimit ?? 0);
 
   return (
     <div className="mx-auto max-w-3xl space-y-8">
@@ -152,30 +154,47 @@ export default function BillingPage() {
 
         {/* Usage meters */}
         <div className="space-y-4">
-          <div>
-            <div className="mb-1.5 flex items-center justify-between text-xs">
-              <span className="text-[var(--text-secondary)]">Videos today</span>
-              <span className="font-medium text-[var(--text-primary)]">
-                {dailyUsed} / {dailyLimit}
-              </span>
+          {isTryOut ? (
+            <div>
+              <div className="mb-1.5 flex items-center justify-between text-xs">
+                <span className="text-[var(--text-secondary)]">Video credits remaining</span>
+                <span className="font-medium text-[var(--text-primary)]">
+                  {trialRemaining} / 3
+                </span>
+              </div>
+              <ProgressBar
+                value={(trialRemaining / 3) * 100}
+                color={trialRemaining === 0 ? "danger" : trialRemaining === 1 ? "warning" : "primary"}
+              />
             </div>
-            <ProgressBar
-              value={dailyLimit > 0 ? (dailyUsed / dailyLimit) * 100 : 0}
-              color={dailyLimit > 0 && dailyUsed >= dailyLimit ? "danger" : dailyLimit > 0 && dailyUsed / dailyLimit > 0.8 ? "warning" : "primary"}
-            />
-          </div>
-          <div>
-            <div className="mb-1.5 flex items-center justify-between text-xs">
-              <span className="text-[var(--text-secondary)]">Videos this month</span>
-              <span className="font-medium text-[var(--text-primary)]">
-                {monthlyUsed} / {monthlyLimit}
-              </span>
-            </div>
-            <ProgressBar
-              value={monthlyLimit > 0 ? (monthlyUsed / monthlyLimit) * 100 : 0}
-              color={monthlyLimit > 0 && monthlyUsed >= monthlyLimit ? "danger" : monthlyLimit > 0 && monthlyUsed / monthlyLimit > 0.8 ? "warning" : "primary"}
-            />
-          </div>
+          ) : (
+            <>
+              <div>
+                <div className="mb-1.5 flex items-center justify-between text-xs">
+                  <span className="text-[var(--text-secondary)]">Videos today</span>
+                  <span className="font-medium text-[var(--text-primary)]">
+                    {dailyUsed} / {dailyLimit}
+                  </span>
+                </div>
+                <ProgressBar
+                  value={dailyLimit > 0 ? (dailyUsed / dailyLimit) * 100 : 0}
+                  color={dailyLimit > 0 && dailyUsed >= dailyLimit ? "danger" : dailyLimit > 0 && dailyUsed / dailyLimit > 0.8 ? "warning" : "primary"}
+                />
+              </div>
+              <div>
+                <div className="mb-1.5 flex items-center justify-between text-xs">
+                  <span className="text-[var(--text-secondary)]">Videos this month</span>
+                  <span className="font-medium text-[var(--text-primary)]">
+                    {monthlyUsed} / {monthlyLimit}
+                  </span>
+                </div>
+                <ProgressBar
+                  value={monthlyLimit > 0 ? (monthlyUsed / monthlyLimit) * 100 : 0}
+                  color={monthlyLimit > 0 && monthlyUsed >= monthlyLimit ? "danger" : monthlyLimit > 0 && monthlyUsed / monthlyLimit > 0.8 ? "warning" : "primary"}
+                />
+              </div>
+            </>
+          )}
         </div>
 
         {currentPlan === PlanType.None && (

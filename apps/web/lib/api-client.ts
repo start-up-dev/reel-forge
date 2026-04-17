@@ -34,7 +34,7 @@ async function request<T>(
   const { token, ...fetchOptions } = options;
 
   const headers: Record<string, string> = {
-    "Content-Type": "application/json",
+    ...(fetchOptions.body ? { "Content-Type": "application/json" } : {}),
     ...(fetchOptions.headers as Record<string, string>),
   };
 
@@ -70,6 +70,7 @@ async function request<T>(
     throw new ApiError(res.status, message);
   }
 
+  if (res.status === 204) return null as T;
   return res.json() as Promise<T>;
 }
 

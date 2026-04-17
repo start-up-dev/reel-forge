@@ -26,8 +26,10 @@ export function AppHeader() {
 
   const plan = user?.plan ?? PlanType.None;
   const hasActivePlan = plan !== PlanType.None;
+  const isTryOut = plan === PlanType.TryOut;
+  const trialRemaining = user?.trialVideoRemaining ?? 0;
   const dailyUsed = user?.videosToday ?? 0;
-  const dailyLimit = hasActivePlan ? (user?.dailyLimit ?? 0) : 0;
+  const dailyLimit = hasActivePlan && !isTryOut ? (user?.dailyLimit ?? 0) : 0;
 
   return (
     <header className="flex h-16 shrink-0 items-center justify-between border-b border-[var(--bg-border)] bg-[var(--bg-surface)] px-6">
@@ -38,18 +40,37 @@ export function AppHeader() {
       <div className="flex items-center gap-5">
         {hasActivePlan && (
           <div className="flex items-center gap-3">
-            <div className="flex items-center gap-2">
-              <span className="text-xs text-[var(--text-muted)]">Videos today</span>
-              <span className={`text-xs font-medium tabular-nums ${dailyUsed >= dailyLimit ? "text-[var(--accent-danger)]" : "text-[var(--text-primary)]"}`}>
-                {dailyUsed} / {dailyLimit}
-              </span>
-            </div>
-            <div className="h-1.5 w-24 overflow-hidden rounded-full bg-[var(--bg-elevated)]">
-              <div
-                className={`h-full rounded-full transition-all ${dailyUsed >= dailyLimit ? "bg-[var(--accent-danger)]" : dailyUsed / dailyLimit > 0.8 ? "bg-[var(--accent-warning)]" : "bg-[var(--accent-primary)]"}`}
-                style={{ width: `${dailyLimit > 0 ? Math.min((dailyUsed / dailyLimit) * 100, 100) : 0}%` }}
-              />
-            </div>
+            {isTryOut ? (
+              <>
+                <div className="flex items-center gap-2">
+                  <span className="text-xs text-[var(--text-muted)]">Credits</span>
+                  <span className={`text-xs font-medium tabular-nums ${trialRemaining === 0 ? "text-[var(--accent-danger)]" : "text-[var(--text-primary)]"}`}>
+                    {trialRemaining} / 3
+                  </span>
+                </div>
+                <div className="h-1.5 w-24 overflow-hidden rounded-full bg-[var(--bg-elevated)]">
+                  <div
+                    className={`h-full rounded-full transition-all ${trialRemaining === 0 ? "bg-[var(--accent-danger)]" : trialRemaining === 1 ? "bg-[var(--accent-warning)]" : "bg-[var(--accent-primary)]"}`}
+                    style={{ width: `${Math.min((trialRemaining / 3) * 100, 100)}%` }}
+                  />
+                </div>
+              </>
+            ) : (
+              <>
+                <div className="flex items-center gap-2">
+                  <span className="text-xs text-[var(--text-muted)]">Videos today</span>
+                  <span className={`text-xs font-medium tabular-nums ${dailyUsed >= dailyLimit ? "text-[var(--accent-danger)]" : "text-[var(--text-primary)]"}`}>
+                    {dailyUsed} / {dailyLimit}
+                  </span>
+                </div>
+                <div className="h-1.5 w-24 overflow-hidden rounded-full bg-[var(--bg-elevated)]">
+                  <div
+                    className={`h-full rounded-full transition-all ${dailyUsed >= dailyLimit ? "bg-[var(--accent-danger)]" : dailyUsed / dailyLimit > 0.8 ? "bg-[var(--accent-warning)]" : "bg-[var(--accent-primary)]"}`}
+                    style={{ width: `${dailyLimit > 0 ? Math.min((dailyUsed / dailyLimit) * 100, 100) : 0}%` }}
+                  />
+                </div>
+              </>
+            )}
           </div>
         )}
         <UserButton
