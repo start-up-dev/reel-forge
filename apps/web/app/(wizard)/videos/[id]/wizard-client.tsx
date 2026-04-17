@@ -226,6 +226,7 @@ export function WizardClient({ videoId }: { videoId: string }) {
             video={video}
             onVideoUpdate={setVideo}
             onScheduleSave={scheduleSave}
+            onBack={() => goToStep(1)}
             onAdvance={() => goToStep(3)}
           />
         )}
@@ -233,6 +234,7 @@ export function WizardClient({ videoId }: { videoId: string }) {
           <Step3Voice
             video={video}
             onVideoUpdate={setVideo}
+            onBack={() => goToStep(2)}
             onAdvance={() => goToStep(4)}
           />
         )}
@@ -240,6 +242,7 @@ export function WizardClient({ videoId }: { videoId: string }) {
           <Step4Scenes
             video={video}
             onVideoUpdate={setVideo}
+            onBack={() => goToStep(3)}
             onAdvance={() => goToStep(5)}
           />
         )}
@@ -248,6 +251,7 @@ export function WizardClient({ videoId }: { videoId: string }) {
             video={video}
             onVideoUpdate={setVideo}
             onScheduleSave={scheduleSave}
+            onBack={() => goToStep(4)}
             onAdvance={() => goToStep(6)}
           />
         )}

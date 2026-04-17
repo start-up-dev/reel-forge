@@ -13,10 +13,11 @@ import { cn } from "@repo/ui/utils";
 interface Step4ScenesProps {
   video: VideoDetail;
   onVideoUpdate: (v: VideoDetail) => void;
+  onBack: () => void;
   onAdvance: () => void;
 }
 
-export function Step4Scenes({ video, onVideoUpdate, onAdvance }: Step4ScenesProps) {
+export function Step4Scenes({ video, onVideoUpdate, onBack, onAdvance }: Step4ScenesProps) {
   const api = useApiClient();
   const [scenes, setScenes] = useState<Scene[]>(video.scenes ?? []);
   const [editingPrompt, setEditingPrompt] = useState<number | null>(null);
@@ -385,12 +386,12 @@ export function Step4Scenes({ video, onVideoUpdate, onAdvance }: Step4ScenesProp
 
       {/* Bottom CTA */}
       {scenes.length > 0 && (
-        <div className="mt-8 flex justify-end">
-          <Button
-            onClick={onAdvance}
-            disabled={!allApproved}
-          >
-            {allApproved ? "Continue to Style →" : `Approve all scenes to continue`}
+        <div className="mt-8 flex items-center justify-between">
+          <Button variant="ghost" size="sm" onClick={onBack}>
+            ← Back
+          </Button>
+          <Button onClick={onAdvance} disabled={!allApproved}>
+            {allApproved ? "Continue to Style →" : "Approve all scenes to continue"}
           </Button>
         </div>
       )}

@@ -18,12 +18,13 @@ import { cn } from "@repo/ui/utils";
 interface Step3VoiceProps {
   video: VideoDetail;
   onVideoUpdate: (v: VideoDetail) => void;
+  onBack: () => void;
   onAdvance: () => void;
 }
 
 const SPEEDS = [0.75, 1, 1.25, 1.5] as const;
 
-export function Step3Voice({ video, onVideoUpdate, onAdvance }: Step3VoiceProps) {
+export function Step3Voice({ video, onVideoUpdate, onBack, onAdvance }: Step3VoiceProps) {
   const api = useApiClient();
   const audioRef = useRef<HTMLAudioElement>(null);
   const [playing, setPlaying] = useState(false);
@@ -33,6 +34,12 @@ export function Step3Voice({ video, onVideoUpdate, onAdvance }: Step3VoiceProps)
   const [approving, setApproving] = useState(false);
   const [regenerating, setRegenerating] = useState(false);
   const isPending = video.status === VideoStatus.VoicePending;
+  const isFailed = video.status === VideoStatus.Failed;
+
+  // Sync duration from server once voice generation completes
+  useEffect(() => {
+    if (video.durationSeconds) setDuration(video.durationSeconds);
+  }, [video.durationSeconds]);
 
   // Auto-start generation when arriving at this step with an approved script
   const autoStartedRef = useRef(false);
@@ -107,6 +114,19 @@ export function Step3Voice({ video, onVideoUpdate, onAdvance }: Step3VoiceProps)
       onAdvance();
     }
     setApproving(false);
+  }
+
+  if (isFailed && !regenerating) {
+    return (
+      <div className="flex flex-col items-center justify-center py-32 gap-4">
+        <p className="text-sm text-[var(--accent-danger)]">
+          {video.error ?? "Voice generation failed. Please try again."}
+        </p>
+        <Button onClick={handleRegenerate} loading={regenerating}>
+          Retry Voice Generation
+        </Button>
+      </div>
+    );
   }
 
   if (isPending || regenerating) {
@@ -255,16 +275,21 @@ export function Step3Voice({ video, onVideoUpdate, onAdvance }: Step3VoiceProps)
 
       {/* Actions */}
       <div className="mt-8 flex items-center justify-between gap-3">
-        <Button
-          variant="ghost"
-          size="sm"
-          onClick={handleRegenerate}
-          loading={regenerating}
-          className="gap-1.5"
-        >
-          <RefreshCw className="h-3.5 w-3.5" />
-          Regenerate Voice
-        </Button>
+        <div className="flex items-center gap-2">
+          <Button variant="ghost" size="sm" onClick={onBack}>
+            ← Back
+          </Button>
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={handleRegenerate}
+            loading={regenerating}
+            className="gap-1.5"
+          >
+            <RefreshCw className="h-3.5 w-3.5" />
+            Regenerate Voice
+          </Button>
+        </div>
 
         <Button onClick={handleApprove} loading={approving}>
           Approve Voice →

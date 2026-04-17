@@ -19,8 +19,8 @@ const createVideoBody = z.object({
 
 const PAGE_SIZE = 20;
 
-// 30-day signed URL TTL for AI-generated assets (audio, images)
-const ASSET_URL_TTL_MINUTES = 60 * 24 * 30;
+// 7-day signed URL TTL — GCS v4 signed URLs max out at 604800 seconds
+const ASSET_URL_TTL_MINUTES = 60 * 24 * 7;
 
 // ─── Background: voice generation ────────────────────────────────────────────
 
@@ -547,11 +547,12 @@ export async function videosRoutes(fastify: FastifyInstance): Promise<void> {
           error: { code: "NOT_FOUND", message: "Video not found." },
         });
       }
-      if (video.status !== "SCRIPT_READY") {
+      const voiceAllowedStates = ["SCRIPT_READY", "VOICE_READY", "FAILED"];
+      if (!voiceAllowedStates.includes(video.status)) {
         return reply.status(409).send({
           error: {
             code: "INVALID_STATE",
-            message: `Video must be in SCRIPT_READY state to generate voice (currently: ${video.status}).`,
+            message: `Video must be in SCRIPT_READY, VOICE_READY, or FAILED state to generate voice (currently: ${video.status}).`,
           },
         });
       }

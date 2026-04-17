@@ -19,6 +19,7 @@ interface Step5StyleProps {
       bgmVolume: number;
     }>
   ) => void;
+  onBack: () => void;
   onAdvance: () => void;
 }
 
@@ -57,6 +58,7 @@ export function Step5Style({
   video,
   onVideoUpdate,
   onScheduleSave,
+  onBack,
   onAdvance,
 }: Step5StyleProps) {
   const api = useApiClient();
@@ -321,14 +323,19 @@ export function Step5Style({
 
       {/* Generate button */}
       <div className="space-y-2">
-        <Button
-          onClick={handleGenerateVideo}
-          loading={submitting}
-          className="w-full"
-          size="lg"
-        >
-          Generate Video
-        </Button>
+        <div className="flex items-center gap-3">
+          <Button variant="ghost" size="sm" onClick={onBack} className="shrink-0">
+            ← Back
+          </Button>
+          <Button
+            onClick={handleGenerateVideo}
+            loading={submitting}
+            className="flex-1"
+            size="lg"
+          >
+            Generate Video
+          </Button>
+        </div>
         <p className="text-center text-xs text-[var(--text-muted)]">
           Once submitted, your clips will be queued. You&apos;ll get an email
           when your video is ready.

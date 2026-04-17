@@ -17,6 +17,7 @@ interface Step2ScriptProps {
   video: VideoDetail;
   onVideoUpdate: (v: VideoDetail) => void;
   onScheduleSave: (data: { script?: string }) => void;
+  onBack: () => void;
   onAdvance: () => void;
 }
 
@@ -28,6 +29,7 @@ export function Step2Script({
   video,
   onVideoUpdate,
   onScheduleSave,
+  onBack,
   onAdvance,
 }: Step2ScriptProps) {
   const api = useApiClient();
@@ -177,16 +179,21 @@ export function Step2Script({
 
       {/* Actions */}
       <div className="flex items-center justify-between gap-3">
-        <Button
-          variant="ghost"
-          size="sm"
-          onClick={() => (isEdited ? setShowRegenConfirm(true) : handleRegenerate())}
-          loading={regenerating}
-          className="gap-1.5"
-        >
-          <RefreshCw className="h-3.5 w-3.5" />
-          Regenerate
-        </Button>
+        <div className="flex items-center gap-2">
+          <Button variant="ghost" size="sm" onClick={onBack}>
+            ← Back
+          </Button>
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={() => (isEdited ? setShowRegenConfirm(true) : handleRegenerate())}
+            loading={regenerating}
+            className="gap-1.5"
+          >
+            <RefreshCw className="h-3.5 w-3.5" />
+            Regenerate
+          </Button>
+        </div>
 
         <Button onClick={handleApprove} loading={approving}>
           Approve Script →
