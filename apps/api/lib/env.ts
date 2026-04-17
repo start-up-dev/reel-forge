@@ -59,6 +59,9 @@ const envSchema = z.object({
   // App URLs
   NEXT_PUBLIC_APP_URL: z.string().url().default("http://localhost:3000"),
   API_URL: z.string().url().default("http://localhost:4000"),
+
+  // FFmpeg worker (Cloud Run) — optional until Phase 9 deployment
+  WORKER_URL: z.string().url().optional(),
 });
 
 const parsed = envSchema.safeParse(process.env);

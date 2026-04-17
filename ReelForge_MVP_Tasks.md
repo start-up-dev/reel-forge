@@ -410,39 +410,37 @@ Tasks are ordered by dependency. Each phase can largely begin after the previous
 
 ### 7.1 Queue Endpoints
 
-- [ ] Create Fastify route plugin for `/api/operator/*` — validates `X-Operator-Secret` header against env var, rejects with `403` if missing/wrong
-- [ ] Implement `GET /api/operator/queue`:
+- [x] Create Fastify route plugin for `/api/operator/*` — validates `X-Operator-Secret` header against env var, rejects with `403` if missing/wrong
+- [x] Implement `GET /api/operator/queue`:
   - Accept `?batch_size=N` query param (default 30, max 50)
   - Run atomic `UPDATE clip_requests SET status='processing', claimed_at=NOW() WHERE id IN (SELECT id FROM clip_requests WHERE status='queued' ORDER BY queued_at ASC LIMIT N FOR UPDATE SKIP LOCKED) RETURNING *`
   - `visual_prompt` and `base_image_url` are already on the `clip_requests` row (denormalised at submit time) — no join required
   - Return array with all fields the extension needs: `id`, `videoId`, `sceneIndex`, `visualPrompt`, `baseImageUrl`
-- [ ] Implement `POST /api/operator/clips/:id/upload-url`:
+  - Also transitions video status from `CLIPS_QUEUED` → `CLIPS_PROCESSING` on first claim
+- [x] Implement `POST /api/operator/clips/:id/upload-url`:
   - Verify clip_request exists and is in `processing` status
   - Return a signed GCS upload URL for `videos/{video_id}/scenes/{scene_index}/clip.mp4`
-- [ ] Implement `POST /api/operator/clips/:id/complete`:
+- [x] Implement `POST /api/operator/clips/:id/complete`:
   - Set `clip_requests.status = 'done'`, `processed_at = NOW()`, `clip_url = {gcs_path}`
-  - Update corresponding `scenes.clip_url`
-  - Update corresponding `scenes.clip_url` (lookup by `videoId + sceneIndex`)
-  - Check if all clips for `video_id` are done — if so, dispatch GCP Cloud Task to trigger FFmpeg assembly
+  - Update corresponding `scenes.clip_url` + `scenes.clip_path` (lookup by `videoId + sceneIndex`)
+  - Check if all clips for `video_id` are done — if so, dispatch FFmpeg assembly task
   - Update video status to `ASSEMBLY_PENDING` when task is dispatched
-- [ ] Implement `POST /api/operator/clips/:id/fail`:
+- [x] Implement `POST /api/operator/clips/:id/fail`:
   - Set `clip_requests.status = 'failed'`, `error = {message}`
-  - If this failure causes the video to be unrecoverable, set video status to `FAILED`
+  - If no clips remain queued/processing, set video status to `FAILED`
+- [x] Create `apps/api/lib/cloud-tasks.ts` — `dispatchAssemblyTask(videoId)` calls `WORKER_URL/assemble`; no-ops with a warning if `WORKER_URL` is not set (dev without worker)
 
 ### 7.2 Stale Lock Cleanup
 
-- [ ] Create `apps/api/jobs/cleanup-stale-clips.ts`:
-  - Runs as a GCP Cloud Task endpoint `POST /api/jobs/cleanup-stale-clips`
+- [x] Implemented as `POST /api/jobs/cleanup-stale-clips` in `apps/api/routes/jobs.ts`:
   - Finds all `clip_requests` with `status = 'processing'` and `claimed_at < NOW() - INTERVAL '10 minutes'`
   - Resets them to `status = 'queued'`, clears `claimed_at`
 - [ ] Set up GCP Cloud Scheduler to trigger this endpoint every 5 minutes
 
 ### 7.3 Quota Reset Jobs
 
-- [ ] Create `apps/api/jobs/reset-daily-quota.ts`:
-  - `POST /api/jobs/reset-daily-quota` — sets `videos_today = 0` for all users
-- [ ] Create `apps/api/jobs/reset-monthly-quota.ts`:
-  - `POST /api/jobs/reset-monthly-quota` — sets `videos_this_month = 0` for all users
+- [x] Implemented as `POST /api/jobs/reset-daily-quota` — sets `videos_today = 0` for all users
+- [x] Implemented as `POST /api/jobs/reset-monthly-quota` — sets `videos_this_month = 0` for all users
 - [ ] Set up GCP Cloud Scheduler: daily reset at UTC midnight every day
 - [ ] Set up GCP Cloud Scheduler: monthly reset at UTC midnight on the 1st of each month
 

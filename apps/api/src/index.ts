@@ -12,6 +12,8 @@ import { env } from "../lib/env.js";
 import { requireAuth } from "../lib/auth.js";
 import { assetsRoutes } from "../routes/assets.js";
 import { billingRoutes } from "../routes/billing.js";
+import { jobsRoutes } from "../routes/jobs.js";
+import { operatorRoutes } from "../routes/operator.js";
 import { projectsRoutes } from "../routes/projects.js";
 import { usersRoutes } from "../routes/users.js";
 import { videosRoutes } from "../routes/videos.js";
@@ -53,6 +55,12 @@ await app.register(billingRoutes, { prefix: "/api/billing" });
 
 // User sync webhook (Clerk) + /me routes (auth via preHandler inside plugin)
 await app.register(usersRoutes, { prefix: "/api/users" });
+
+// Operator queue — validated by X-Operator-Secret header (not Clerk JWT)
+await app.register(operatorRoutes, { prefix: "/api" });
+
+// Internal cron jobs — also validated by X-Operator-Secret
+await app.register(jobsRoutes, { prefix: "/api" });
 
 // ─── Authenticated routes ─────────────────────────────────────────────────────
 // All routes below require a valid Clerk JWT + an existing user row in the DB.
