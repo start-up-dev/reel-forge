@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import {
   Pause,
   Play,
@@ -33,7 +33,15 @@ export function Step3Voice({ video, onVideoUpdate, onBack, onAdvance }: Step3Voi
   const [speed, setSpeed] = useState<(typeof SPEEDS)[number]>(1);
   const [approving, setApproving] = useState(false);
   const [regenerating, setRegenerating] = useState(false);
+  const [audioError, setAudioError] = useState<string | null>(null);
   const isPending = video.status === VideoStatus.VoicePending;
+
+  // Stable waveform heights — recalculated only when a new audio URL arrives
+  const waveHeights = useMemo(
+    () => Array.from({ length: 60 }, (_, i) => Math.max(8, 20 + Math.sin(i * 0.7) * 15 + Math.random() * 20)),
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [video.audioUrl],
+  );
   const isFailed = video.status === VideoStatus.Failed;
 
   // Sync duration from server once voice generation completes
@@ -109,8 +117,8 @@ export function Step3Voice({ video, onVideoUpdate, onBack, onAdvance }: Step3Voi
       () => api.videos.generateScenes(video.id),
       "Failed to start scene generation"
     );
-    if (result?.data) {
-      onVideoUpdate(result.data);
+    if (result) {
+      onVideoUpdate({ ...video, status: VideoStatus.ScenesPending, scenes: [] });
       onAdvance();
     }
     setApproving(false);
@@ -165,18 +173,33 @@ export function Step3Voice({ video, onVideoUpdate, onBack, onAdvance }: Step3Voi
             setCurrentTime(audioRef.current?.currentTime ?? 0)
           }
           onLoadedMetadata={() => {
+            setAudioError(null);
             const d = audioRef.current?.duration ?? 0;
             setDuration(d);
+          }}
+          onError={(e) => {
+            const el = e.currentTarget;
+            const code = el.error?.code;
+            const msg =
+              code === 1 ? "Audio load aborted"
+              : code === 2 ? "Audio network error — check GCS CORS"
+              : code === 3 ? "Audio decode error"
+              : code === 4 ? "Audio format not supported"
+              : "Audio failed to load";
+            setAudioError(msg);
+            console.error("[Step3Voice] audio error:", msg, el.error);
           }}
         />
       )}
 
       <div className="rounded-2xl border border-[var(--bg-border)] bg-[var(--bg-elevated)] p-6">
         {/* Waveform (static visual) */}
+        {audioError && (
+          <p className="mb-2 text-xs text-[var(--accent-danger)]">{audioError}</p>
+        )}
         <div className="mb-4 flex h-14 items-end gap-[2px] overflow-hidden">
-          {Array.from({ length: 60 }).map((_, i) => {
+          {waveHeights.map((height, i) => {
             const played = (i / 60) * 100 < progress;
-            const height = 20 + Math.sin(i * 0.7) * 15 + Math.random() * 20;
             return (
               <div
                 key={i}
@@ -186,7 +209,7 @@ export function Step3Voice({ video, onVideoUpdate, onBack, onAdvance }: Step3Voi
                     ? "bg-[var(--accent-primary)]"
                     : "bg-[var(--bg-border)]"
                 )}
-                style={{ height: `${Math.max(8, height)}%` }}
+                style={{ height: `${height}%` }}
               />
             );
           })}

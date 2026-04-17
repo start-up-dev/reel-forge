@@ -83,7 +83,7 @@ async function processScenes(
           sceneIndex: s.sceneIndex,
           textExcerpt: s.textExcerpt,
           visualPrompt: s.visualPrompt,
-          durationHintSeconds: s.durationHintSeconds,
+          durationHintSeconds: Math.max(1, Math.round(s.durationHintSeconds)),
         })),
       )
       .returning();
@@ -100,8 +100,8 @@ async function processScenes(
             .update(scenes)
             .set({ baseImageUrl: imageUrl, baseImagePath: imagePath, updatedAt: new Date() })
             .where(eq(scenes.id, scene.id));
-        } catch {
-          // Scene stays without base image; user can regenerate individually
+        } catch (err) {
+          console.error(`[processScenes] image generation failed for scene ${scene.sceneIndex} (video ${videoId}):`, err);
         }
       }),
     );

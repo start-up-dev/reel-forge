@@ -86,6 +86,10 @@ export async function splitScenes(
   script: string,
   audioDurationSeconds: number,
 ): Promise<SceneSplit[]> {
+  // Each scene maps to one Grok Imagine clip (~6s); FFmpeg trims to durationHintSeconds.
+  // Target ~5s per scene so clips have a little headroom after the trim.
+  const targetSceneCount = Math.max(1, Math.round(audioDurationSeconds / 5));
+
   const message = await client.messages.create({
     model: "claude-sonnet-4-6",
     max_tokens: 2048,
@@ -98,13 +102,14 @@ Script:
 ${script}
 
 Total audio duration: ${audioDurationSeconds} seconds
+Required scene count: exactly ${targetSceneCount} scene${targetSceneCount === 1 ? "" : "s"}
 
 Rules:
-- Create 6–12 scenes (never fewer than 6, never more than 12)
-- Each scene covers a logical chunk of the script (2–4 sentences or a natural pause)
-- textExcerpt: the exact words from the script this scene covers
+- Create EXACTLY ${targetSceneCount} scene${targetSceneCount === 1 ? "" : "s"} — no more, no fewer
+- Each scene covers a logical chunk of the script
+- textExcerpt: the exact words from the script this scene covers (if only 1 scene, use the full script)
 - visualPrompt: a detailed, vivid image generation prompt (no text overlays, cinematic style, no specific real people)
-- durationHintSeconds: how many seconds this scene lasts (all values must sum to approximately ${audioDurationSeconds})
+- durationHintSeconds: whole-number integer seconds this scene lasts. All values must sum to exactly ${audioDurationSeconds}. MUST be an integer ≥ 1.
 
 Return ONLY a JSON array, no markdown:
 [{"sceneIndex":0,"textExcerpt":"...","visualPrompt":"...","durationHintSeconds":N}, ...]`,

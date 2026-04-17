@@ -151,9 +151,9 @@ export function Step4Scenes({ video, onVideoUpdate, onBack, onAdvance }: Step4Sc
       () => api.videos.generateScenes(video.id),
       "Failed to regenerate scenes"
     );
-    if (result?.data) {
-      onVideoUpdate(result.data);
-      setScenes(result.data.scenes ?? []);
+    if (result) {
+      onVideoUpdate({ ...video, status: VideoStatus.ScenesPending, scenes: [] });
+      setScenes([]);
     }
     setRegeneratingAll(false);
   }

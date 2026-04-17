@@ -4,8 +4,7 @@ interface GrokImageResponse {
   data: Array<{ b64_json?: string; url?: string }>;
 }
 
-// xAI image generation model — update here if the model name changes
-const GROK_IMAGE_MODEL = "grok-2-image-1212";
+const GROK_IMAGE_MODEL = "grok-imagine-image";
 
 export async function generateImage(prompt: string): Promise<Buffer> {
   const response = await fetch("https://api.x.ai/v1/images/generations", {
