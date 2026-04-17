@@ -50,6 +50,7 @@ async function processVoice(videoId: string, script: string, voiceId: string): P
       .set({ audioUrl, wordTimestampsUrl, durationSeconds, status: "VOICE_READY", updatedAt: new Date() })
       .where(eq(videos.id, videoId));
   } catch (err) {
+    console.error("[processVoice] error:", err);
     await db
       .update(videos)
       .set({

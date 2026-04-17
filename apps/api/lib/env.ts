@@ -38,6 +38,7 @@ const envSchema = z.object({
   GCP_PROJECT_ID: z.string().min(1),
   GCS_BUCKET_NAME: z.string().min(1),
   GOOGLE_APPLICATION_CREDENTIALS: z.string().optional(),
+  GCS_SERVICE_ACCOUNT_EMAIL: z.string().optional(),
 
   // Operator
   OPERATOR_SECRET: z.string().min(1),
