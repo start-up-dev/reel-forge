@@ -28,7 +28,8 @@ export type PopupMessage =
   | { type: "START" }
   | { type: "STOP" }
   | { type: "RETRY_CLIP"; clipId: string }
-  | { type: "GET_STATE" };
+  | { type: "GET_STATE" }
+  | { type: "REFRESH_QUEUE" };
 
 export type WorkerMessage =
   | { type: "STATE_UPDATE"; state: WorkerState }

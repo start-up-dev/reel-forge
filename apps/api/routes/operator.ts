@@ -20,6 +20,20 @@ function validateSecret(
 }
 
 export async function operatorRoutes(fastify: FastifyInstance): Promise<void> {
+  // ── GET /api/operator/queue/count ─────────────────────────────────────────
+  // Returns the number of queued clips without claiming any.
+  fastify.get(
+    "/operator/queue/count",
+    { preHandler: validateSecret },
+    async (_request, reply) => {
+      const rows = await db
+        .select({ count: count() })
+        .from(clipRequests)
+        .where(eq(clipRequests.status, "queued"));
+      return reply.send({ data: { count: Number(rows[0]?.count ?? 0) } });
+    },
+  );
+
   // ── GET /api/operator/queue ────────────────────────────────────────────────
   // Atomically claims up to `batch_size` queued clips (FOR UPDATE SKIP LOCKED)
   // and returns the fields the extension needs to generate each clip.

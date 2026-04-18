@@ -20,7 +20,7 @@ export function Popup() {
     EMPTY_STATE,
   );
 
-  // Fetch initial state from SW on mount.
+  // Fetch initial state from SW on mount, then do a live health + queue check.
   useEffect(() => {
     chrome.runtime
       .sendMessage({ type: "GET_STATE" })
@@ -28,6 +28,9 @@ export function Popup() {
         if (res?.state) setState(res.state);
       })
       .catch(() => {});
+
+    // Refresh connection status and queue count immediately.
+    chrome.runtime.sendMessage({ type: "REFRESH_QUEUE" }).catch(() => {});
 
     const listener = (msg: { type: string; state?: WorkerState }) => {
       if (msg.type === "STATE_UPDATE" && msg.state) {
@@ -68,13 +71,22 @@ export function Popup() {
           </div>
           <span className="font-semibold text-base">ReelForge Operator</span>
         </div>
-        <div className="flex items-center gap-1.5">
-          <div
-            className={`w-2 h-2 rounded-full ${state.connected ? "bg-accent-success" : "bg-accent-danger"}`}
-          />
-          <span className="text-xs text-text-secondary">
-            {state.connected ? "Connected" : "Disconnected"}
-          </span>
+        <div className="flex items-center gap-2">
+          <div className="flex items-center gap-1.5">
+            <div
+              className={`w-2 h-2 rounded-full ${state.connected ? "bg-accent-success" : "bg-accent-danger"}`}
+            />
+            <span className="text-xs text-text-secondary">
+              {state.connected ? "Connected" : "Disconnected"}
+            </span>
+          </div>
+          <button
+            onClick={() => send("REFRESH_QUEUE")}
+            className="text-text-muted hover:text-text-secondary text-xs transition-colors"
+            title="Refresh connection & queue"
+          >
+            ↻
+          </button>
         </div>
       </div>
 

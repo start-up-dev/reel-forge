@@ -7,6 +7,7 @@ import {
   claimClips,
   failClip,
   checkHealth,
+  getQueueCount,
 } from "../lib/api-client.js";
 import type { ClaimedClip } from "../lib/api-client.js";
 import type {
@@ -214,7 +215,10 @@ async function poll(): Promise<void> {
   try {
     const clips = await claimClips(Math.min(freeSlots, settings.batchSize));
     connected = true;
-    lastQueueCount = clips.length;
+
+    // After claiming, fetch the remaining queued count for accurate display.
+    const remaining = await getQueueCount().catch(() => 0);
+    lastQueueCount = remaining + clips.length;
 
     for (const clip of clips) {
       if (activeTabs.size >= settings.concurrentTabs) break;
@@ -282,10 +286,27 @@ chrome.runtime.onMessage.addListener(
         sendResponse({ type: "STATE_RESPONSE", state: buildState() });
         break;
 
+      case "REFRESH_QUEUE":
+        void checkHealth()
+          .then((ok) => {
+            connected = ok;
+            if (ok && !running) {
+              return getQueueCount().then((n) => {
+                lastQueueCount = n;
+              });
+            }
+          })
+          .catch(() => {
+            connected = false;
+          })
+          .finally(() => broadcastState());
+        sendResponse({ ok: true });
+        break;
+
       case "RETRY_CLIP": {
         const idx = failedClips.findIndex((f) => f.clipId === message.clipId);
-        if (idx !== -1) {
-          const entry = failedClips[idx];
+        const entry = idx !== -1 ? failedClips[idx] : undefined;
+        if (entry) {
           failedClips.splice(idx, 1);
           void getSettings().then((settings) => {
             void openClipTab(

@@ -77,14 +77,8 @@ export async function failClip(clipId: string, error: string): Promise<void> {
 }
 
 export async function getQueueCount(): Promise<number> {
-  try {
-    // Use batch_size=0 as a probe — backend returns empty array but we can
-    // read the queue depth from a dedicated count endpoint if added.
-    // For now we rely on session state tracked in the service worker.
-    return 0;
-  } catch {
-    return 0;
-  }
+  const result = await request<{ data: { count: number } }>("/api/operator/queue/count");
+  return result.data.count;
 }
 
 // ── Upload helper with retry ──────────────────────────────────────────────────
