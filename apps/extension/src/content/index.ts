@@ -83,7 +83,7 @@ async function processClip(msg: ProcessClipMsg): Promise<void> {
     "promptInput",
     selectors.promptInput,
   );
-  setReactValue(freshPromptEl, clip.visualPrompt);
+  setReactValue(freshPromptEl, clip.motionPrompt || clip.visualPrompt);
   await sleep(400);
 
   // 4. Snapshot all video elements currently on the page BEFORE clicking Generate.

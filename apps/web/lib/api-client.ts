@@ -218,6 +218,7 @@ export function createApiClient(getToken: () => Promise<string | null>) {
             | "baseImageUrl"
             | "baseImagePath"
             | "visualPrompt"
+            | "motionPrompt"
             | "approved"
           >
         >

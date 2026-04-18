@@ -62,6 +62,7 @@ export async function operatorRoutes(fastify: FastifyInstance): Promise<void> {
           video_id   AS "videoId",
           scene_index AS "sceneIndex",
           visual_prompt AS "visualPrompt",
+          motion_prompt AS "motionPrompt",
           base_image_url AS "baseImageUrl"
       `);
 
@@ -70,6 +71,7 @@ export async function operatorRoutes(fastify: FastifyInstance): Promise<void> {
         videoId: string;
         sceneIndex: number;
         visualPrompt: string;
+        motionPrompt: string;
         baseImageUrl: string;
       }[];
 

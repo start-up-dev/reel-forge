@@ -13,6 +13,7 @@ export interface SceneSplit {
   sceneIndex: number;
   textExcerpt: string;
   visualPrompt: string;
+  motionPrompt: string;
   durationHintSeconds: number;
 }
 
@@ -108,11 +109,12 @@ Rules:
 - Create EXACTLY ${targetSceneCount} scene${targetSceneCount === 1 ? "" : "s"} — no more, no fewer
 - Each scene covers a logical chunk of the script
 - textExcerpt: the exact words from the script this scene covers (if only 1 scene, use the full script)
-- visualPrompt: a detailed, vivid image generation prompt (no text overlays, cinematic style, no specific real people)
+- visualPrompt: a detailed, vivid image generation prompt for the static base image (no text overlays, cinematic style, no specific real people)
+- motionPrompt: 1–2 sentences describing camera movement and subject animation for the video clip (e.g. "slow push-in toward the glowing screen, dust particles drift upward"). No text overlays, no real people.
 - durationHintSeconds: whole-number integer seconds this scene lasts. All values must sum to exactly ${audioDurationSeconds}. MUST be an integer ≥ 1.
 
 Return ONLY a JSON array, no markdown:
-[{"sceneIndex":0,"textExcerpt":"...","visualPrompt":"...","durationHintSeconds":N}, ...]`,
+[{"sceneIndex":0,"textExcerpt":"...","visualPrompt":"...","motionPrompt":"...","durationHintSeconds":N}, ...]`,
       },
     ],
   });

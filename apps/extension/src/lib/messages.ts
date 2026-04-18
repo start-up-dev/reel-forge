@@ -5,6 +5,7 @@ export interface FailedClipEntry {
   videoId: string;
   sceneIndex: number;
   visualPrompt: string;
+  motionPrompt: string;
   errorMessage: string;
   failedAt: number;
 }

@@ -17,6 +17,7 @@ export async function generateImage(prompt: string): Promise<Buffer> {
       model: GROK_IMAGE_MODEL,
       prompt,
       n: 1,
+      aspect_ratio: "9:16",
       response_format: "b64_json",
     }),
   });

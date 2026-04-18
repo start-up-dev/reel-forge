@@ -198,6 +198,7 @@ export const scenes = pgTable(
     sceneIndex: integer("scene_index").notNull(),
     textExcerpt: text("text_excerpt").notNull(),
     visualPrompt: text("visual_prompt").notNull(),
+    motionPrompt: text("motion_prompt").notNull().default(""),
     durationHintSeconds: integer("duration_hint_seconds"),
     baseImageUrl: text("base_image_url"),
     baseImagePath: text("base_image_path"),
@@ -232,6 +233,7 @@ export const clipRequests = pgTable(
       .references(() => users.id, { onDelete: "cascade" }),
     sceneIndex: integer("scene_index").notNull(),
     visualPrompt: text("visual_prompt").notNull(),
+    motionPrompt: text("motion_prompt").notNull().default(""),
     baseImageUrl: text("base_image_url").notNull(),
     status: clipRequestStatusEnum("status").notNull().default("queued"),
     queuedAt: timestamp("queued_at", { withTimezone: true })

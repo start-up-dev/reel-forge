@@ -83,6 +83,7 @@ async function processScenes(
           sceneIndex: s.sceneIndex,
           textExcerpt: s.textExcerpt,
           visualPrompt: s.visualPrompt,
+          motionPrompt: s.motionPrompt,
           durationHintSeconds: Math.max(1, Math.round(s.durationHintSeconds)),
         })),
       )
@@ -744,6 +745,7 @@ export async function videosRoutes(fastify: FastifyInstance): Promise<void> {
       const patchBody = z.object({
         baseImagePath: z.string().optional(),
         visualPrompt: z.string().optional(),
+        motionPrompt: z.string().optional(),
         approved: z.boolean().optional(),
       });
 
@@ -784,6 +786,7 @@ export async function videosRoutes(fastify: FastifyInstance): Promise<void> {
         baseImageUrl?: string;
         baseImagePath?: string;
         visualPrompt?: string;
+        motionPrompt?: string;
         approved?: boolean;
         updatedAt: Date;
       } = { updatedAt: new Date() };
@@ -797,6 +800,9 @@ export async function videosRoutes(fastify: FastifyInstance): Promise<void> {
       }
       if (parsed.data.visualPrompt !== undefined) {
         updateFields.visualPrompt = parsed.data.visualPrompt;
+      }
+      if (parsed.data.motionPrompt !== undefined) {
+        updateFields.motionPrompt = parsed.data.motionPrompt;
       }
       if (parsed.data.approved !== undefined) {
         updateFields.approved = parsed.data.approved;
@@ -983,6 +989,7 @@ export async function videosRoutes(fastify: FastifyInstance): Promise<void> {
         userId: user.id,
         sceneIndex: scene.sceneIndex,
         visualPrompt: scene.visualPrompt,
+        motionPrompt: scene.motionPrompt,
         baseImageUrl: scene.baseImageUrl!,
         status: "queued" as const,
         queuedAt: new Date(),

@@ -145,6 +145,7 @@ export interface Scene {
   sceneIndex: number;
   textExcerpt: string;
   visualPrompt: string;
+  motionPrompt: string;
   durationHintSeconds: number | null;
   baseImageUrl: string | null;
   baseImagePath: string | null;
@@ -166,6 +167,7 @@ export interface ClipRequest {
   userId: string;
   sceneIndex: number;
   visualPrompt: string;
+  motionPrompt: string;
   baseImageUrl: string;
   status: ClipRequestStatus;
   queuedAt: Date;

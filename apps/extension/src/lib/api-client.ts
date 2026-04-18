@@ -9,6 +9,7 @@ export interface ClaimedClip {
   videoId: string;
   sceneIndex: number;
   visualPrompt: string;
+  motionPrompt: string;
   baseImageUrl: string;
 }
 

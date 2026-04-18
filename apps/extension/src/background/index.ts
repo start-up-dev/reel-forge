@@ -25,6 +25,7 @@ interface TabEntry {
   videoId: string;
   sceneIndex: number;
   visualPrompt: string;
+  motionPrompt: string;
   startedAt: number;
 }
 
@@ -116,6 +117,7 @@ async function openClipTab(clip: ClaimedClip, settings: ExtensionSettings): Prom
     videoId: clip.videoId,
     sceneIndex: clip.sceneIndex,
     visualPrompt: clip.visualPrompt,
+    motionPrompt: clip.motionPrompt,
     startedAt: Date.now(),
   });
   broadcastState();
@@ -202,6 +204,7 @@ async function handleTabError(
       videoId: entry.videoId,
       sceneIndex: entry.sceneIndex,
       visualPrompt: entry.visualPrompt,
+      motionPrompt: entry.motionPrompt,
       errorMessage: error,
       failedAt: Date.now(),
     });
@@ -344,6 +347,7 @@ chrome.runtime.onMessage.addListener(
                 videoId: entry.videoId,
                 sceneIndex: entry.sceneIndex,
                 visualPrompt: entry.visualPrompt,
+                motionPrompt: entry.motionPrompt,
                 baseImageUrl: "",
               },
               settings,
@@ -609,6 +613,7 @@ chrome.tabs.onRemoved.addListener((tabId) => {
     videoId: entry.videoId,
     sceneIndex: entry.sceneIndex,
     visualPrompt: entry.visualPrompt,
+    motionPrompt: entry.motionPrompt,
     errorMessage: "Tab closed unexpectedly",
     failedAt: Date.now(),
   });

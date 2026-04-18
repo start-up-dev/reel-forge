@@ -23,6 +23,8 @@ export function Step4Scenes({ video, onVideoUpdate, onBack, onAdvance }: Step4Sc
   const [editingPrompt, setEditingPrompt] = useState<number | null>(null);
   const [promptDraft, setPromptDraft] = useState("");
   const [expandedPrompts, setExpandedPrompts] = useState<Set<number>>(new Set());
+  const [editingMotionPrompt, setEditingMotionPrompt] = useState<number | null>(null);
+  const [motionPromptDraft, setMotionPromptDraft] = useState("");
   const [regeneratingAll, setRegeneratingAll] = useState(false);
   const [approvingAll, setApprovingAll] = useState(false);
   const isPending = video.status === VideoStatus.ScenesPending;
@@ -85,6 +87,19 @@ export function Step4Scenes({ video, onVideoUpdate, onBack, onAdvance }: Step4Sc
       );
     }
     setEditingPrompt(null);
+  }
+
+  async function saveEditedMotionPrompt(sceneIndex: number) {
+    const result = await withToast(
+      () => api.scenes.update(video.id, sceneIndex, { motionPrompt: motionPromptDraft }),
+      "Failed to save motion prompt"
+    );
+    if (result?.data) {
+      setScenes((prev) =>
+        prev.map((s) => (s.sceneIndex === sceneIndex ? { ...s, ...result.data } : s))
+      );
+    }
+    setEditingMotionPrompt(null);
   }
 
   async function handleUploadImage(sceneIndex: number, file: File) {
@@ -299,7 +314,7 @@ export function Step4Scenes({ video, onVideoUpdate, onBack, onAdvance }: Step4Sc
                   }
                   className="text-xs text-[var(--text-muted)] hover:text-[var(--text-secondary)]"
                 >
-                  {isExpanded ? "Hide prompt" : "Show prompt"}
+                  {isExpanded ? "Hide image prompt" : "Show image prompt"}
                 </button>
                 {isExpanded && (
                   <div className="mt-2 rounded-lg bg-[var(--bg-base)] px-3 py-2">
@@ -338,6 +353,59 @@ export function Step4Scenes({ video, onVideoUpdate, onBack, onAdvance }: Step4Sc
                 )}
               </div>
 
+              {/* Motion prompt */}
+              <div className="mx-4 mt-2">
+                <p className="text-xs font-medium text-[var(--text-muted)]">Clip animation</p>
+                <div className="mt-1 rounded-lg bg-[var(--bg-base)] px-3 py-2">
+                  {editingMotionPrompt === scene.sceneIndex ? (
+                    <div className="space-y-2">
+                      <textarea
+                        value={motionPromptDraft}
+                        onChange={(e) => setMotionPromptDraft(e.target.value)}
+                        rows={2}
+                        placeholder="Describe camera movement and animation (e.g. slow push-in, particles drifting…)"
+                        className="w-full resize-none rounded bg-[var(--bg-elevated)] px-2 py-1.5 text-xs text-[var(--text-primary)] outline-none border border-[var(--accent-primary)] placeholder:text-[var(--text-muted)]"
+                      />
+                      <div className="flex gap-2">
+                        <Button
+                          size="sm"
+                          onClick={() => saveEditedMotionPrompt(scene.sceneIndex)}
+                          className="text-xs"
+                        >
+                          Save
+                        </Button>
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => setEditingMotionPrompt(null)}
+                          className="text-xs"
+                        >
+                          Cancel
+                        </Button>
+                      </div>
+                    </div>
+                  ) : (
+                    <div className="flex items-start justify-between gap-2">
+                      <p className="text-xs text-[var(--text-secondary)]">
+                        {scene.motionPrompt || (
+                          <span className="italic text-[var(--text-muted)]">No motion prompt yet</span>
+                        )}
+                      </p>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setEditingMotionPrompt(scene.sceneIndex);
+                          setMotionPromptDraft(scene.motionPrompt);
+                        }}
+                        className="shrink-0 text-xs text-[var(--text-muted)] hover:text-[var(--text-secondary)]"
+                      >
+                        <Pencil className="h-3 w-3" />
+                      </button>
+                    </div>
+                  )}
+                </div>
+              </div>
+
               {/* Action buttons */}
               <div className="flex gap-1 px-4 py-3">
                 <button
@@ -356,11 +424,11 @@ export function Step4Scenes({ video, onVideoUpdate, onBack, onAdvance }: Step4Sc
                     setPromptDraft(scene.visualPrompt);
                     setExpandedPrompts((prev) => new Set([...prev, scene.sceneIndex]));
                   }}
-                  aria-label="Edit prompt"
+                  aria-label="Edit image prompt"
                   className="flex items-center gap-1 rounded-md px-2 py-1.5 text-xs text-[var(--text-muted)] hover:bg-[var(--bg-border)] hover:text-[var(--text-primary)] transition-colors"
                 >
                   <Pencil className="h-3 w-3" />
-                  Edit Prompt
+                  Edit Image Prompt
                 </button>
                 <label
                   aria-label="Upload image"

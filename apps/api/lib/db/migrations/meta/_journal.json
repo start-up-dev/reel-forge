@@ -15,6 +15,13 @@
       "when": 1776377966872,
       "tag": "0001_mute_unus",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1776547228605,
+      "tag": "0002_real_hellfire_club",
+      "breakpoints": true
     }
   ]
 }
