@@ -165,7 +165,23 @@ export function Options() {
         </Section>
 
         {/* DOM Selector Configuration */}
-        <Section title="DOM Selectors" hint="Update these if Grok's UI changes. Comma-separate multiple fallback selectors.">
+        <Section
+          title="DOM Selectors"
+          hint="The extension auto-discovers elements using semantic heuristics — you only need to set these if auto-discovery fails."
+        >
+          <div className="flex items-center gap-3 pb-1 border-b border-border">
+            <button
+              onClick={() => window.open("https://grok.com/imagine?rf_teach=1", "_blank")}
+              className={primaryBtnCls}
+            >
+              🎯 Detect Selectors on Grok →
+            </button>
+            <p className="text-text-muted text-xs">
+              Opens Grok Imagine with an overlay — click each element once to teach the extension.
+              Selectors are saved automatically.
+            </p>
+          </div>
+
           {SELECTORS.map(({ key, label, hint }) => (
             <Field key={key} label={label} hint={hint}>
               <input
@@ -177,11 +193,12 @@ export function Options() {
             </Field>
           ))}
           <p className="text-text-muted text-xs">
-            To verify selectors, open a Grok tab and run{" "}
+            Manual override: enter CSS selectors here. The extension tries these before falling back
+            to auto-discovery. To verify, run{" "}
             <code className="bg-bg-elevated px-1 rounded text-text-secondary">
               document.querySelector("…")
             </code>{" "}
-            in DevTools.
+            in DevTools on a Grok tab.
           </p>
         </Section>
 

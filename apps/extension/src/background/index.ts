@@ -100,7 +100,7 @@ async function openClipTab(clip: ClaimedClip, settings: ExtensionSettings): Prom
 
   let tab: chrome.tabs.Tab;
   try {
-    tab = await chrome.tabs.create({ url: "https://grok.com/", active: false });
+    tab = await chrome.tabs.create({ url: "https://grok.com/imagine", active: false });
   } catch {
     await failClip(clip.id, "Failed to open tab").catch(() => {});
     return;
@@ -128,19 +128,40 @@ async function openClipTab(clip: ClaimedClip, settings: ExtensionSettings): Prom
   ): void => {
     if (updatedTabId !== tabId || info.status !== "complete") return;
     chrome.tabs.onUpdated.removeListener(handler);
-    sendClipToTab(tabId, clip, settings);
+    void sendClipToTab(tabId, clip, settings);
   };
   chrome.tabs.onUpdated.addListener(handler);
 }
 
-function sendClipToTab(
+// Pre-fetch the base image in the service worker so the content script never
+// has to make a cross-origin request to GCS (where CORS might block it).
+async function sendClipToTab(
   tabId: number,
   clip: ClaimedClip,
   settings: ExtensionSettings,
-): void {
+): Promise<void> {
+  let imageBytes: Uint8Array | null = null;
+  let imageType = "image/jpeg";
+
+  if (clip.baseImageUrl) {
+    try {
+      const res = await fetch(clip.baseImageUrl);
+      if (res.ok) {
+        imageBytes = new Uint8Array(await res.arrayBuffer());
+        imageType = res.headers.get("content-type") || "image/jpeg";
+      } else {
+        console.warn(`[SW] Base image fetch failed: ${res.status}`);
+      }
+    } catch (err) {
+      console.warn("[SW] Could not pre-fetch base image:", err);
+    }
+  }
+
   const msg = {
     type: "PROCESS_CLIP",
     clip,
+    imageBytes,   // Uint8Array | null — transferred via structured clone
+    imageType,
     autoClick: settings.autoClick,
     clickDelayMode: settings.clickDelayMode,
     selectors: settings.selectors,
@@ -149,12 +170,12 @@ function sendClipToTab(
   };
 
   chrome.tabs.sendMessage(tabId, msg).catch(() => {
-    // Retry once after 2 s — content script may still be initialising.
+    // Retry once after 3 s — content script may still be initialising.
     setTimeout(() => {
       chrome.tabs.sendMessage(tabId, msg).catch(() => {
         void handleTabError(tabId, clip.id, "Content script unreachable");
       });
-    }, 2000);
+    }, 3000);
   });
 }
 
@@ -185,14 +206,16 @@ async function handleTabError(
   schedulePoll(500);
 }
 
-// ── Stale tab watchdog (3-minute timeout) ────────────────────────────────────
+// ── Stale tab watchdog ────────────────────────────────────────────────────────
+// 10-minute timeout: page load (~15s) + image upload (~5s) + generation
+// (up to 3 min on Grok) + GCS download/upload (~60s) — 3 min was too tight.
 
 function checkStaleTabs(): void {
-  const THREE_MIN = 3 * 60 * 1000;
+  const TEN_MIN = 10 * 60 * 1000;
   const now = Date.now();
   for (const [tabId, entry] of activeTabs) {
-    if (now - entry.startedAt > THREE_MIN) {
-      void handleTabError(tabId, entry.clipId, "Generation timeout (3 min)");
+    if (now - entry.startedAt > TEN_MIN) {
+      void handleTabError(tabId, entry.clipId, "Generation timeout (10 min)");
     }
   }
 }
@@ -334,7 +357,9 @@ chrome.runtime.onMessage.addListener(
 type ContentMsg =
   | { type: "CLIP_DONE"; clipId: string }
   | { type: "CLIP_FAILED"; clipId: string; error: string }
-  | { type: "SELECTOR_ERROR"; clipId: string; selectorName: string; selectorValue: string };
+  | { type: "SELECTOR_ERROR"; clipId: string; selectorName: string; selectorValue: string }
+  | { type: "UPLOAD_VIDEO"; clipId: string; videoUrl: string; backendUrl: string; operatorSecret: string }
+  | { type: "ATTACH_IMAGE"; clipId: string; imageBytes: Uint8Array; imageType: string };
 
 chrome.runtime.onMessage.addListener(
   (message: ContentMsg, sender, sendResponse) => {
@@ -369,6 +394,128 @@ chrome.runtime.onMessage.addListener(
           `Selector "${message.selectorName}" not found`,
         );
         sendResponse({ ok: true });
+        break;
+      }
+
+      // Content script found the generated video URL and hands off to SW.
+      // SW injects a downloader into the page's MAIN world so the request carries
+      // Origin: https://grok.com and the user's Grok session cookies — the only
+      // way to get a 200 from assets.grok.com.
+      case "UPLOAD_VIDEO": {
+        const { clipId, videoUrl, backendUrl, operatorSecret } = message;
+        sendResponse({ ok: true }); // ack immediately
+
+        void (async () => {
+          try {
+            // 1. Get the signed GCS upload URL from our backend (SW has no CORS issues).
+            const urlRes = await fetch(
+              `${backendUrl}/api/operator/clips/${clipId}/upload-url`,
+              {
+                method: "POST",
+                headers: {
+                  "X-Operator-Secret": operatorSecret,
+                },
+              },
+            );
+            if (!urlRes.ok) throw new Error(`upload-url: ${urlRes.status}`);
+            const { data } = (await urlRes.json()) as {
+              data: { uploadUrl: string; gcsPath: string };
+            };
+
+            // 2. Inject into the page's MAIN world: fetch video (Origin = grok.com,
+            //    cookies attached) → PUT to GCS signed URL (no auth needed).
+            const results = await chrome.scripting.executeScript({
+              target: { tabId },
+              world: "MAIN",
+              func: async (vUrl: string, uploadUrl: string): Promise<void> => {
+                const videoRes = await fetch(vUrl, { credentials: "include" });
+                if (!videoRes.ok)
+                  throw new Error(`Video download failed: ${videoRes.status}`);
+                const blob = await videoRes.blob();
+
+                // Retry GCS upload up to 3 times.
+                let lastErr = "";
+                for (let i = 0; i < 3; i++) {
+                  try {
+                    const up = await fetch(uploadUrl, {
+                      method: "PUT",
+                      body: blob,
+                      headers: { "Content-Type": "video/mp4" },
+                    });
+                    if (!up.ok) throw new Error(`GCS: ${up.status}`);
+                    return;
+                  } catch (e) {
+                    lastErr = e instanceof Error ? e.message : String(e);
+                    if (i < 2) await new Promise((r) => setTimeout(r, 1500 * (i + 1)));
+                  }
+                }
+                throw new Error(lastErr || "GCS upload failed after retries");
+              },
+              args: [videoUrl, data.uploadUrl],
+            });
+
+            // executeScript rejects if the func throws; this line only runs on success.
+            void results; // result is void[]
+
+            // 3. Mark the clip complete in the backend.
+            const completeRes = await fetch(
+              `${backendUrl}/api/operator/clips/${clipId}/complete`,
+              {
+                method: "POST",
+                headers: {
+                  "Content-Type": "application/json",
+                  "X-Operator-Secret": operatorSecret,
+                },
+                body: JSON.stringify({ gcsPath: data.gcsPath }),
+              },
+            );
+            if (!completeRes.ok)
+              throw new Error(`completeClip: ${completeRes.status}`);
+
+            // 4. Clean up tab — same as CLIP_DONE.
+            activeTabs.delete(tabId);
+            session.done++;
+            closeTab(tabId);
+            broadcastState();
+            schedulePoll(500);
+          } catch (err) {
+            const error = err instanceof Error ? err.message : String(err);
+            console.error(`[SW] UPLOAD_VIDEO failed for clip ${clipId}:`, error);
+            void handleTabError(tabId, clipId, error);
+          }
+        })();
+        break;
+      }
+
+      // Inject file attachment into MAIN world so Grok's React synthetic onChange fires.
+      case "ATTACH_IMAGE": {
+        const { imageBytes, imageType } = message;
+        const byteArray = Array.from(imageBytes);
+
+        void (async () => {
+          try {
+            await chrome.scripting.executeScript({
+              target: { tabId },
+              world: "MAIN",
+              func: (bytes: number[], mimeType: string): void => {
+                const uint8 = new Uint8Array(bytes);
+                const blob = new Blob([uint8], { type: mimeType });
+                const file = new File([blob], "base_image.jpg", { type: mimeType });
+                const input = document.querySelector<HTMLInputElement>('input[type="file"]');
+                if (!input) throw new Error("No file input found in MAIN world");
+                const dt = new DataTransfer();
+                dt.items.add(file);
+                input.files = dt.files;
+                input.dispatchEvent(new Event("change", { bubbles: true }));
+                input.dispatchEvent(new Event("input", { bubbles: true }));
+              },
+              args: [byteArray, imageType],
+            });
+            sendResponse({ ok: true });
+          } catch (err) {
+            sendResponse({ ok: false, error: err instanceof Error ? err.message : String(err) });
+          }
+        })();
         break;
       }
     }

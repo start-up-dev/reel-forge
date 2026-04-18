@@ -1,7 +1,8 @@
 // Content script — injected into grok.com tabs.
-// Receives a PROCESS_CLIP message from the service worker, automates the Grok
-// Imagine UI, captures the generated video, uploads it to GCS, and reports
-// success or failure back to the service worker.
+//
+// Two modes:
+//   • PROCESS_CLIP  — normal automation (service worker message)
+//   • Teach mode    — URL param ?rf_teach=1, interactive selector capture
 
 import type { DomSelectors, ExtensionSettings } from "../lib/messages.js";
 import type { ClaimedClip } from "../lib/api-client.js";
@@ -9,6 +10,9 @@ import type { ClaimedClip } from "../lib/api-client.js";
 interface ProcessClipMsg {
   type: "PROCESS_CLIP";
   clip: ClaimedClip;
+  /** Base image pre-fetched by the SW (avoids GCS CORS in content script). */
+  imageBytes: Uint8Array | null;
+  imageType: string;
   autoClick: boolean;
   clickDelayMode: ExtensionSettings["clickDelayMode"];
   selectors: DomSelectors;
@@ -22,7 +26,13 @@ const DELAY_RANGES: Record<ExtensionSettings["clickDelayMode"], [number, number]
   slow: [5000, 10000],
 };
 
-// ── Entry point ───────────────────────────────────────────────────────────────
+// ── Teach mode — check URL on load ───────────────────────────────────────────
+
+if (new URLSearchParams(location.search).get("rf_teach") === "1") {
+  void runTeachMode();
+}
+
+// ── Clip processing ───────────────────────────────────────────────────────────
 
 chrome.runtime.onMessage.addListener(
   (message: ProcessClipMsg, _sender, sendResponse) => {
@@ -39,45 +49,35 @@ chrome.runtime.onMessage.addListener(
   },
 );
 
-// ── Main automation flow ──────────────────────────────────────────────────────
-
 async function processClip(msg: ProcessClipMsg): Promise<void> {
-  const { clip, autoClick, clickDelayMode, selectors, backendUrl, operatorSecret } = msg;
+  const { clip, imageBytes, imageType, autoClick, clickDelayMode, selectors, backendUrl, operatorSecret } = msg;
 
-  // 1. Wait for the page to be ready (prompt input visible).
-  const promptEl = await waitForSelector<HTMLTextAreaElement>(
-    selectors.promptInput,
+  // 1. Wait for the prompt input to appear (Grok SPA needs time to hydrate).
+  const promptEl = await waitForResolved<HTMLElement>(
+    () => resolvePromptInput(selectors.promptInput),
     30_000,
     clip.id,
     "promptInput",
     selectors.promptInput,
   );
 
-  // 2. Download base image from signed URL and set it on the file input.
-  if (clip.baseImageUrl) {
-    const imageBlob = await fetchBlob(clip.baseImageUrl);
-    const fileInput = findElement<HTMLInputElement>(selectors.imageUpload);
-    if (!fileInput) {
-      reportSelectorError(clip.id, "imageUpload", selectors.imageUpload);
-      return;
-    }
-    const file = new File([imageBlob], "base_image.jpg", { type: imageBlob.type || "image/jpeg" });
-    const dt = new DataTransfer();
-    dt.items.add(file);
-    fileInput.files = dt.files;
-    fileInput.dispatchEvent(new Event("change", { bubbles: true }));
-    await sleep(500);
+  // 2. Attach the reference image via MAIN world (React's synthetic onChange only
+  //    fires when the file input is manipulated from the page's own JS context).
+  if (imageBytes && imageBytes.byteLength > 0) {
+    await attachImageViaMainWorld(clip.id, imageBytes, imageType);
+    await sleep(1200);
   }
 
-  // 3. Type the visual prompt.
-  promptEl.focus();
-  promptEl.value = clip.visualPrompt;
-  promptEl.dispatchEvent(new Event("input", { bubbles: true }));
-  promptEl.dispatchEvent(new Event("change", { bubbles: true }));
-  await sleep(300);
+  // 3. Set prompt text in a React-compatible way.
+  setReactValue(promptEl, clip.visualPrompt);
+  await sleep(400);
 
-  // 4. Click Generate (or highlight and wait for operator click).
-  const generateBtn = findElement<HTMLButtonElement>(selectors.generateButton);
+  // 4. Snapshot all video elements currently on the page BEFORE clicking Generate.
+  //    We use this to distinguish the generated video from any existing ones.
+  const preExistingVideoSrcs = snapshotVideoSrcs();
+
+  // 5. Find the generate button and click it.
+  const generateBtn = resolveGenerateButton(selectors.generateButton);
   if (!generateBtn) {
     reportSelectorError(clip.id, "generateButton", selectors.generateButton);
     return;
@@ -88,113 +88,470 @@ async function processClip(msg: ProcessClipMsg): Promise<void> {
     await sleep(randomBetween(min, max));
     generateBtn.click();
   } else {
-    // Highlight the button and wait for the operator to click it manually.
     highlightElement(generateBtn);
     await waitForClick(generateBtn, 120_000);
     removeHighlight(generateBtn);
   }
 
-  // 5. Poll DOM for the generated video element (up to 3 minutes).
-  const videoEl = await waitForSelector<HTMLVideoElement>(
-    selectors.outputVideo,
-    180_000,
-    clip.id,
-    "outputVideo",
-    selectors.outputVideo,
-  );
+  // 6. Wait for a BRAND-NEW video element to appear (up to 8 minutes for Grok).
+  //    We explicitly exclude anything that was in the DOM before we clicked.
+  const videoEl = await waitForNewVideo(preExistingVideoSrcs, 8 * 60 * 1000, clip.id, selectors.outputVideo);
 
-  // 6. Capture the video blob from the src URL.
+  // 7. Wait a beat so the video src fully stabilises.
+  await sleep(1500);
+
   const videoSrc = videoEl.src || videoEl.querySelector("source")?.src;
-  if (!videoSrc) {
-    throw new Error("Video element found but has no src");
-  }
-  const videoBlob = await fetchBlob(videoSrc);
+  if (!videoSrc) throw new Error("Video element found but src is empty");
 
-  // 7. Get signed upload URL from backend.
-  const uploadRes = await fetch(`${backendUrl}/api/operator/clips/${clip.id}/upload-url`, {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-      "X-Operator-Secret": operatorSecret,
-    },
+  console.log("[RF] Video detected:", videoSrc.substring(0, 80));
+
+  // 8. Hand off to the service worker.
+  //    The SW injects a downloader into the page MAIN world (Origin = grok.com,
+  //    full cookies) — the only way assets.grok.com returns 200.
+  //    The SW then uploads to GCS and marks the clip complete.
+  chrome.runtime.sendMessage({
+    type: "UPLOAD_VIDEO",
+    clipId: clip.id,
+    videoUrl: videoSrc,
+    backendUrl,
+    operatorSecret,
   });
-  if (!uploadRes.ok) {
-    throw new Error(`Failed to get upload URL: ${uploadRes.status}`);
-  }
-  const { data } = (await uploadRes.json()) as { data: { uploadUrl: string; gcsPath: string } };
-
-  // 8. Upload to GCS with retry.
-  await uploadWithRetry(data.uploadUrl, videoBlob);
-
-  // 9. Mark clip complete.
-  const completeRes = await fetch(`${backendUrl}/api/operator/clips/${clip.id}/complete`, {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-      "X-Operator-Secret": operatorSecret,
-    },
-    body: JSON.stringify({ gcsPath: data.gcsPath }),
-  });
-  if (!completeRes.ok) {
-    throw new Error(`completeClip failed: ${completeRes.status}`);
-  }
-
-  // 10. Notify service worker — tab will be closed.
-  chrome.runtime.sendMessage({ type: "CLIP_DONE", clipId: clip.id });
 }
 
-// ── DOM helpers ───────────────────────────────────────────────────────────────
+// ── Video snapshot & new-video detection ─────────────────────────────────────
 
-function findElement<T extends Element>(selector: string): T | null {
-  // Support comma-separated selectors by trying each in order.
-  for (const s of selector.split(",").map((s) => s.trim())) {
+function snapshotVideoSrcs(): Set<string> {
+  const srcs = new Set<string>();
+  document.querySelectorAll<HTMLVideoElement>("video").forEach((v) => {
+    if (v.src) srcs.add(v.src);
+    v.querySelectorAll("source").forEach((s) => { if (s.src) srcs.add(s.src); });
+  });
+  return srcs;
+}
+
+/**
+ * Waits for a video element whose src was NOT in preExistingVideoSrcs.
+ * Uses both MutationObserver (childList + attribute changes) and periodic polling.
+ */
+function waitForNewVideo(
+  preExisting: Set<string>,
+  timeoutMs: number,
+  clipId: string,
+  selectorValue: string,
+): Promise<HTMLVideoElement> {
+  return new Promise<HTMLVideoElement>((resolve, reject) => {
+    function findNew(): HTMLVideoElement | null {
+      for (const v of document.querySelectorAll<HTMLVideoElement>("video")) {
+        const src = v.src || v.querySelector("source")?.src || "";
+        if (src && !preExisting.has(src)) return v;
+      }
+      return null;
+    }
+
+    const already = findNew();
+    if (already) { resolve(already); return; }
+
+    const deadline = Date.now() + timeoutMs;
+
+    const observer = new MutationObserver(() => {
+      const el = findNew();
+      if (el) { observer.disconnect(); clearInterval(iv); resolve(el); }
+    });
+    observer.observe(document.body, {
+      childList: true,
+      subtree: true,
+      attributes: true,
+      attributeFilter: ["src"],
+    });
+
+    // Polling fallback — MutationObserver can miss blob-src changes in some React renders.
+    const iv = setInterval(() => {
+      const el = findNew();
+      if (el) {
+        observer.disconnect();
+        clearInterval(iv);
+        resolve(el);
+        return;
+      }
+      if (Date.now() > deadline) {
+        observer.disconnect();
+        clearInterval(iv);
+        chrome.runtime.sendMessage({
+          type: "SELECTOR_ERROR",
+          clipId,
+          selectorName: "outputVideo",
+          selectorValue,
+        });
+        reject(new Error(`No new video appeared after ${timeoutMs / 60000} min`));
+      }
+    }, 1000);
+  });
+}
+
+// ── Smart element resolution ──────────────────────────────────────────────────
+// Try configured CSS selectors first, then fall back to semantic heuristics.
+
+function resolvePromptInput(configured: string): HTMLElement | null {
+  const fromConfig = findBySelectorList<HTMLElement>(configured);
+  if (fromConfig) return fromConfig;
+
+  const textareas = visibleAll<HTMLTextAreaElement>("textarea");
+  for (const ta of textareas) {
+    const hint = attrs(ta, "placeholder", "aria-label", "aria-placeholder");
+    if (/prompt|descri|imagin|enter|type|create|message|write/i.test(hint)) return ta;
+  }
+  if (textareas.length) {
+    return [...textareas].sort(
+      (a, b) => b.getBoundingClientRect().height - a.getBoundingClientRect().height,
+    )[0] ?? null;
+  }
+
+  for (const el of visibleAll<HTMLElement>('[contenteditable="true"]')) {
+    if (el.getBoundingClientRect().height > 30) return el;
+  }
+
+  return null;
+}
+
+function resolveImageUpload(configured: string): HTMLElement | null {
+  const fromConfig = findBySelectorList<HTMLElement>(configured);
+  if (fromConfig) return fromConfig;
+
+  // Prefer a real file input (hidden or not) — we set files on it programmatically.
+  for (const inp of document.querySelectorAll<HTMLInputElement>('input[type="file"]')) {
+    if (/image|photo|picture|\*/i.test(inp.accept || "")) return inp;
+  }
+  const anyFile = document.querySelector<HTMLInputElement>('input[type="file"]');
+  if (anyFile) return anyFile;
+
+  for (const el of visibleAll<HTMLElement>('button, [role="button"], label')) {
+    const label = attrs(el, "aria-label", "title") + " " + (el.textContent?.trim() ?? "");
+    if (/upload|attach|image|photo|picture|add.?image/i.test(label)) return el;
+  }
+
+  return null;
+}
+
+function resolveGenerateButton(configured: string): HTMLElement | null {
+  const fromConfig = findBySelectorList<HTMLElement>(configured);
+  if (fromConfig) return fromConfig;
+
+  for (const el of visibleAll<HTMLElement>('button, [role="button"]')) {
+    const text = (attrs(el, "aria-label", "title") + " " + (el.textContent?.trim() ?? ""))
+      .trim()
+      .toLowerCase();
+    if (/^(generate|create|make|run|go|send|submit)$/.test(text)) return el;
+    if (/generate|create video|generate video/i.test(text)) return el;
+  }
+
+  return visibleAll<HTMLElement>('button[type="submit"]')[0] ?? null;
+}
+
+// ── React-compatible value setter ─────────────────────────────────────────────
+
+function setReactValue(el: HTMLElement, value: string): void {
+  if (el.getAttribute("contenteditable") === "true") {
+    el.focus();
+    el.textContent = value;
+    el.dispatchEvent(new InputEvent("input", { bubbles: true, data: value }));
+    return;
+  }
+
+  // Use the native prototype setter so React's synthetic onChange fires.
+  const proto =
+    el instanceof HTMLTextAreaElement ? HTMLTextAreaElement.prototype : HTMLInputElement.prototype;
+  const nativeSetter = Object.getOwnPropertyDescriptor(proto, "value")?.set;
+  if (nativeSetter) {
+    nativeSetter.call(el, value);
+  } else {
+    (el as HTMLInputElement).value = value;
+  }
+  el.dispatchEvent(new Event("input", { bubbles: true }));
+  el.dispatchEvent(new Event("change", { bubbles: true }));
+}
+
+// ── File attachment ───────────────────────────────────────────────────────────
+
+function attachImageViaMainWorld(
+  clipId: string,
+  imageBytes: Uint8Array,
+  imageType: string,
+): Promise<void> {
+  return new Promise((resolve, reject) => {
+    chrome.runtime.sendMessage(
+      { type: "ATTACH_IMAGE", clipId, imageBytes, imageType },
+      (response: { ok: boolean; error?: string } | undefined) => {
+        if (chrome.runtime.lastError) {
+          reject(new Error(chrome.runtime.lastError.message ?? "ATTACH_IMAGE: runtime error"));
+          return;
+        }
+        if (!response?.ok) {
+          reject(new Error(response?.error ?? "ATTACH_IMAGE failed"));
+          return;
+        }
+        resolve();
+      },
+    );
+  });
+}
+
+async function setFileOnElement(el: HTMLElement, blob: Blob): Promise<void> {
+  const file = new File([blob], "base_image.jpg", { type: blob.type || "image/jpeg" });
+
+  const fileInput =
+    el instanceof HTMLInputElement && el.type === "file"
+      ? el
+      : findNearestFileInput(el);
+
+  if (fileInput) {
+    const dt = new DataTransfer();
+    dt.items.add(file);
+    fileInput.files = dt.files;
+    fileInput.dispatchEvent(new Event("change", { bubbles: true }));
+    fileInput.dispatchEvent(new Event("input", { bubbles: true }));
+    return;
+  }
+
+  // Fallback: drag-and-drop event on the element (works for drop-zone UIs).
+  const dt = new DataTransfer();
+  dt.items.add(file);
+  el.dispatchEvent(new DragEvent("dragenter", { bubbles: true, dataTransfer: dt }));
+  await sleep(100);
+  el.dispatchEvent(new DragEvent("dragover", { bubbles: true, dataTransfer: dt }));
+  await sleep(100);
+  el.dispatchEvent(new DragEvent("drop", { bubbles: true, dataTransfer: dt }));
+}
+
+function findNearestFileInput(el: HTMLElement): HTMLInputElement | null {
+  let cur: Element | null = el;
+  for (let i = 0; i < 5 && cur; i++) {
+    const found = cur.querySelector<HTMLInputElement>('input[type="file"]');
+    if (found) return found;
+    cur = cur.parentElement;
+  }
+  return document.querySelector<HTMLInputElement>('input[type="file"]');
+}
+
+// ── Teach mode ────────────────────────────────────────────────────────────────
+
+const TEACH_STEPS: { key: keyof DomSelectors; label: string; hint: string }[] = [
+  {
+    key: "promptInput",
+    label: "Prompt textarea",
+    hint: "The text box where you type what to generate",
+  },
+  {
+    key: "imageUpload",
+    label: "Image upload button or area",
+    hint: "Click the button / area used to attach a reference image",
+  },
+  {
+    key: "generateButton",
+    label: "Generate button",
+    hint: "The button that starts generation",
+  },
+];
+
+async function runTeachMode(): Promise<void> {
+  const host = document.createElement("div");
+  host.style.cssText = "position:fixed;top:0;left:0;right:0;z-index:2147483647;pointer-events:none;";
+  document.body.appendChild(host);
+  const shadow = host.attachShadow({ mode: "open" });
+
+  const banner = document.createElement("div");
+  shadow.appendChild(banner);
+
+  const captured: Partial<Record<string, string>> = {};
+
+  for (let i = 0; i < TEACH_STEPS.length; i++) {
+    const step = TEACH_STEPS[i]!;
+    showBanner(banner, step, i, TEACH_STEPS.length);
+
+    const clickedSelector = await pickElement(shadow);
+
+    if (clickedSelector !== null) {
+      if (step.key === "imageUpload") {
+        // Always prefer the actual file input for programmatic file setting.
+        const fileInput = document.querySelector<HTMLInputElement>('input[type="file"]');
+        captured["selectors.imageUpload"] = fileInput
+          ? generateSelector(fileInput)
+          : clickedSelector;
+      } else {
+        captured[`selectors.${step.key}`] = clickedSelector;
+      }
+    }
+  }
+
+  if (Object.keys(captured).length > 0) {
+    await chrome.storage.local.set(captured);
+  }
+
+  showBannerRaw(banner, "✓ Selectors saved! Close this tab and reload extension options.", "#34D399", "#0A0A0F");
+  setTimeout(() => host.remove(), 5000);
+}
+
+function pickElement(shadow: ShadowRoot): Promise<string | null> {
+  return new Promise<string | null>((resolve) => {
+    let hovered: Element | null = null;
+    const OUTLINE = "3px solid #7C5CFC";
+
+    function applyOutline(el: Element, v: string): void {
+      if (el instanceof HTMLElement) { el.style.outline = v; el.style.outlineOffset = "2px"; }
+    }
+
+    function onOver(e: MouseEvent): void {
+      const el = e.target as Element;
+      if (shadow.contains(el) || el === document.body) return;
+      if (hovered && hovered !== el) applyOutline(hovered, "");
+      hovered = el;
+      applyOutline(el, OUTLINE);
+    }
+
+    function onOut(e: MouseEvent): void {
+      const el = e.target as Element;
+      if (hovered === el) { applyOutline(el, ""); hovered = null; }
+    }
+
+    function onClick(e: MouseEvent): void {
+      const el = e.target as Element;
+      if (shadow.contains(el)) return;
+      e.preventDefault();
+      e.stopPropagation();
+      e.stopImmediatePropagation();
+      if (hovered) applyOutline(hovered, "");
+      cleanup(generateSelector(el));
+    }
+
+    function cleanup(result: string | null): void {
+      document.removeEventListener("mouseover", onOver, true);
+      document.removeEventListener("mouseout", onOut, true);
+      document.removeEventListener("click", onClick, true);
+      resolve(result);
+    }
+
+    const skipBtn = shadow.querySelector<HTMLElement>("#rf-skip");
+    if (skipBtn) {
+      skipBtn.style.pointerEvents = "all";
+      skipBtn.onclick = () => { if (hovered) applyOutline(hovered, ""); cleanup(null); };
+    }
+
+    document.addEventListener("mouseover", onOver, true);
+    document.addEventListener("mouseout", onOut, true);
+    document.addEventListener("click", onClick, true);
+  });
+}
+
+function showBanner(
+  banner: HTMLElement,
+  step: { label: string; hint: string },
+  idx: number,
+  total: number,
+): void {
+  const pct = Math.round((idx / total) * 100);
+  banner.innerHTML = `
+    <div style="background:#7C5CFC;color:#fff;padding:10px 16px;display:flex;align-items:center;justify-content:space-between;gap:12px;box-shadow:0 2px 12px rgba(0,0,0,.5);pointer-events:all;font-family:system-ui,sans-serif">
+      <span style="font-size:13px;line-height:1.4">
+        <strong>ReelForge (${idx + 1}/${total})</strong> — click the
+        <strong style="text-decoration:underline">${step.label}</strong>
+        <span style="opacity:.75;font-size:11px;margin-left:6px">${step.hint}</span>
+      </span>
+      <button id="rf-skip" style="background:rgba(255,255,255,.2);border:none;color:#fff;padding:4px 10px;border-radius:4px;cursor:pointer;font-size:12px;white-space:nowrap;pointer-events:all">Skip →</button>
+    </div>
+    <div style="height:3px;background:rgba(255,255,255,.25)">
+      <div style="height:100%;width:${pct}%;background:rgba(255,255,255,.7);transition:width .3s"></div>
+    </div>
+  `;
+}
+
+function showBannerRaw(banner: HTMLElement, msg: string, bg: string, color: string): void {
+  banner.innerHTML = `<div style="background:${bg};color:${color};padding:10px 16px;font-family:system-ui,sans-serif;font-size:13px;font-weight:600;box-shadow:0 2px 12px rgba(0,0,0,.4);pointer-events:all">${msg}</div>`;
+}
+
+function generateSelector(el: Element): string {
+  if (el.id && !/^\d/.test(el.id)) return `#${CSS.escape(el.id)}`;
+  const testId = el.getAttribute("data-testid");
+  if (testId) return `[data-testid="${testId}"]`;
+  const ariaLabel = el.getAttribute("aria-label");
+  if (ariaLabel) return `${el.tagName.toLowerCase()}[aria-label="${ariaLabel}"]`;
+  if (el instanceof HTMLTextAreaElement && el.placeholder)
+    return `textarea[placeholder="${el.placeholder}"]`;
+  if (el instanceof HTMLInputElement) {
+    if (el.placeholder) return `input[placeholder="${el.placeholder}"]`;
+    if (el.name) return `input[name="${el.name}"]`;
+    if (el.type !== "text") return `input[type="${el.type}"]`;
+  }
+  const role = el.getAttribute("role");
+  if (role) return `${el.tagName.toLowerCase()}[role="${role}"]`;
+  return cssPath(el);
+}
+
+function cssPath(el: Element): string {
+  const parts: string[] = [];
+  let cur: Element | null = el;
+  while (cur && cur !== document.body) {
+    if (cur.id && !/^\d/.test(cur.id)) { parts.unshift(`#${CSS.escape(cur.id)}`); break; }
+    const tag = cur.tagName.toLowerCase();
+    const siblings = cur.parentElement
+      ? [...cur.parentElement.children].filter((c) => c.tagName === cur!.tagName)
+      : [];
+    const idx = siblings.indexOf(cur) + 1;
+    parts.unshift(siblings.length > 1 ? `${tag}:nth-of-type(${idx})` : tag);
+    cur = cur.parentElement;
+  }
+  return parts.join(" > ");
+}
+
+// ── Generic DOM helpers ───────────────────────────────────────────────────────
+
+function findBySelectorList<T extends Element>(selector: string): T | null {
+  for (const s of selector.split(",").map((x) => x.trim()).filter(Boolean)) {
     const el = document.querySelector<T>(s);
     if (el) return el;
   }
   return null;
 }
 
-function waitForSelector<T extends Element>(
-  selector: string,
+function visibleAll<T extends Element>(selector: string): T[] {
+  return [...document.querySelectorAll<T>(selector)].filter((el) => {
+    const r = el.getBoundingClientRect();
+    const s = getComputedStyle(el);
+    return r.width > 0 && r.height > 0 && s.visibility !== "hidden" && s.display !== "none";
+  });
+}
+
+function attrs(el: Element, ...names: string[]): string {
+  return names.map((n) => el.getAttribute(n) ?? "").join(" ");
+}
+
+// ── Waiting helpers ───────────────────────────────────────────────────────────
+
+function waitForResolved<T extends Element>(
+  resolve: () => T | null,
   timeoutMs: number,
   clipId: string,
   selectorName: string,
   selectorValue: string,
 ): Promise<T> {
-  return new Promise<T>((resolve, reject) => {
-    const check = (): T | null => findElement<T>(selector);
-    const found = check();
-    if (found) { resolve(found); return; }
+  return new Promise<T>((promiseResolve, reject) => {
+    const found = resolve();
+    if (found) { promiseResolve(found); return; }
 
     const deadline = Date.now() + timeoutMs;
+
     const observer = new MutationObserver(() => {
-      const el = check();
-      if (el) {
-        observer.disconnect();
-        clearInterval(interval);
-        resolve(el);
-      }
+      const el = resolve();
+      if (el) { observer.disconnect(); clearInterval(interval); promiseResolve(el); }
     });
     observer.observe(document.body, { childList: true, subtree: true });
 
     const interval = setInterval(() => {
-      const el = check();
-      if (el) {
-        observer.disconnect();
-        clearInterval(interval);
-        resolve(el);
-        return;
-      }
+      const el = resolve();
+      if (el) { observer.disconnect(); clearInterval(interval); promiseResolve(el); return; }
       if (Date.now() > deadline) {
         observer.disconnect();
         clearInterval(interval);
-        chrome.runtime.sendMessage({
-          type: "SELECTOR_ERROR",
-          clipId,
-          selectorName,
-          selectorValue,
-        });
-        reject(new Error(`Selector "${selectorName}" timed out`));
+        chrome.runtime.sendMessage({ type: "SELECTOR_ERROR", clipId, selectorName, selectorValue });
+        reject(new Error(`"${selectorName}" not found after ${timeoutMs / 1000}s`));
       }
     }, 500);
   });
@@ -207,17 +564,16 @@ function waitForClick(el: HTMLElement, timeoutMs: number): Promise<void> {
       reject(new Error("Operator did not click Generate within timeout"));
     }, timeoutMs);
 
-    function onClicked(): void {
-      clearTimeout(timer);
-      resolve();
-    }
+    function onClicked(): void { clearTimeout(timer); resolve(); }
     el.addEventListener("click", onClicked, { once: true });
   });
 }
 
+// ── Visual feedback ───────────────────────────────────────────────────────────
+
 function highlightElement(el: HTMLElement): void {
   el.style.outline = "3px solid #34D399";
-  el.style.boxShadow = "0 0 12px rgba(52, 211, 153, 0.6)";
+  el.style.boxShadow = "0 0 12px rgba(52,211,153,.6)";
 }
 
 function removeHighlight(el: HTMLElement): void {
@@ -227,33 +583,6 @@ function removeHighlight(el: HTMLElement): void {
 
 function reportSelectorError(clipId: string, name: string, value: string): void {
   chrome.runtime.sendMessage({ type: "SELECTOR_ERROR", clipId, selectorName: name, selectorValue: value });
-}
-
-// ── Network helpers ───────────────────────────────────────────────────────────
-
-async function fetchBlob(url: string): Promise<Blob> {
-  const res = await fetch(url);
-  if (!res.ok) throw new Error(`Failed to fetch blob from ${url}: ${res.status}`);
-  return res.blob();
-}
-
-async function uploadWithRetry(signedUrl: string, blob: Blob, maxRetries = 3): Promise<void> {
-  let lastErr: Error | null = null;
-  for (let i = 0; i < maxRetries; i++) {
-    try {
-      const res = await fetch(signedUrl, {
-        method: "PUT",
-        body: blob,
-        headers: { "Content-Type": "video/mp4" },
-      });
-      if (!res.ok) throw new Error(`GCS upload returned ${res.status}`);
-      return;
-    } catch (err) {
-      lastErr = err instanceof Error ? err : new Error(String(err));
-      if (i < maxRetries - 1) await sleep(1000 * 2 ** i);
-    }
-  }
-  throw lastErr!;
 }
 
 // ── Utilities ─────────────────────────────────────────────────────────────────
