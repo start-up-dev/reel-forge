@@ -10,8 +10,8 @@ import type { ClaimedClip } from "../lib/api-client.js";
 interface ProcessClipMsg {
   type: "PROCESS_CLIP";
   clip: ClaimedClip;
-  /** Base image pre-fetched by the SW (avoids GCS CORS in content script). */
-  imageBytes: Uint8Array | null;
+  /** Base image pre-fetched by the SW, sent as number[] to survive Chrome JSON serialization. */
+  imageBytes: number[] | null;
   imageType: string;
   autoClick: boolean;
   clickDelayMode: ExtensionSettings["clickDelayMode"];
@@ -50,7 +50,11 @@ chrome.runtime.onMessage.addListener(
 );
 
 async function processClip(msg: ProcessClipMsg): Promise<void> {
-  const { clip, imageBytes, imageType, autoClick, clickDelayMode, selectors, backendUrl, operatorSecret } = msg;
+  const { clip, imageType, autoClick, clickDelayMode, selectors, backendUrl, operatorSecret } = msg;
+
+  // imageBytes arrives as number[] (plain array survives Chrome JSON serialization).
+  const imageBytes: Uint8Array | null =
+    msg.imageBytes && msg.imageBytes.length > 0 ? new Uint8Array(msg.imageBytes) : null;
 
   // 1. Wait for the prompt input to appear (Grok SPA needs time to hydrate).
   const promptEl = await waitForResolved<HTMLElement>(
@@ -61,15 +65,25 @@ async function processClip(msg: ProcessClipMsg): Promise<void> {
     selectors.promptInput,
   );
 
-  // 2. Attach the reference image via MAIN world (React's synthetic onChange only
-  //    fires when the file input is manipulated from the page's own JS context).
-  if (imageBytes && imageBytes.byteLength > 0) {
-    await attachImageViaMainWorld(clip.id, imageBytes, imageType);
-    await sleep(1200);
+  // 2. Attach the reference image — required for every clip.
+  console.log("[RF] imageBytes:", imageBytes ? `${imageBytes.byteLength} bytes` : "null");
+  if (!imageBytes || imageBytes.byteLength === 0) {
+    throw new Error("No base image bytes received — clip cannot be processed without reference image");
   }
+  await attachImageViaMainWorld(clip.id, imageBytes, imageType);
+  // Sleep gives Grok time to upload the file to their servers.
+  // Grok re-renders the UI after processing the image, so promptEl is now stale.
+  await sleep(3000);
 
-  // 3. Set prompt text in a React-compatible way.
-  setReactValue(promptEl, clip.visualPrompt);
+  // 3. Re-resolve prompt input — Grok unmounts/remounts the textarea after image upload.
+  const freshPromptEl = await waitForResolved<HTMLElement>(
+    () => resolvePromptInput(selectors.promptInput),
+    10_000,
+    clip.id,
+    "promptInput",
+    selectors.promptInput,
+  );
+  setReactValue(freshPromptEl, clip.visualPrompt);
   await sleep(400);
 
   // 4. Snapshot all video elements currently on the page BEFORE clicking Generate.
@@ -279,7 +293,8 @@ function attachImageViaMainWorld(
 ): Promise<void> {
   return new Promise((resolve, reject) => {
     chrome.runtime.sendMessage(
-      { type: "ATTACH_IMAGE", clipId, imageBytes, imageType },
+      // Send as number[] — same serialization reason as PROCESS_CLIP.
+      { type: "ATTACH_IMAGE", clipId, imageBytes: Array.from(imageBytes), imageType },
       (response: { ok: boolean; error?: string } | undefined) => {
         if (chrome.runtime.lastError) {
           reject(new Error(chrome.runtime.lastError.message ?? "ATTACH_IMAGE: runtime error"));

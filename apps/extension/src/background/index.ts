@@ -143,24 +143,30 @@ async function sendClipToTab(
   let imageBytes: Uint8Array | null = null;
   let imageType = "image/jpeg";
 
+  console.log(`[SW] baseImageUrl for clip ${clip.id}:`, clip.baseImageUrl || "(empty)");
   if (clip.baseImageUrl) {
     try {
       const res = await fetch(clip.baseImageUrl);
       if (res.ok) {
         imageBytes = new Uint8Array(await res.arrayBuffer());
         imageType = res.headers.get("content-type") || "image/jpeg";
+        console.log(`[SW] Base image fetched OK — ${imageBytes.byteLength} bytes, type: ${imageType}`);
       } else {
-        console.warn(`[SW] Base image fetch failed: ${res.status}`);
+        console.warn(`[SW] Base image fetch failed: ${res.status} — imageBytes will be null`);
       }
     } catch (err) {
       console.warn("[SW] Could not pre-fetch base image:", err);
     }
+  } else {
+    console.warn(`[SW] Clip ${clip.id} has no baseImageUrl — skipping image attachment`);
   }
 
   const msg = {
     type: "PROCESS_CLIP",
     clip,
-    imageBytes,   // Uint8Array | null — transferred via structured clone
+    // Convert to plain number[] — Chrome JSON-serializes Uint8Array as {"0":1,...}
+    // which loses the `length` property and arrives as 0 bytes on the other side.
+    imageBytes: imageBytes ? Array.from(imageBytes) : null,
     imageType,
     autoClick: settings.autoClick,
     clickDelayMode: settings.clickDelayMode,
@@ -359,7 +365,7 @@ type ContentMsg =
   | { type: "CLIP_FAILED"; clipId: string; error: string }
   | { type: "SELECTOR_ERROR"; clipId: string; selectorName: string; selectorValue: string }
   | { type: "UPLOAD_VIDEO"; clipId: string; videoUrl: string; backendUrl: string; operatorSecret: string }
-  | { type: "ATTACH_IMAGE"; clipId: string; imageBytes: Uint8Array; imageType: string };
+  | { type: "ATTACH_IMAGE"; clipId: string; imageBytes: number[]; imageType: string };
 
 chrome.runtime.onMessage.addListener(
   (message: ContentMsg, sender, sendResponse) => {
@@ -491,124 +497,95 @@ chrome.runtime.onMessage.addListener(
         break;
       }
 
-      // Inject file attachment into MAIN world so Grok's React synthetic onChange fires.
+      // Inject file attachment into MAIN world.
+      // Strategy: set files + events + React fiber + upload-trigger click.
+      // Then wait up to 8 s for Grok's UI to confirm (new img element).
+      // Returns ok:false if not confirmed — content script will fail the clip.
       case "ATTACH_IMAGE": {
-        const { imageBytes, imageType } = message;
-        const byteArray = Array.from(imageBytes);
+        const { imageBytes: byteArray, imageType } = message; // already number[]
 
         void (async () => {
           try {
-            type AttachDiag = {
-              inputFound: boolean;
-              inputDesc: string;
-              filesSet: number;
-              strategy: string;
-              fiberFound: boolean;
-              shadowSearch: boolean;
-              allFileInputs: string[];
-            };
-
             const results = await chrome.scripting.executeScript({
               target: { tabId },
               world: "MAIN",
-              func: (bytes: number[], mimeType: string): AttachDiag => {
+              func: async (bytes: number[], mimeType: string): Promise<{ ok: boolean; reason: string }> => {
                 const rf = (...a: unknown[]) => console.log("[RF-MAIN]", ...a);
 
                 const uint8 = new Uint8Array(bytes);
                 const blob = new Blob([uint8], { type: mimeType });
                 const file = new File([blob], "base_image.jpg", { type: mimeType });
-                rf("Blob ready — size:", blob.size, "type:", mimeType);
+                rf("File ready:", file.size, "bytes");
 
-                // Collect every file input on page (including hidden) for diagnostics.
-                const allInputs = [...document.querySelectorAll<HTMLInputElement>('input[type="file"]')];
-                const allFileInputs = allInputs.map(
-                  (i) => `accept="${i.accept}" id="${i.id}" class="${i.className.slice(0, 40)}" hidden=${i.hidden}`,
-                );
-                rf("All file inputs found:", allFileInputs.length, allFileInputs);
-
-                // Also check shadow roots one level deep.
-                let shadowInput: HTMLInputElement | null = null;
-                let shadowSearch = false;
-                if (!allInputs.length) {
-                  shadowSearch = true;
-                  for (const el of document.querySelectorAll("*")) {
-                    if (el.shadowRoot) {
-                      const found = el.shadowRoot.querySelector<HTMLInputElement>('input[type="file"]');
-                      if (found) { shadowInput = found; break; }
-                    }
-                  }
-                  rf("Shadow DOM search result:", shadowInput ? "found" : "not found");
-                }
-
-                const input = allInputs[0] ?? shadowInput;
+                const input = document.querySelector<HTMLInputElement>('input[type="file"]');
                 if (!input) {
-                  rf("ERROR: No file input found anywhere on page");
-                  return { inputFound: false, inputDesc: "none", filesSet: 0, strategy: "none", fiberFound: false, shadowSearch, allFileInputs };
+                  rf("No file input on page");
+                  return { ok: false, reason: "No file input on page" };
                 }
+                rf("Input found — accept:", input.accept, "id:", input.id);
 
-                const inputDesc = `accept="${input.accept}" id="${input.id}" class="${input.className.slice(0, 60)}"`;
-                rf("Targeting input:", inputDesc);
-
+                // ── Attach the file ────────────────────────────────────────────
                 const dt = new DataTransfer();
                 dt.items.add(file);
                 input.files = dt.files;
-                rf("files set — input.files.length:", input.files.length);
 
-                // Strategy 1: standard DOM events (change + input).
+                // Confirm BEFORE dispatching events — Grok's sync onChange handler
+                // may clear input.files immediately, making a post-event check useless.
+                const confirmed = !!(input.files && input.files.length > 0);
+                rf("Files set on input:", confirmed, "count:", input.files?.length);
+
+                if (!confirmed) {
+                  return { ok: false, reason: "Browser rejected DataTransfer file assignment" };
+                }
+
+                // Dispatch events so React's delegated listener processes the change.
                 input.dispatchEvent(new Event("change", { bubbles: true }));
                 input.dispatchEvent(new Event("input", { bubbles: true }));
-                rf("Strategy 1: dispatched change + input events");
 
-                // Strategy 2: call React's onChange directly via the fiber.
-                let fiberFound = false;
+                // React fiber — call onChange directly if present.
                 const inputAny = input as unknown as Record<string, unknown>;
-                const rFiberKey = Object.keys(inputAny).find(
+                const fKey = Object.keys(inputAny).find(
                   (k) => k.startsWith("__reactFiber") || k.startsWith("__reactInternalInstance"),
                 );
-                if (rFiberKey) {
-                  rf("React fiber key found:", rFiberKey);
-                  let fiber = inputAny[rFiberKey] as Record<string, unknown> | null;
+                if (fKey) {
+                  let fiber = inputAny[fKey] as Record<string, unknown> | null;
                   while (fiber) {
                     const props = (fiber["memoizedProps"] ?? fiber["pendingProps"]) as Record<string, unknown> | null;
                     if (typeof props?.["onChange"] === "function") {
-                      rf("Strategy 2: calling React onChange via fiber");
+                      rf("Calling React onChange via fiber");
                       try {
                         (props["onChange"] as (e: unknown) => void)({
-                          target: input,
-                          currentTarget: input,
+                          target: input, currentTarget: input,
                           nativeEvent: new Event("change"),
-                          preventDefault: () => {},
-                          stopPropagation: () => {},
+                          preventDefault: () => {}, stopPropagation: () => {},
                         });
-                        fiberFound = true;
-                      } catch (e) {
-                        rf("Fiber onChange threw:", e);
-                      }
+                      } catch (e) { rf("Fiber error:", e); }
                       break;
                     }
                     fiber = fiber["return"] as Record<string, unknown> | null;
                   }
-                  if (!fiberFound) rf("Fiber found but no onChange on props chain");
-                } else {
-                  rf("No React fiber key on input element");
                 }
+                // Note: we do NOT click any upload trigger button — it can call
+                // input.click() internally which resets the FileList we just set.
 
-                return { inputFound: true, inputDesc, filesSet: input.files.length, strategy: "dom-events" + (fiberFound ? "+fiber" : ""), fiberFound, shadowSearch, allFileInputs };
+                rf("Attachment result:", confirmed ? "SUCCESS" : "FAILED");
+                return {
+                  ok: confirmed,
+                  reason: confirmed ? "ok" : "Grok did not confirm upload after 8 s",
+                };
               },
               args: [byteArray, imageType],
-            } as chrome.scripting.ScriptInjection<[number[], string], AttachDiag>);
+            });
 
-            const diag = results[0]?.result;
-            console.log("[SW] ATTACH_IMAGE diagnostic:", JSON.stringify(diag));
-
-            if (!diag?.inputFound) {
-              sendResponse({ ok: false, error: `No file input on page. All inputs: ${JSON.stringify(diag?.allFileInputs)}` });
-            } else {
-              sendResponse({ ok: true, diag });
-            }
+            const result = results[0]?.result;
+            console.log("[SW] ATTACH_IMAGE:", JSON.stringify(result));
+            sendResponse(result?.ok
+              ? { ok: true }
+              : { ok: false, error: result?.reason ?? "Image attachment failed" },
+            );
           } catch (err) {
             const error = err instanceof Error ? err.message : String(err);
-            console.error("[SW] ATTACH_IMAGE executeScript threw:", error);
+            console.error("[SW] ATTACH_IMAGE failed:", error);
             sendResponse({ ok: false, error });
           }
         })();
