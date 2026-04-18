@@ -398,9 +398,9 @@ chrome.runtime.onMessage.addListener(
       }
 
       // Content script found the generated video URL and hands off to SW.
-      // SW injects a downloader into the page's MAIN world so the request carries
-      // Origin: https://grok.com and the user's Grok session cookies — the only
-      // way to get a 200 from assets.grok.com.
+      // Download happens in MAIN world (needs Origin: grok.com + session cookies).
+      // GCS PUT happens in the SW — extension host_permissions for storage.googleapis.com
+      // bypass CORS entirely, avoiding the preflight failure seen from the page origin.
       case "UPLOAD_VIDEO": {
         const { clipId, videoUrl, backendUrl, operatorSecret } = message;
         sendResponse({ ok: true }); // ack immediately
@@ -422,42 +422,46 @@ chrome.runtime.onMessage.addListener(
               data: { uploadUrl: string; gcsPath: string };
             };
 
-            // 2. Inject into the page's MAIN world: fetch video (Origin = grok.com,
-            //    cookies attached) → PUT to GCS signed URL (no auth needed).
-            const results = await chrome.scripting.executeScript({
+            // 2. Download video in MAIN world (Origin = grok.com, cookies attached).
+            //    Return raw bytes to SW — the SW does the GCS PUT so CORS is not an issue.
+            const dlResults = await chrome.scripting.executeScript({
               target: { tabId },
               world: "MAIN",
-              func: async (vUrl: string, uploadUrl: string): Promise<void> => {
+              func: async (vUrl: string): Promise<Uint8Array> => {
                 const videoRes = await fetch(vUrl, { credentials: "include" });
                 if (!videoRes.ok)
                   throw new Error(`Video download failed: ${videoRes.status}`);
-                const blob = await videoRes.blob();
-
-                // Retry GCS upload up to 3 times.
-                let lastErr = "";
-                for (let i = 0; i < 3; i++) {
-                  try {
-                    const up = await fetch(uploadUrl, {
-                      method: "PUT",
-                      body: blob,
-                      headers: { "Content-Type": "video/mp4" },
-                    });
-                    if (!up.ok) throw new Error(`GCS: ${up.status}`);
-                    return;
-                  } catch (e) {
-                    lastErr = e instanceof Error ? e.message : String(e);
-                    if (i < 2) await new Promise((r) => setTimeout(r, 1500 * (i + 1)));
-                  }
-                }
-                throw new Error(lastErr || "GCS upload failed after retries");
+                return new Uint8Array(await videoRes.arrayBuffer());
               },
-              args: [videoUrl, data.uploadUrl],
+              args: [videoUrl],
             });
 
-            // executeScript rejects if the func throws; this line only runs on success.
-            void results; // result is void[]
+            const videoBytes = dlResults[0]?.result;
+            if (!videoBytes || videoBytes.byteLength === 0)
+              throw new Error("Video download returned empty bytes");
 
-            // 3. Mark the clip complete in the backend.
+            // 3. PUT to GCS from the SW. Extension host_permissions for
+            //    storage.googleapis.com bypass the CORS preflight check.
+            const blob = new Blob([videoBytes.slice()], { type: "video/mp4" });
+            let lastErr = "";
+            for (let i = 0; i < 3; i++) {
+              try {
+                const up = await fetch(data.uploadUrl, {
+                  method: "PUT",
+                  body: blob,
+                  headers: { "Content-Type": "video/mp4" },
+                });
+                if (!up.ok) throw new Error(`GCS PUT: ${up.status}`);
+                lastErr = "";
+                break;
+              } catch (e) {
+                lastErr = e instanceof Error ? e.message : String(e);
+                if (i < 2) await new Promise((r) => setTimeout(r, 1500 * (i + 1)));
+              }
+            }
+            if (lastErr) throw new Error(lastErr);
+
+            // 4. Mark the clip complete in the backend.
             const completeRes = await fetch(
               `${backendUrl}/api/operator/clips/${clipId}/complete`,
               {
@@ -472,7 +476,7 @@ chrome.runtime.onMessage.addListener(
             if (!completeRes.ok)
               throw new Error(`completeClip: ${completeRes.status}`);
 
-            // 4. Clean up tab — same as CLIP_DONE.
+            // 5. Clean up tab — same as CLIP_DONE.
             activeTabs.delete(tabId);
             session.done++;
             closeTab(tabId);
@@ -494,26 +498,118 @@ chrome.runtime.onMessage.addListener(
 
         void (async () => {
           try {
-            await chrome.scripting.executeScript({
+            type AttachDiag = {
+              inputFound: boolean;
+              inputDesc: string;
+              filesSet: number;
+              strategy: string;
+              fiberFound: boolean;
+              shadowSearch: boolean;
+              allFileInputs: string[];
+            };
+
+            const results = await chrome.scripting.executeScript({
               target: { tabId },
               world: "MAIN",
-              func: (bytes: number[], mimeType: string): void => {
+              func: (bytes: number[], mimeType: string): AttachDiag => {
+                const rf = (...a: unknown[]) => console.log("[RF-MAIN]", ...a);
+
                 const uint8 = new Uint8Array(bytes);
                 const blob = new Blob([uint8], { type: mimeType });
                 const file = new File([blob], "base_image.jpg", { type: mimeType });
-                const input = document.querySelector<HTMLInputElement>('input[type="file"]');
-                if (!input) throw new Error("No file input found in MAIN world");
+                rf("Blob ready — size:", blob.size, "type:", mimeType);
+
+                // Collect every file input on page (including hidden) for diagnostics.
+                const allInputs = [...document.querySelectorAll<HTMLInputElement>('input[type="file"]')];
+                const allFileInputs = allInputs.map(
+                  (i) => `accept="${i.accept}" id="${i.id}" class="${i.className.slice(0, 40)}" hidden=${i.hidden}`,
+                );
+                rf("All file inputs found:", allFileInputs.length, allFileInputs);
+
+                // Also check shadow roots one level deep.
+                let shadowInput: HTMLInputElement | null = null;
+                let shadowSearch = false;
+                if (!allInputs.length) {
+                  shadowSearch = true;
+                  for (const el of document.querySelectorAll("*")) {
+                    if (el.shadowRoot) {
+                      const found = el.shadowRoot.querySelector<HTMLInputElement>('input[type="file"]');
+                      if (found) { shadowInput = found; break; }
+                    }
+                  }
+                  rf("Shadow DOM search result:", shadowInput ? "found" : "not found");
+                }
+
+                const input = allInputs[0] ?? shadowInput;
+                if (!input) {
+                  rf("ERROR: No file input found anywhere on page");
+                  return { inputFound: false, inputDesc: "none", filesSet: 0, strategy: "none", fiberFound: false, shadowSearch, allFileInputs };
+                }
+
+                const inputDesc = `accept="${input.accept}" id="${input.id}" class="${input.className.slice(0, 60)}"`;
+                rf("Targeting input:", inputDesc);
+
                 const dt = new DataTransfer();
                 dt.items.add(file);
                 input.files = dt.files;
+                rf("files set — input.files.length:", input.files.length);
+
+                // Strategy 1: standard DOM events (change + input).
                 input.dispatchEvent(new Event("change", { bubbles: true }));
                 input.dispatchEvent(new Event("input", { bubbles: true }));
+                rf("Strategy 1: dispatched change + input events");
+
+                // Strategy 2: call React's onChange directly via the fiber.
+                let fiberFound = false;
+                const inputAny = input as unknown as Record<string, unknown>;
+                const rFiberKey = Object.keys(inputAny).find(
+                  (k) => k.startsWith("__reactFiber") || k.startsWith("__reactInternalInstance"),
+                );
+                if (rFiberKey) {
+                  rf("React fiber key found:", rFiberKey);
+                  let fiber = inputAny[rFiberKey] as Record<string, unknown> | null;
+                  while (fiber) {
+                    const props = (fiber["memoizedProps"] ?? fiber["pendingProps"]) as Record<string, unknown> | null;
+                    if (typeof props?.["onChange"] === "function") {
+                      rf("Strategy 2: calling React onChange via fiber");
+                      try {
+                        (props["onChange"] as (e: unknown) => void)({
+                          target: input,
+                          currentTarget: input,
+                          nativeEvent: new Event("change"),
+                          preventDefault: () => {},
+                          stopPropagation: () => {},
+                        });
+                        fiberFound = true;
+                      } catch (e) {
+                        rf("Fiber onChange threw:", e);
+                      }
+                      break;
+                    }
+                    fiber = fiber["return"] as Record<string, unknown> | null;
+                  }
+                  if (!fiberFound) rf("Fiber found but no onChange on props chain");
+                } else {
+                  rf("No React fiber key on input element");
+                }
+
+                return { inputFound: true, inputDesc, filesSet: input.files.length, strategy: "dom-events" + (fiberFound ? "+fiber" : ""), fiberFound, shadowSearch, allFileInputs };
               },
               args: [byteArray, imageType],
-            });
-            sendResponse({ ok: true });
+            } as chrome.scripting.ScriptInjection<[number[], string], AttachDiag>);
+
+            const diag = results[0]?.result;
+            console.log("[SW] ATTACH_IMAGE diagnostic:", JSON.stringify(diag));
+
+            if (!diag?.inputFound) {
+              sendResponse({ ok: false, error: `No file input on page. All inputs: ${JSON.stringify(diag?.allFileInputs)}` });
+            } else {
+              sendResponse({ ok: true, diag });
+            }
           } catch (err) {
-            sendResponse({ ok: false, error: err instanceof Error ? err.message : String(err) });
+            const error = err instanceof Error ? err.message : String(err);
+            console.error("[SW] ATTACH_IMAGE executeScript threw:", error);
+            sendResponse({ ok: false, error });
           }
         })();
         break;
