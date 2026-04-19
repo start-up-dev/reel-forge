@@ -162,9 +162,11 @@ export default function ProjectDetailPage() {
                 {project.name}
               </h1>
               <div className="mt-1 flex items-center gap-2">
-                <Badge variant="primary" className="text-xs">
-                  {project.platform}
-                </Badge>
+                {project.platforms.slice(0, 2).map((p) => (
+                  <Badge key={p} variant="primary" className="text-xs">
+                    {p}
+                  </Badge>
+                ))}
                 <span className="text-sm text-[var(--text-muted)]">{project.niche}</span>
               </div>
             </>

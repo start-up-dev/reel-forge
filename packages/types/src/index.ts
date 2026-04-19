@@ -99,13 +99,13 @@ export interface Project {
   id: string;
   userId: string;
   name: string;
-  platform: Platform;
+  platforms: Platform[];
   niche: string;
   language: string;
   targetAudience: string;
   videoStyle: VideoStyle;
   tone: Tone;
-  voiceId: string;
+  voiceId: string | null;
   defaultSubtitleStyle: SubtitleStyle | null;
   defaultBgmEnabled: boolean;
   defaultBgmAssetId: string | null;
@@ -130,6 +130,8 @@ export interface Video {
   bgmEnabled: boolean;
   bgmAssetId: string | null;
   bgmVolume: number;                // integer 0–100, default 30
+  targetDurationSeconds: number;    // 15 | 30 | 45 | 60
+  voiceId: string | null;           // overrides project voiceId when set
   outputUrl: string | null;
   error: string | null;
   deletedAt: Date | null;

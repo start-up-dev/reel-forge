@@ -74,11 +74,13 @@ export async function concatenateClips(
 }
 
 // Step 3 — Mix voiceover (and optional BGM) onto the concatenated video.
+// audioDurationSeconds is authoritative — output is trimmed to exactly this length.
 export async function mixAudio(
   videoPath: string,
   audioPath: string,
   bgmPath: string | null,
   bgmVolume: number,
+  audioDurationSeconds: number,
   dir: string,
 ): Promise<string> {
   const outPath = join(dir, "mixed.mp4");
@@ -95,7 +97,7 @@ export async function mixAudio(
         "-c:v", "copy",
         "-c:a", "aac",
         "-b:a", "192k",
-        "-shortest",
+        "-t", String(audioDurationSeconds),
         outPath,
       ],
       { stderr: "pipe" },
@@ -118,7 +120,7 @@ export async function mixAudio(
         "-c:v", "copy",
         "-c:a", "aac",
         "-b:a", "192k",
-        "-shortest",
+        "-t", String(audioDurationSeconds),
         outPath,
       ],
       { stderr: "pipe" },

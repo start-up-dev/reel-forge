@@ -50,6 +50,12 @@ const envSchema = z.object({
   // Claude / Anthropic
   ANTHROPIC_API_KEY: z.string().min(1),
 
+  // Claude Skills (from Anthropic Console — PLACEHOLDER_ prefix triggers fallback)
+  CLAUDE_SKILL_SCRIPT_BENGALI: z.string().default("skill_01UG5GQFxCxtoBTxUnYHY15r"),
+  CLAUDE_SKILL_SCRIPT_ENGLISH: z.string().default("PLACEHOLDER_ENGLISH_SCRIPT_SKILL_ID"),
+  CLAUDE_SKILL_GROK_PROMPTS: z.string().default("PLACEHOLDER_GROK_PROMPT_SKILL_ID"),
+  CLAUDE_SKILL_IDEAS: z.string().default("PLACEHOLDER_IDEA_GENERATOR_SKILL_ID"),
+
   // ElevenLabs
   ELEVENLABS_API_KEY: z.string().min(1),
 

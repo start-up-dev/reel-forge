@@ -15,6 +15,9 @@ import { generateImage } from "../services/grok-image.js";
 
 const createVideoBody = z.object({
   title: z.string().min(1).max(200).default("Untitled Video"),
+  targetDurationSeconds: z.number().int()
+    .refine(v => [15, 30, 45, 60].includes(v), "Must be 15, 30, 45, or 60")
+    .default(30),
 });
 
 const PAGE_SIZE = 20;
@@ -84,7 +87,7 @@ async function processScenes(
           textExcerpt: s.textExcerpt,
           visualPrompt: s.visualPrompt,
           motionPrompt: s.motionPrompt,
-          durationHintSeconds: Math.max(1, Math.round(s.durationHintSeconds)),
+          durationHintSeconds: Math.max(1, Math.min(6, Math.round(s.durationHintSeconds))),
         })),
       )
       .returning();
@@ -231,7 +234,13 @@ export async function videosRoutes(fastify: FastifyInstance): Promise<void> {
 
       const [video] = await db
         .insert(videos)
-        .values({ userId: user.id, projectId, title: parsed.data.title, status: "DRAFT" })
+        .values({
+          userId: user.id,
+          projectId,
+          title: parsed.data.title,
+          targetDurationSeconds: parsed.data.targetDurationSeconds,
+          status: "DRAFT",
+        })
         .returning();
 
       return reply.status(201).send({ data: video });
@@ -367,6 +376,10 @@ export async function videosRoutes(fastify: FastifyInstance): Promise<void> {
         bgmEnabled: z.boolean().optional(),
         bgmAssetId: z.string().nullable().optional(),
         bgmVolume: z.number().int().min(0).max(100).optional(),
+        voiceId: z.string().nullable().optional(),
+        targetDurationSeconds: z.number().int()
+          .refine(v => [15, 30, 45, 60].includes(v))
+          .optional(),
       });
 
       const parsed = patchBody.safeParse(request.body);
@@ -480,7 +493,7 @@ export async function videosRoutes(fastify: FastifyInstance): Promise<void> {
       }
 
       const [video] = await db
-        .select({ id: videos.id, projectId: videos.projectId })
+        .select({ id: videos.id, projectId: videos.projectId, targetDurationSeconds: videos.targetDurationSeconds })
         .from(videos)
         .where(
           and(eq(videos.id, id), eq(videos.userId, user.id), isNull(videos.deletedAt)),
@@ -511,7 +524,7 @@ export async function videosRoutes(fastify: FastifyInstance): Promise<void> {
         .where(eq(videos.id, id));
 
       try {
-        const script = await generateScript(project, parsed.data.idea);
+        const script = await generateScript(project, parsed.data.idea, video.targetDurationSeconds ?? 30);
         const [updated] = await db
           .update(videos)
           .set({ script, status: "SCRIPT_READY", updatedAt: new Date() })
@@ -570,9 +583,10 @@ export async function videosRoutes(fastify: FastifyInstance): Promise<void> {
         .where(eq(projects.id, video.projectId))
         .limit(1);
 
-      if (!project?.voiceId) {
+      const voiceId = video.voiceId ?? project?.voiceId;
+      if (!voiceId) {
         return reply.status(409).send({
-          error: { code: "NO_VOICE", message: "Project has no voice configured." },
+          error: { code: "NO_VOICE", message: "Select a voice in Step 1 before generating audio." },
         });
       }
 
@@ -582,7 +596,7 @@ export async function videosRoutes(fastify: FastifyInstance): Promise<void> {
         .where(eq(videos.id, id));
 
       // Fire and forget — client polls status via SSE
-      void processVoice(id, video.script, project.voiceId);
+      void processVoice(id, video.script, voiceId);
 
       return reply.status(202).send({ data: { videoId: id, status: "VOICE_PENDING" } });
     },

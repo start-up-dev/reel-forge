@@ -2,6 +2,7 @@ import { createRequire } from "module";
 import { fileURLToPath } from "url";
 import path from "path";
 import type { FastifyInstance } from "fastify";
+import { getVoicesByLanguage } from "../services/elevenlabs.js";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
@@ -11,10 +12,6 @@ const bgmTracks = require(path.join(
   __dirname,
   "../config/bgm-tracks.json",
 )) as BgmTrack[];
-const voicesList = require(path.join(
-  __dirname,
-  "../config/voices.json",
-)) as Voice[];
 
 interface BgmTrack {
   id: string;
@@ -25,24 +22,19 @@ interface BgmTrack {
   previewUrl: string;
 }
 
-interface Voice {
-  id: string;
-  name: string;
-  gender: string;
-  accent: string;
-  language: string;
-  previewUrl: string;
-  tags: string[];
-}
-
 export async function assetsRoutes(fastify: FastifyInstance): Promise<void> {
   // GET /api/assets/bgm — return available BGM tracks
   fastify.get("/assets/bgm", async (_request, reply) => {
     return reply.send({ data: bgmTracks });
   });
 
-  // GET /api/assets/voices — return curated ElevenLabs voice list
-  fastify.get("/assets/voices", async (_request, reply) => {
-    return reply.send({ data: voicesList });
-  });
+  // GET /api/assets/voices — return ElevenLabs voices, optionally filtered by language
+  fastify.get<{ Querystring: { language?: string } }>(
+    "/assets/voices",
+    async (request, reply) => {
+      const { language } = request.query;
+      const voices = await getVoicesByLanguage(language);
+      return reply.send({ data: voices });
+    }
+  );
 }

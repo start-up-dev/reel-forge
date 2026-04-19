@@ -147,7 +147,7 @@ export function Step2Script({
           value={script}
           onChange={(e) => handleScriptChange(e.target.value)}
           rows={12}
-          className="w-full resize-none rounded-xl bg-transparent px-4 py-3 text-[15px] leading-relaxed text-[var(--text-primary)] outline-none placeholder:text-[var(--text-muted)]"
+          className="w-full min-h-[240px] resize-none rounded-xl bg-transparent px-4 py-3 text-[15px] leading-relaxed text-[var(--text-primary)] outline-none placeholder:text-[var(--text-muted)]"
           placeholder="Your script will appear here…"
         />
         <span

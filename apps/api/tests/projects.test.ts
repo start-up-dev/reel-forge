@@ -36,7 +36,7 @@ const SAMPLE_PROJECT = {
   id: "proj-uuid-001",
   userId: MOCK_USER.id,
   name: "My TikTok Channel",
-  platform: "tiktok",
+  platforms: ["tiktok"],
   niche: "fitness",
   targetAudience: "18-24",
   tone: "energetic",
@@ -114,7 +114,7 @@ describe("Project routes", () => {
         url: "/api/projects",
         payload: {
           name: "My TikTok Channel",
-          platform: "tiktok",
+          platforms: ["tiktok"],
           niche: "fitness",
           tone: "energetic",
         },
@@ -128,7 +128,7 @@ describe("Project routes", () => {
       const res = await app.inject({
         method: "POST",
         url: "/api/projects",
-        payload: { platform: "tiktok" },
+        payload: { platforms: ["tiktok"] },
       });
 
       expect(res.statusCode).toBe(400);
@@ -140,7 +140,7 @@ describe("Project routes", () => {
       const res = await app.inject({
         method: "POST",
         url: "/api/projects",
-        payload: { name: "Test", platform: "twitter" },
+        payload: { name: "Test", platforms: ["twitter"] },
       });
 
       expect(res.statusCode).toBe(400);

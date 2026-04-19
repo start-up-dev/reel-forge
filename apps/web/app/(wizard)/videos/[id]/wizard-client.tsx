@@ -122,6 +122,12 @@ export function WizardClient({ videoId }: { videoId: string }) {
     }
   }, [video, stepParam, currentStep, videoId, router]);
 
+  // Scroll to top on step change
+  useEffect(() => {
+    const main = document.querySelector("main");
+    if (main) main.scrollTop = 0;
+  }, [currentStep]);
+
   function goToStep(step: number) {
     router.push(`/videos/${videoId}?step=${step}`);
   }
@@ -206,16 +212,17 @@ export function WizardClient({ videoId }: { videoId: string }) {
         onTitleChange={handleTitleChange}
       />
 
-      {/* Step content with fade transition */}
+      {/* Step content with fade + slide transition */}
       <main
         key={currentStep}
-        className="relative flex-1 overflow-y-auto animate-in fade-in duration-200"
+        className="relative flex-1 overflow-y-auto animate-in fade-in slide-in-from-bottom-3 duration-300"
       >
         {/* Ambient purple glow — subtle cinematic atmosphere */}
         <div className="pointer-events-none absolute inset-x-0 top-0 h-[500px] bg-[radial-gradient(ellipse_80%_40%_at_50%_0%,rgba(124,92,252,0.07)_0%,transparent_70%)]" />
         {currentStep === 1 && (
           <Step1Idea
             video={video}
+            project={project ?? null}
             onVideoUpdate={setVideo}
             onScheduleSave={scheduleSave}
             onAdvance={() => goToStep(2)}

@@ -6,18 +6,11 @@ import { MoreVertical, Edit2, Trash2, Plus, Film } from "lucide-react";
 import type { Project } from "@repo/types";
 import { Platform } from "@repo/types";
 
-const platformLabels: Record<Platform, string> = {
+const PLATFORM_LABELS: Record<Platform, string> = {
   [Platform.TikTok]: "TikTok",
   [Platform.Instagram]: "Instagram",
   [Platform.YouTubeShorts]: "YouTube Shorts",
   [Platform.FacebookReels]: "Facebook Reels",
-};
-
-const platformColors: Record<Platform, string> = {
-  [Platform.TikTok]: "bg-black text-white",
-  [Platform.Instagram]: "bg-gradient-to-r from-[#833AB4] to-[#E1306C] text-white",
-  [Platform.YouTubeShorts]: "bg-red-600 text-white",
-  [Platform.FacebookReels]: "bg-blue-600 text-white",
 };
 
 interface ProjectCardProps {
@@ -48,9 +41,6 @@ export function ProjectCard({
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, [menuOpen]);
 
-  const platformLabel = platformLabels[project.platform] ?? project.platform;
-  const platformColor = platformColors[project.platform] ?? "bg-[var(--bg-elevated)] text-[var(--text-secondary)]";
-
   const updatedAt = new Date(project.updatedAt);
   const now = new Date();
   const diffDays = Math.floor((now.getTime() - updatedAt.getTime()) / (1000 * 60 * 60 * 24));
@@ -66,9 +56,21 @@ export function ProjectCard({
           <div className="absolute inset-0 flex items-center justify-center">
             <Film className="h-10 w-10 text-[var(--bg-border)]" />
           </div>
-          {/* Platform badge */}
-          <div className={`absolute left-3 top-3 rounded-full px-2.5 py-0.5 text-[10px] font-semibold ${platformColor}`}>
-            {platformLabel}
+          {/* Platform badges */}
+          <div className="absolute left-3 top-3 flex items-center gap-1">
+            {project.platforms.slice(0, 3).map((p) => (
+              <span
+                key={p}
+                className="rounded-full border border-[var(--bg-border)] bg-black/60 px-2 py-0.5 text-[10px] font-semibold text-white backdrop-blur-sm"
+              >
+                {PLATFORM_LABELS[p as Platform] ?? p}
+              </span>
+            ))}
+            {project.platforms.length > 3 && (
+              <span className="text-[10px] text-white/70">
+                +{project.platforms.length - 3}
+              </span>
+            )}
           </div>
           {/* Gear menu trigger — stopPropagation prevents triggering the parent Link */}
           <div ref={menuRef} className="absolute right-2 top-2">

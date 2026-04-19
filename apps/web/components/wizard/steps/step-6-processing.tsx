@@ -88,7 +88,7 @@ export function Step6Processing({
   onAdvance,
 }: Step6ProcessingProps) {
   const api = useApiClient();
-  const [queuePosition, setQueuePosition] = useState(0);
+  const [queuePosition] = useState(0);
   const [retrying, setRetrying] = useState(false);
   const isFailed = video.status === VideoStatus.Failed;
   const isComplete = video.status === VideoStatus.Complete;
@@ -137,13 +137,12 @@ export function Step6Processing({
 
       {/* Queue position indicator */}
       {queuePosition > 0 && !isFailed && (
-        <div className="mb-8 flex flex-col items-center gap-1">
-          <span className="text-5xl font-black text-[var(--text-muted)]">
-            #{queuePosition}
+        <div className="mb-8 flex flex-col items-center gap-2">
+          <span className="animate-pulse rounded-full bg-[var(--accent-warning)]/20 px-4 py-1.5 text-sm font-semibold text-[var(--accent-warning)]">
+            #{queuePosition} in queue
           </span>
-          <span className="text-xs text-[var(--text-muted)]">in the queue</span>
           {estimatedWait && (
-            <span className="mt-1 text-sm text-[var(--text-secondary)]">
+            <span className="text-xs text-[var(--text-secondary)]">
               Estimated wait: {estimatedWait}
             </span>
           )}
@@ -240,15 +239,17 @@ export function Step6Processing({
 
       {/* Leave message */}
       {!isFailed && (
-        <div className="mt-16 flex flex-col items-center gap-2 text-center">
-          <Mail className="h-5 w-5 text-[var(--text-muted)]" />
-          <p className="text-sm text-[var(--text-muted)]">
-            You can close this tab — we&apos;ll email you when your video is
-            ready.
+        <div className="mt-12 w-full rounded-xl border border-[var(--bg-border)] bg-[var(--bg-elevated)] p-5 text-center">
+          <Mail className="mx-auto mb-2 h-5 w-5 text-[var(--text-muted)]" />
+          <p className="text-sm font-medium text-[var(--text-secondary)]">
+            You can leave this page
+          </p>
+          <p className="mt-1 text-xs text-[var(--text-muted)]">
+            We&apos;ll email you when your video is ready.
           </p>
           <Link
             href="/library"
-            className="mt-1 text-xs text-[var(--accent-secondary)] hover:underline"
+            className="mt-3 inline-block text-xs text-[var(--accent-secondary)] hover:underline"
           >
             Go to Library
           </Link>

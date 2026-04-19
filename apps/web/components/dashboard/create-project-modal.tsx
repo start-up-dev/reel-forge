@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { toast } from "sonner";
-import { Loader2 } from "lucide-react";
+import { Check, Loader2 } from "lucide-react";
 import {
   Dialog,
   DialogContent,
@@ -13,6 +13,7 @@ import {
 import type { Project } from "@repo/types";
 import { Platform, VideoStyle, Tone } from "@repo/types";
 import { useApiClient, withToast } from "@/lib/api-client";
+import { cn } from "@repo/ui/utils";
 
 interface CreateProjectModalProps {
   open: boolean;
@@ -22,7 +23,7 @@ interface CreateProjectModalProps {
   onSuccess: (project: Project) => void;
 }
 
-const platforms = [
+const PLATFORM_OPTIONS = [
   { value: Platform.TikTok, label: "TikTok" },
   { value: Platform.Instagram, label: "Instagram" },
   { value: Platform.YouTubeShorts, label: "YouTube Shorts" },
@@ -46,35 +47,24 @@ const tones = [
   { value: Tone.Dramatic, label: "Dramatic" },
 ];
 
-const defaultVoices = [
-  { id: "21m00Tcm4TlvDq8ikWAM", name: "Rachel", language: "English" },
-  { id: "AZnzlk1XvdvUeBnXmlld", name: "Domi", language: "English" },
-  { id: "EXAVITQu4vr4xnSDxMaL", name: "Bella", language: "English" },
-  { id: "ErXwobaYiN019PkySvjV", name: "Antoni", language: "English" },
-  { id: "MF3mGyEYCl7XYWbV9V6O", name: "Elli", language: "English" },
-  { id: "TxGEqnHWrfWFTfGW9XjX", name: "Josh", language: "English" },
-];
-
 type FormData = {
   name: string;
-  platform: Platform;
+  platforms: Platform[];
   niche: string;
   language: string;
   targetAudience: string;
   videoStyle: VideoStyle;
   tone: Tone;
-  voiceId: string;
 };
 
 const defaultForm: FormData = {
   name: "",
-  platform: Platform.TikTok,
+  platforms: [Platform.TikTok],
   niche: "",
   language: "English",
   targetAudience: "",
   videoStyle: VideoStyle.Educational,
   tone: Tone.Casual,
-  voiceId: defaultVoices[0]!.id,
 };
 
 export function CreateProjectModal({
@@ -93,13 +83,12 @@ export function CreateProjectModal({
     if (project) {
       setForm({
         name: project.name,
-        platform: project.platform,
+        platforms: project.platforms,
         niche: project.niche,
         language: project.language,
         targetAudience: project.targetAudience,
         videoStyle: project.videoStyle,
         tone: project.tone,
-        voiceId: project.voiceId,
       });
     } else {
       setForm(defaultForm);
@@ -110,10 +99,20 @@ export function CreateProjectModal({
     setForm((prev) => ({ ...prev, [key]: value }));
   }
 
+  function togglePlatform(p: Platform) {
+    setForm((prev) => ({
+      ...prev,
+      platforms: prev.platforms.includes(p)
+        ? prev.platforms.filter((x) => x !== p)
+        : [...prev.platforms, p],
+    }));
+  }
+
   const isValid =
     form.name.trim().length > 0 &&
     form.niche.trim().length > 0 &&
-    form.targetAudience.trim().length > 0;
+    form.targetAudience.trim().length > 0 &&
+    form.platforms.length > 0;
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -156,19 +155,34 @@ export function CreateProjectModal({
             />
           </Field>
 
-          {/* Platform */}
-          <Field label="Platform" required>
-            <select
-              value={form.platform}
-              onChange={(e) => set("platform", e.target.value as Platform)}
-              className={inputCls}
-            >
-              {platforms.map((p) => (
-                <option key={p.value} value={p.value}>
-                  {p.label}
-                </option>
-              ))}
-            </select>
+          {/* Platforms — multi-select pills */}
+          <Field label="Platforms" required>
+            <div className="flex flex-wrap gap-2">
+              {PLATFORM_OPTIONS.map((p) => {
+                const selected = form.platforms.includes(p.value);
+                return (
+                  <button
+                    key={p.value}
+                    type="button"
+                    onClick={() => togglePlatform(p.value)}
+                    className={cn(
+                      "flex items-center gap-2 rounded-full border px-3 py-1.5 text-sm font-medium transition-all",
+                      selected
+                        ? "border-[var(--accent-primary)] bg-[var(--accent-primary)]/15 text-[var(--text-primary)]"
+                        : "border-[var(--bg-border)] bg-[var(--bg-elevated)] text-[var(--text-secondary)] hover:border-[var(--text-muted)]"
+                    )}
+                  >
+                    {p.label}
+                    {selected && <Check className="h-3 w-3 text-[var(--accent-primary)]" />}
+                  </button>
+                );
+              })}
+            </div>
+            {form.platforms.length === 0 && (
+              <p className="mt-1 text-xs text-[var(--accent-danger)]">
+                Select at least one platform
+              </p>
+            )}
           </Field>
 
           {/* Niche */}
@@ -234,32 +248,6 @@ export function CreateProjectModal({
                 </option>
               ))}
             </select>
-          </Field>
-
-          {/* Voice */}
-          <Field label="AI Voice">
-            <div className="grid grid-cols-2 gap-2">
-              {defaultVoices.map((v) => (
-                <button
-                  key={v.id}
-                  type="button"
-                  onClick={() => set("voiceId", v.id)}
-                  className={`flex items-center gap-2 rounded-lg border px-3 py-2 text-left text-sm transition-colors ${
-                    form.voiceId === v.id
-                      ? "border-[var(--accent-primary)] bg-[var(--accent-primary)]/10 text-[var(--text-primary)]"
-                      : "border-[var(--bg-border)] bg-[var(--bg-elevated)] text-[var(--text-secondary)] hover:border-[var(--text-muted)]"
-                  }`}
-                >
-                  <div className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-[var(--accent-primary)]/20 text-[10px] font-bold text-[var(--accent-primary)]">
-                    {v.name[0]}
-                  </div>
-                  <div>
-                    <div className="text-xs font-medium">{v.name}</div>
-                    <div className="text-[10px] text-[var(--text-muted)]">{v.language}</div>
-                  </div>
-                </button>
-              ))}
-            </div>
           </Field>
 
           <DialogFooter>

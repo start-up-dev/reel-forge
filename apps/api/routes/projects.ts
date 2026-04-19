@@ -11,13 +11,13 @@ const SUBTITLE_STYLES = ["bold_pop", "word_highlight", "minimal", "cinematic"] a
 
 const createProjectBody = z.object({
   name: z.string().min(1).max(120),
-  platform: z.enum(PLATFORMS),
+  platforms: z.array(z.enum(PLATFORMS)).min(1),
   niche: z.string().min(1).max(200),
   language: z.string().min(1).max(50),
   targetAudience: z.string().min(1).max(300),
   videoStyle: z.enum(VIDEO_STYLES),
   tone: z.enum(TONES),
-  voiceId: z.string().min(1),
+  voiceId: z.string().optional(),
   defaultSubtitleStyle: z.enum(SUBTITLE_STYLES).optional(),
   defaultBgmEnabled: z.boolean().optional(),
   defaultBgmAssetId: z.string().nullable().optional(),

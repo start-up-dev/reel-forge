@@ -240,10 +240,10 @@ export function Step4Scenes({ video, onVideoUpdate, onBack, onAdvance }: Step4Sc
             <div
               key={scene.sceneIndex}
               className={cn(
-                "rounded-xl border bg-[var(--bg-elevated)] transition-all",
+                "rounded-xl border bg-[var(--bg-elevated)] transition-all hover:-translate-y-0.5",
                 scene.approved
-                  ? "border-[var(--accent-success)]/60"
-                  : "border-[var(--bg-border)]"
+                  ? "border-l-4 border-[var(--accent-success)] border-l-[var(--accent-success)]"
+                  : "border-[var(--bg-border)] hover:border-[var(--accent-primary)]/40"
               )}
             >
               {/* Card header */}
@@ -278,25 +278,36 @@ export function Step4Scenes({ video, onVideoUpdate, onBack, onAdvance }: Step4Sc
               <div className="relative mx-4 overflow-hidden rounded-lg bg-[var(--bg-base)]"
                 style={{ aspectRatio: "9/16", maxHeight: 240 }}>
                 {scene.baseImageUrl ? (
-                  // eslint-disable-next-line @next/next/no-img-element
-                  <img
-                    src={scene.baseImageUrl}
-                    alt={`Scene ${scene.sceneIndex + 1}`}
-                    className="h-full w-full object-cover"
-                  />
+                  <>
+                    {/* eslint-disable-next-line @next/next/no-img-element */}
+                    <img
+                      src={scene.baseImageUrl}
+                      alt={`Scene ${scene.sceneIndex + 1}`}
+                      className="h-full w-full object-cover"
+                    />
+                    {scene.approved && (
+                      <div className="absolute inset-0 flex items-center justify-center bg-[var(--accent-success)]/20">
+                        <span className="flex h-8 w-8 items-center justify-center rounded-full bg-[var(--accent-success)] text-white text-sm font-bold">✓</span>
+                      </div>
+                    )}
+                  </>
                 ) : (
-                  <div className="flex h-full items-center justify-center">
-                    <div className="animate-pulse text-[var(--text-muted)]">
+                  <div className="flex h-full animate-pulse items-center justify-center bg-[var(--bg-elevated)]">
+                    <div className="text-[var(--text-muted)]">
                       <ImageIcon className="h-8 w-8 mx-auto mb-2" />
                       <p className="text-xs">Generating…</p>
                     </div>
                   </div>
                 )}
+                {/* Scene number badge */}
+                <div className="absolute left-0 top-0 rounded-br-lg bg-black/50 px-2 py-1 text-xs text-white">
+                  {scene.sceneIndex + 1}
+                </div>
               </div>
 
               {/* Text excerpt */}
               <p className="mx-4 mt-3 text-xs italic text-[var(--text-secondary)] line-clamp-2">
-                "{scene.textExcerpt}"
+                &quot;{scene.textExcerpt}&quot;
               </p>
 
               {/* Visual prompt */}
@@ -306,9 +317,11 @@ export function Step4Scenes({ video, onVideoUpdate, onBack, onAdvance }: Step4Sc
                   onClick={() =>
                     setExpandedPrompts((prev) => {
                       const next = new Set(prev);
-                      isExpanded
-                        ? next.delete(scene.sceneIndex)
-                        : next.add(scene.sceneIndex);
+                      if (isExpanded) {
+                        next.delete(scene.sceneIndex);
+                      } else {
+                        next.add(scene.sceneIndex);
+                      }
                       return next;
                     })
                   }

@@ -13,12 +13,6 @@ import {
 
 export const planTypeEnum = pgEnum("plan_type", ["none", "try_out", "starter", "pro"]);
 
-export const platformEnum = pgEnum("platform", [
-  "tiktok",
-  "instagram",
-  "youtube_shorts",
-  "facebook_reels",
-]);
 
 // PRD §7.2 — corrected values (was: cinematic, vlog, animated, documentary)
 export const videoStyleEnum = pgEnum("video_style", [
@@ -109,7 +103,7 @@ export const users = pgTable("users", {
  * projects — userId is text FK referencing users.id (Clerk ID).
  * Added: language, videoStyle, defaultSubtitleStyle, defaultBgmEnabled,
  *        defaultBgmAssetId, claudeSystemPrompt (all per PRD §7.2 / §9).
- * Fixed: niche, targetAudience, voiceId are now required (notNull) per PRD §7.2.
+ * Fixed: niche, targetAudience required (notNull); voiceId nullable (chosen per-video in wizard).
  */
 export const projects = pgTable(
   "projects",
@@ -119,13 +113,13 @@ export const projects = pgTable(
       .notNull()
       .references(() => users.id, { onDelete: "cascade" }),
     name: text("name").notNull(),
-    platform: platformEnum("platform").notNull(),
+    platforms: text("platforms").array().notNull().default(["tiktok"]),
     niche: text("niche").notNull(),
     language: text("language").notNull(),
     targetAudience: text("target_audience").notNull(),
     videoStyle: videoStyleEnum("video_style").notNull(),
     tone: toneEnum("tone").notNull(),
-    voiceId: text("voice_id").notNull(),
+    voiceId: text("voice_id"),
     defaultSubtitleStyle: subtitleStyleEnum("default_subtitle_style"),
     defaultBgmEnabled: boolean("default_bgm_enabled").notNull().default(false),
     defaultBgmAssetId: text("default_bgm_asset_id"),
@@ -168,6 +162,8 @@ export const videos = pgTable(
     bgmEnabled: boolean("bgm_enabled").notNull().default(false),
     bgmAssetId: text("bgm_asset_id"),
     bgmVolume: integer("bgm_volume").notNull().default(30),   // Fixed: integer 0–100
+    targetDurationSeconds: integer("target_duration_seconds").notNull().default(30),
+    voiceId: text("voice_id"),
     outputUrl: text("output_url"),
     error: text("error"),
     deletedAt: timestamp("deleted_at", { withTimezone: true }),

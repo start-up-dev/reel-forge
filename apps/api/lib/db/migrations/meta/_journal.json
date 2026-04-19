@@ -29,6 +29,13 @@
       "when": 1776557601763,
       "tag": "0003_dizzy_leader",
       "breakpoints": true
+    },
+    {
+      "idx": 4,
+      "version": "7",
+      "when": 1745193600000,
+      "tag": "0004_feature_bundle_v2",
+      "breakpoints": true
     }
   ]
 }

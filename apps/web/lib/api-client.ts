@@ -11,6 +11,14 @@ import type {
   Video,
 } from "@repo/types";
 
+export interface VoiceInfo {
+  id: string;
+  name: string;
+  language: string;
+  gender: string | null;
+  previewUrl: string | null;
+}
+
 export type VideoDetail = Video & {
   scenes: Scene[];
 };
@@ -95,7 +103,7 @@ export function createApiClient(getToken: () => Promise<string | null>) {
         return authedRequest(`/api/projects/${id}`);
       },
       create(
-        data: Pick<Project, "name" | "platform" | "niche" | "voiceId" | "tone">
+        data: Pick<Project, "name" | "platforms" | "niche" | "tone"> & Partial<Pick<Project, "voiceId" | "language" | "targetAudience" | "videoStyle">>
       ): Promise<ApiResponse<Project>> {
         return authedRequest("/api/projects", {
           method: "POST",
@@ -104,7 +112,7 @@ export function createApiClient(getToken: () => Promise<string | null>) {
       },
       update(
         id: string,
-        data: Partial<Pick<Project, "name" | "platform" | "niche" | "voiceId" | "tone">>
+        data: Partial<Pick<Project, "name" | "platforms" | "niche" | "voiceId" | "tone" | "language" | "targetAudience" | "videoStyle">>
       ): Promise<ApiResponse<Project>> {
         return authedRequest(`/api/projects/${id}`, {
           method: "PUT",
@@ -131,10 +139,13 @@ export function createApiClient(getToken: () => Promise<string | null>) {
       get(id: string): Promise<ApiResponse<VideoDetail>> {
         return authedRequest(`/api/videos/${id}`);
       },
-      create(projectId: string, title?: string): Promise<ApiResponse<Video>> {
+      create(
+        projectId: string,
+        data?: { title?: string; targetDurationSeconds?: number }
+      ): Promise<ApiResponse<Video>> {
         return authedRequest(`/api/projects/${projectId}/videos`, {
           method: "POST",
-          body: JSON.stringify(title ? { title } : {}),
+          body: JSON.stringify(data ?? {}),
         });
       },
       patch(
@@ -149,6 +160,8 @@ export function createApiClient(getToken: () => Promise<string | null>) {
             | "bgmEnabled"
             | "bgmAssetId"
             | "bgmVolume"
+            | "voiceId"
+            | "targetDurationSeconds"
           >
         >
       ): Promise<ApiResponse<Video>> {
@@ -264,8 +277,9 @@ export function createApiClient(getToken: () => Promise<string | null>) {
       bgm(): Promise<ApiResponse<unknown[]>> {
         return authedRequest("/api/assets/bgm");
       },
-      voices(): Promise<ApiResponse<unknown[]>> {
-        return authedRequest("/api/assets/voices");
+      voices(language?: string): Promise<ApiResponse<VoiceInfo[]>> {
+        const qs = language ? `?language=${encodeURIComponent(language)}` : "";
+        return authedRequest(`/api/assets/voices${qs}`);
       },
     },
 

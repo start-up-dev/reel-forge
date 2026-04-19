@@ -1,18 +1,20 @@
 "use client";
 
-import { useState } from "react";
-import { ChevronDown, ChevronUp, Check } from "lucide-react";
+import { useState, useEffect, useRef } from "react";
+import { ChevronDown, ChevronUp, Check, Play, Square } from "lucide-react";
 import { toast } from "sonner";
 import { VideoStatus } from "@repo/types";
+import type { Project } from "@repo/types";
 import { Button } from "@repo/ui/button";
 import { useApiClient, withToast } from "@/lib/api-client";
-import type { VideoDetail } from "@/lib/api-client";
+import type { VideoDetail, VoiceInfo } from "@/lib/api-client";
 import { cn } from "@repo/ui/utils";
 
 interface Step1IdeaProps {
   video: VideoDetail;
+  project: Project | null;
   onVideoUpdate: (v: VideoDetail) => void;
-  onScheduleSave: (data: { idea?: string }) => void;
+  onScheduleSave: (data: { idea?: string; voiceId?: string | null; targetDurationSeconds?: number }) => void;
   onAdvance: () => void;
 }
 
@@ -23,6 +25,13 @@ interface IdeaCard {
   body: string;
 }
 
+const DURATION_OPTIONS = [
+  { value: 15, label: "15s", hint: "Quick hook" },
+  { value: 30, label: "30s", hint: "Standard" },
+  { value: 45, label: "45s", hint: "In-depth" },
+  { value: 60, label: "60s", hint: "Full story" },
+] as const;
+
 const TIPS = [
   "Be specific about your niche or audience (e.g. 'morning routine for busy parents')",
   "Mention a problem you're solving or a transformation you're showing",
@@ -32,6 +41,7 @@ const TIPS = [
 
 export function Step1Idea({
   video,
+  project,
   onVideoUpdate,
   onScheduleSave,
   onAdvance,
@@ -47,6 +57,54 @@ export function Step1Idea({
   );
   const [submitting, setSubmitting] = useState(false);
   const [showTips, setShowTips] = useState(false);
+
+  // Video length
+  const [targetDuration, setTargetDuration] = useState(video.targetDurationSeconds ?? 30);
+
+  // Voice selection
+  const [voices, setVoices] = useState<VoiceInfo[]>([]);
+  const [voicesLoading, setVoicesLoading] = useState(true);
+  const [selectedVoiceId, setSelectedVoiceId] = useState<string | null>(video.voiceId ?? null);
+  const [playingPreview, setPlayingPreview] = useState<string | null>(null);
+  const audioRef = useRef<HTMLAudioElement | null>(null);
+
+  useEffect(() => {
+    async function loadVoices() {
+      setVoicesLoading(true);
+      const result = await withToast(
+        () => api.assets.voices(project?.language),
+        "Failed to load voices"
+      );
+      if (result?.data) setVoices(result.data);
+      setVoicesLoading(false);
+    }
+    void loadVoices();
+  }, [api, project?.language]);
+
+  // Cleanup audio on unmount
+  useEffect(() => {
+    return () => {
+      audioRef.current?.pause();
+    };
+  }, []);
+
+  function selectVoice(id: string) {
+    setSelectedVoiceId(id);
+    onScheduleSave({ voiceId: id });
+  }
+
+  function togglePreview(previewUrl: string) {
+    if (playingPreview === previewUrl) {
+      audioRef.current?.pause();
+      setPlayingPreview(null);
+    } else {
+      if (audioRef.current) audioRef.current.pause();
+      audioRef.current = new Audio(previewUrl);
+      void audioRef.current.play();
+      audioRef.current.onended = () => setPlayingPreview(null);
+      setPlayingPreview(previewUrl);
+    }
+  }
 
   async function handleGenerateIdeas() {
     if (!topic.trim()) {
@@ -68,11 +126,14 @@ export function Step1Idea({
   }
 
   async function handleUseIdea(idea: IdeaCard) {
+    if (!selectedVoiceId) {
+      toast.error("Select a voice before continuing");
+      return;
+    }
     setSelectedIdea(idea);
     const ideaText = `${idea.title}: ${idea.body}`;
     setSubmitting(true);
 
-    // Save idea and trigger script generation
     const result = await withToast(
       () => api.videos.generateScript(video.id, { idea: ideaText }),
       "Failed to start script generation"
@@ -87,6 +148,10 @@ export function Step1Idea({
   async function handleDirectSubmit() {
     if (!directIdea.trim()) {
       toast.error("Enter your idea first");
+      return;
+    }
+    if (!selectedVoiceId) {
+      toast.error("Select a voice before continuing");
       return;
     }
     setSubmitting(true);
@@ -112,6 +177,34 @@ export function Step1Idea({
         polished script.
       </p>
 
+      {/* Video Length */}
+      <div className="mb-6">
+        <p className="mb-2 text-xs font-medium uppercase tracking-widest text-[var(--text-muted)]">
+          Video Length
+        </p>
+        <div className="flex gap-2">
+          {DURATION_OPTIONS.map((opt) => (
+            <button
+              key={opt.value}
+              type="button"
+              onClick={() => {
+                setTargetDuration(opt.value);
+                onScheduleSave({ targetDurationSeconds: opt.value });
+              }}
+              className={cn(
+                "flex flex-col items-center rounded-xl border px-4 py-2 transition-all",
+                targetDuration === opt.value
+                  ? "border-[var(--accent-primary)] bg-[var(--accent-primary)]/10 text-[var(--text-primary)]"
+                  : "border-[var(--bg-border)] bg-[var(--bg-elevated)] text-[var(--text-secondary)] hover:border-[var(--text-muted)]"
+              )}
+            >
+              <span className="text-base font-bold">{opt.label}</span>
+              <span className="text-[10px] text-[var(--text-muted)]">{opt.hint}</span>
+            </button>
+          ))}
+        </div>
+      </div>
+
       {/* Mode toggle */}
       <div className="mb-6 inline-flex rounded-lg border border-[var(--bg-border)] bg-[var(--bg-elevated)] p-1">
         {(["brainstorm", "direct"] as const).map((m) => (
@@ -133,25 +226,23 @@ export function Step1Idea({
 
       {mode === "brainstorm" ? (
         <div className="space-y-4">
-          <div className="relative">
-            <textarea
-              value={topic}
-              onChange={(e) => {
-                setTopic(e.target.value);
-                onScheduleSave({ idea: e.target.value });
-              }}
-              disabled={generating}
-              placeholder="e.g. 'Quick tips for building a morning routine'"
-              rows={4}
-              className={cn(
-                "w-full resize-none rounded-xl border border-[var(--bg-border)]",
-                "bg-[var(--bg-elevated)] px-4 py-3 text-sm text-[var(--text-primary)]",
-                "placeholder:text-[var(--text-muted)] outline-none transition-colors",
-                "focus:border-[var(--accent-primary)]",
-                generating && "opacity-60"
-              )}
-            />
-          </div>
+          <textarea
+            value={topic}
+            onChange={(e) => {
+              setTopic(e.target.value);
+              onScheduleSave({ idea: e.target.value });
+            }}
+            disabled={generating}
+            placeholder="e.g. 'Quick tips for building a morning routine'"
+            rows={4}
+            className={cn(
+              "w-full resize-none rounded-xl border border-[var(--bg-border)]",
+              "bg-[var(--bg-elevated)] px-4 py-3 text-sm text-[var(--text-primary)]",
+              "placeholder:text-[var(--text-muted)] outline-none transition-colors",
+              "focus:border-[var(--accent-primary)]",
+              generating && "opacity-60"
+            )}
+          />
 
           <Button
             onClick={handleGenerateIdeas}
@@ -173,8 +264,7 @@ export function Step1Idea({
                     />
                   ))
                 : ideas.map((idea, i) => {
-                    const isSelected =
-                      selectedIdea?.title === idea.title;
+                    const isSelected = selectedIdea?.title === idea.title;
                     return (
                       <div
                         key={i}
@@ -246,6 +336,81 @@ export function Step1Idea({
           </Button>
         </div>
       )}
+
+      {/* ── Voice section ── */}
+      <div className="mt-8">
+        <div className="mb-3 flex items-center justify-between">
+          <p className="text-xs font-medium uppercase tracking-widest text-[var(--text-muted)]">
+            Voice
+          </p>
+          {project?.language && (
+            <p className="text-xs text-[var(--text-secondary)]">
+              {project.language} voices
+            </p>
+          )}
+        </div>
+
+        {voicesLoading ? (
+          <div className="flex gap-3 overflow-hidden">
+            {Array.from({ length: 4 }).map((_, i) => (
+              <div
+                key={i}
+                className="h-16 w-36 shrink-0 animate-pulse rounded-xl bg-[var(--bg-elevated)]"
+              />
+            ))}
+          </div>
+        ) : voices.length === 0 ? (
+          <p className="text-sm text-[var(--text-muted)]">No voices available.</p>
+        ) : (
+          <div className="flex gap-3 overflow-x-auto pb-2">
+            {voices.map((v) => (
+              <button
+                key={v.id}
+                type="button"
+                onClick={() => selectVoice(v.id)}
+                className={cn(
+                  "flex shrink-0 items-center gap-2 rounded-xl border px-3 py-2.5 transition-all",
+                  selectedVoiceId === v.id
+                    ? "border-[var(--accent-primary)] bg-[var(--accent-primary)]/10"
+                    : "border-[var(--bg-border)] bg-[var(--bg-elevated)] hover:border-[var(--text-muted)]"
+                )}
+              >
+                <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-[var(--accent-primary)]/20 text-sm font-bold text-[var(--accent-primary)]">
+                  {v.name[0]}
+                </div>
+                <div className="text-left">
+                  <p className="text-sm font-medium text-[var(--text-primary)]">{v.name}</p>
+                  <p className="text-[10px] text-[var(--text-muted)]">
+                    {v.gender ?? v.language}
+                  </p>
+                </div>
+                {v.previewUrl && (
+                  <button
+                    type="button"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      togglePreview(v.previewUrl!);
+                    }}
+                    className="ml-1 flex h-6 w-6 items-center justify-center rounded-full bg-[var(--bg-border)] text-[var(--text-secondary)] hover:text-[var(--text-primary)] transition-colors"
+                  >
+                    {playingPreview === v.previewUrl ? (
+                      <Square className="h-2.5 w-2.5" />
+                    ) : (
+                      <Play className="h-2.5 w-2.5" />
+                    )}
+                  </button>
+                )}
+              </button>
+            ))}
+          </div>
+        )}
+
+        {!selectedVoiceId && !voicesLoading && (
+          <p className="mt-2 text-xs text-[var(--accent-warning)]">
+            Select a voice to continue
+          </p>
+        )}
+      </div>
 
       {/* Tips */}
       <div className="mt-8">

@@ -14,7 +14,7 @@ interface Step7DoneProps {
   onMakeAnother: () => void;
 }
 
-export function Step7Done({ video, projectId, onMakeAnother }: Step7DoneProps) {
+export function Step7Done({ video, onMakeAnother }: Step7DoneProps) {
   const videoRef = useRef<HTMLVideoElement>(null);
   const [confettiDone, setConfettiDone] = useState(false);
 

@@ -57,11 +57,13 @@ export async function assembleVideo(videoId: string): Promise<void> {
 
     // ── Step 3: Mix audio ────────────────────────────────────────────────────
     console.log("[assemble] Mixing audio");
+    if (!video.durationSeconds) throw new Error(`Video ${videoId} has no durationSeconds — voice generation must complete first`);
     const mixedPath = await mixAudio(
       concatenatedPath,
       assets.audioPath,
       assets.bgmPath,
       video.bgmVolume,
+      video.durationSeconds,
       assets.dir,
     );
 

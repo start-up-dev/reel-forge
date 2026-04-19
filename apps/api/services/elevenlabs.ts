@@ -1,5 +1,46 @@
 import { env } from "../lib/env.js";
 
+// ─── Voice listing ────────────────────────────────────────────────────────────
+
+export interface VoiceInfo {
+  id: string;
+  name: string;
+  language: string;
+  gender: string | null;
+  previewUrl: string | null;
+}
+
+interface ElevenLabsVoiceListItem {
+  voice_id: string;
+  name: string;
+  preview_url?: string;
+  labels?: { language?: string; gender?: string };
+}
+
+export async function getVoicesByLanguage(language?: string): Promise<VoiceInfo[]> {
+  const res = await fetch("https://api.elevenlabs.io/v1/voices", {
+    headers: { "xi-api-key": env.ELEVENLABS_API_KEY },
+  });
+  if (!res.ok) throw new Error(`ElevenLabs voices fetch failed: ${res.status}`);
+  const data = (await res.json()) as { voices: ElevenLabsVoiceListItem[] };
+
+  const voices: VoiceInfo[] = data.voices.map((v) => ({
+    id: v.voice_id,
+    name: v.name,
+    language: v.labels?.language ?? "English",
+    gender: v.labels?.gender ?? null,
+    previewUrl: v.preview_url ?? null,
+  }));
+
+  if (!language) return voices;
+
+  const lang = language.toLowerCase();
+  const filtered = voices.filter((v) => v.language.toLowerCase() === lang);
+  return filtered.length > 0 ? filtered : voices;
+}
+
+// ─── Voiceover generation ─────────────────────────────────────────────────────
+
 export interface WordTimestamp {
   word: string;
   start: number;
