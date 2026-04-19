@@ -86,6 +86,8 @@ export interface User {
   monthlyLimit: number;
   lastResetAt: Date;
   onboardingComplete: boolean;
+  emailNotifyReady: boolean;
+  emailNotifyFailed: boolean;
   createdAt: Date;
   updatedAt: Date;
 }

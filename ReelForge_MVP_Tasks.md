@@ -262,7 +262,7 @@ Tasks are ordered by dependency. Each phase can largely begin after the previous
 
 - [x] Build `/settings/profile` page (display name, delete account)
 - [x] Build `/settings/notifications` page (email toggles for "video ready" and "video failed")
-- [ ] Add `email_notify_ready` and `email_notify_failed` boolean columns to `users` table (default `true`) — needed for notification preferences UI
+- [x] Add `email_notify_ready` and `email_notify_failed` boolean columns to `users` table (default `true`) — needed for notification preferences UI
 - [ ] Add `PATCH /api/users/me` support for `emailNotifyReady` and `emailNotifyFailed` fields
 - [x] Build `/billing` page (current plan, usage meters, plan comparison table)
 - [x] Implement "Manage Subscription" button — wired to real `GET /api/billing/portal` API (redirects to Stripe portal)
@@ -518,16 +518,16 @@ Tasks are ordered by dependency. Each phase can largely begin after the previous
 
 ### 9.1 Worker Scaffold
 
-- [ ] Initialize `apps/worker` as a Node.js TypeScript project
-- [ ] Install `fluent-ffmpeg` (or use raw child_process for FFmpeg)
-- [ ] Install `@google-cloud/storage` for GCS access
-- [ ] Set up Fastify HTTP server with single POST endpoint: `POST /assemble`
-- [ ] Implement input validation: verify `video_id` param, verify video status is `ASSEMBLY_PENDING`
-- [ ] Set up GCS service account authentication
+- [x] Initialize `apps/worker` as a Node.js TypeScript project
+- [x] Install `execa` (full-control CLI wrapper, preferred over fluent-ffmpeg or raw child_process)
+- [x] Install `@google-cloud/storage` for GCS access
+- [x] Set up Fastify HTTP server with single POST endpoint: `POST /assemble`
+- [x] Implement input validation: verify `video_id` param, verify video status is `ASSEMBLY_PENDING`
+- [x] Set up GCS service account authentication
 
 ### 9.2 Asset Download
 
-- [ ] Implement `downloadAssetsFromGCS(videoId, options)`:
+- [x] Implement `downloadAssetsFromGCS(videoId, options)`:
   - Download `videos/{id}/audio.mp3` → `/tmp/{id}/audio.mp3`
   - Download `videos/{id}/word_timestamps.json` → `/tmp/{id}/word_timestamps.json`
   - Download each `videos/{id}/scenes/{n}/clip.mp4` → `/tmp/{id}/clips/clip_{n}.mp4`
@@ -536,19 +536,19 @@ Tasks are ordered by dependency. Each phase can largely begin after the previous
 
 ### 9.3 FFmpeg Pipeline Steps
 
-- [ ] **Step 1 — Normalize clips**: resize each clip to 1080×1920 at 30fps, trim to `duration_hint_seconds`. Parallel execution.
-- [ ] **Step 2 — Concatenate**: generate `clips_list.txt`, run `ffmpeg -f concat` to produce `concatenated.mp4`
-- [ ] **Step 3 — Mix audio**:
+- [x] **Step 1 — Normalize clips**: resize each clip to 1080×1920 at 30fps, trim to `duration_hint_seconds`. Parallel execution.
+- [x] **Step 2 — Concatenate**: generate `clips_list.txt`, run `ffmpeg -f concat` to produce `concatenated.mp4`
+- [x] **Step 3 — Mix audio**:
   - Without BGM: simple overlay of voiceover onto video
   - With BGM: use `amix` filter with `volume={bgm_volume / 100}` (PRD §12; `bgm_volume` is integer 0–100)
-- [ ] **Step 4 — Generate subtitles**: implement `apps/worker/subtitles.ts`:
+- [x] **Step 4 — Generate subtitles**: implement `apps/worker/src/subtitles.ts`:
   - Parse `word_timestamps.json`
   - For `bold_pop` / `word_highlight`: one ASS event per word
   - For `minimal` / `cinematic`: group 4–6 words per event at sentence level
   - Encode font, size, color, position, animation in ASS style headers per style
   - Output `subtitles.ass` file
-- [ ] **Step 5 — Burn subtitles**: `ffmpeg -vf "ass=subtitles.ass"` with final encoding settings (H.264 CRF 23, AAC 192k)
-- [ ] **Step 6 — Upload and notify**:
+- [x] **Step 5 — Burn subtitles**: `ffmpeg -vf "ass=subtitles.ass"` with final encoding settings (H.264 CRF 23, AAC 192k)
+- [x] **Step 6 — Upload and notify**:
   - Set video status to `ASSEMBLY_PROCESSING` before upload begins
   - Upload `final.mp4` to `videos/{id}/output.mp4` in GCS
   - Generate 30-day signed URL for output
@@ -558,18 +558,18 @@ Tasks are ordered by dependency. Each phase can largely begin after the previous
 
 ### 9.4 Error Handling & Idempotency
 
-- [ ] Wrap entire assembly in a try/catch
-- [ ] On any failure: update `videos.status = 'FAILED'`, store error in `videos.error`, send "Video Failed" email
-- [ ] Ensure worker is idempotent: if video is already `COMPLETE`, return early without reprocessing
-- [ ] Clean up `/tmp` on both success and failure to prevent disk exhaustion
+- [x] Wrap entire assembly in a try/catch
+- [x] On any failure: update `videos.status = 'FAILED'`, store error in `videos.error`, send "Video Failed" email
+- [x] Ensure worker is idempotent: if video is already `COMPLETE`, return early without reprocessing
+- [x] Clean up `/tmp` on both success and failure to prevent disk exhaustion
 
 ### 9.5 Worker Containerization & Deployment
 
-- [ ] Write `apps/worker/Dockerfile`: use `jrottenberg/ffmpeg:latest` as base image, install Node.js, copy app
+- [x] Write `apps/worker/Dockerfile`: use `jrottenberg/ffmpeg:latest` as base image, install Node.js, copy app
 - [ ] Configure Cloud Run service: min instances 1, 4GB RAM, 2 vCPU, 60min request timeout
 - [ ] Deploy to GCP Cloud Run dev environment
-- [ ] Write Cloud Tasks dispatcher in `apps/api/lib/cloud-tasks.ts`: `dispatchAssemblyTask(videoId)`
-- [ ] Wire `dispatchAssemblyTask` call into `POST /api/operator/clips/:id/complete` when all clips done
+- [x] Write Cloud Tasks dispatcher in `apps/api/lib/cloud-tasks.ts`: `dispatchAssemblyTask(videoId)` — already done in Phase 7
+- [x] Wire `dispatchAssemblyTask` call into `POST /api/operator/clips/:id/complete` when all clips done — already done in Phase 7
 
 ---
 
@@ -577,13 +577,11 @@ Tasks are ordered by dependency. Each phase can largely begin after the previous
 
 ### 10.1 Resend Integration
 
-- [ ] Create `apps/api/services/resend.ts` (and mirror in `apps/worker/lib/resend.ts`):
-  - `sendVideoReadyEmail(toEmail, firstName, videoTitle, videoUrl)`
-  - `sendVideoFailedEmail(toEmail, firstName, videoTitle, retryUrl)`
-- [ ] Build HTML email templates for both (simple, clean, on-brand dark)
+- [ ] Create `apps/api/services/resend.ts` (API-side email service — needed for future API-triggered notifications)
+- [x] Create `apps/worker/src/notify.ts`: `sendVideoReadyEmail` + `sendVideoFailedEmail` with on-brand dark HTML templates
 - [ ] Test both email templates via Resend dashboard
-- [ ] Wire `sendVideoReadyEmail` into FFmpeg worker Step 6
-- [ ] Wire `sendVideoFailedEmail` into FFmpeg worker error handler
+- [x] Wire `sendVideoReadyEmail` into FFmpeg worker Step 6
+- [x] Wire `sendVideoFailedEmail` into FFmpeg worker error handler
 
 ---
 

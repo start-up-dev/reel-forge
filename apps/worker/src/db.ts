@@ -1,0 +1,78 @@
+import { drizzle } from "drizzle-orm/neon-http";
+import { neon } from "@neondatabase/serverless";
+import {
+  boolean,
+  integer,
+  pgEnum,
+  pgTable,
+  text,
+  timestamp,
+  uuid,
+} from "drizzle-orm/pg-core";
+
+// ─── Minimal schema needed by the worker ─────────────────────────────────────
+
+export const videoStatusEnum = pgEnum("video_status", [
+  "DRAFT",
+  "BRAINSTORM_PENDING",
+  "SCRIPT_PENDING",
+  "SCRIPT_READY",
+  "VOICE_PENDING",
+  "VOICE_READY",
+  "SCENES_PENDING",
+  "SCENES_READY",
+  "CLIPS_QUEUED",
+  "CLIPS_PROCESSING",
+  "ASSEMBLY_PENDING",
+  "ASSEMBLY_PROCESSING",
+  "COMPLETE",
+  "FAILED",
+]);
+
+export const subtitleStyleEnum = pgEnum("subtitle_style", [
+  "bold_pop",
+  "word_highlight",
+  "minimal",
+  "cinematic",
+]);
+
+export const users = pgTable("users", {
+  id: text("id").primaryKey(),
+  email: text("email").notNull(),
+  firstName: text("first_name"),
+  emailNotifyReady: boolean("email_notify_ready").notNull().default(true),
+  emailNotifyFailed: boolean("email_notify_failed").notNull().default(true),
+});
+
+export const videos = pgTable("videos", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  userId: text("user_id").notNull(),
+  title: text("title").notNull(),
+  status: videoStatusEnum("status").notNull().default("DRAFT"),
+  subtitleStyle: subtitleStyleEnum("subtitle_style").notNull().default("bold_pop"),
+  bgmEnabled: boolean("bgm_enabled").notNull().default(false),
+  bgmAssetId: text("bgm_asset_id"),
+  bgmVolume: integer("bgm_volume").notNull().default(30),
+  outputUrl: text("output_url"),
+  durationSeconds: integer("duration_seconds"),
+  error: text("error"),
+  updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
+});
+
+export const scenes = pgTable("scenes", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  videoId: uuid("video_id").notNull(),
+  sceneIndex: integer("scene_index").notNull(),
+  durationHintSeconds: integer("duration_hint_seconds"),
+  clipPath: text("clip_path"),
+  updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
+});
+
+export type VideoRow = typeof videos.$inferSelect;
+export type SceneRow = typeof scenes.$inferSelect;
+export type UserRow = typeof users.$inferSelect;
+
+// ─── DB connection ────────────────────────────────────────────────────────────
+
+const sql = neon(process.env["DATABASE_URL"]!);
+export const db = drizzle({ client: sql });

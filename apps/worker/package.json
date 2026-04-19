@@ -1,0 +1,31 @@
+{
+  "name": "@repo/worker",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "tsx watch src/index.ts",
+    "build": "tsc",
+    "start": "node dist/index.js",
+    "lint": "eslint . --max-warnings 0",
+    "check-types": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@google-cloud/storage": "^7.15.2",
+    "@neondatabase/serverless": "^0.10.4",
+    "@repo/types": "workspace:*",
+    "dotenv": "^17.2.3",
+    "drizzle-orm": "^0.40.1",
+    "execa": "^9.5.3",
+    "fastify": "^5.2.0",
+    "zod": "^3.24.4"
+  },
+  "devDependencies": {
+    "@repo/eslint-config": "workspace:*",
+    "@repo/typescript-config": "workspace:*",
+    "@types/node": "^22.15.3",
+    "eslint": "^9.39.1",
+    "tsx": "^4.19.4",
+    "typescript": "5.9.2"
+  }
+}

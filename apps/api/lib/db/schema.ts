@@ -95,6 +95,8 @@ export const users = pgTable("users", {
     .notNull()
     .defaultNow(),
   onboardingComplete: boolean("onboarding_complete").notNull().default(false),
+  emailNotifyReady: boolean("email_notify_ready").notNull().default(true),
+  emailNotifyFailed: boolean("email_notify_failed").notNull().default(true),
   createdAt: timestamp("created_at", { withTimezone: true })
     .notNull()
     .defaultNow(),
