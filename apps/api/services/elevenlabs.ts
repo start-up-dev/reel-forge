@@ -17,7 +17,23 @@ interface ElevenLabsVoiceListItem {
   labels?: { language?: string; gender?: string };
 }
 
-export async function getVoicesByLanguage(language?: string): Promise<VoiceInfo[]> {
+// Voice IDs allowed per language — overrides label-based filtering when set
+const LANGUAGE_VOICE_ALLOWLIST: Record<string, string[]> = {
+  bengali: ["5KpHC9wNrzTPFRQHQaQc", "22jmlXsxSX5mWjsybkYr"],
+};
+
+const LANGUAGE_SAMPLE_TEXTS: Record<string, string> = {
+  bengali: "আমি আপনার ভিডিওর জন্য কথা বলব। আমার কণ্ঠস্বর শুনুন।",
+  english: "Hi, I'll be the voice for your video. Here's how I sound.",
+  hindi: "मैं आपके वीडियो के लिए बोलूंगा। मेरी आवाज़ सुनें।",
+  arabic: "سأتحدث لصالح مقطع الفيديو الخاص بك. استمع إلى صوتي.",
+  spanish: "Hablaré para tu vídeo. Escucha cómo sueno.",
+  french: "Je vais parler pour votre vidéo. Écoutez ma voix.",
+};
+
+export async function getVoicesByLanguage(
+  language?: string,
+): Promise<VoiceInfo[]> {
   const res = await fetch("https://api.elevenlabs.io/v1/voices", {
     headers: { "xi-api-key": env.ELEVENLABS_API_KEY },
   });
@@ -29,14 +45,49 @@ export async function getVoicesByLanguage(language?: string): Promise<VoiceInfo[
     name: v.name,
     language: v.labels?.language ?? "English",
     gender: v.labels?.gender ?? null,
-    previewUrl: v.preview_url ?? null,
+    previewUrl: null, // previews generated on-demand via /assets/voices/:id/preview
   }));
 
   if (!language) return voices;
 
   const lang = language.toLowerCase();
-  const filtered = voices.filter((v) => v.language.toLowerCase() === lang);
-  return filtered.length > 0 ? filtered : voices;
+  const allowlist = LANGUAGE_VOICE_ALLOWLIST[lang];
+  if (allowlist) {
+    return voices.filter((v) => allowlist.includes(v.id));
+  }
+  return voices.filter((v) => v.language.toLowerCase() === lang);
+}
+
+export async function generateVoicePreview(
+  voiceId: string,
+  language?: string,
+): Promise<Buffer> {
+  const lang = (language ?? "english").toLowerCase();
+  const text = LANGUAGE_SAMPLE_TEXTS[lang] ?? LANGUAGE_SAMPLE_TEXTS["english"]!;
+
+  const res = await fetch(
+    `https://api.elevenlabs.io/v1/text-to-speech/${voiceId}`,
+    {
+      method: "POST",
+      headers: {
+        "xi-api-key": env.ELEVENLABS_API_KEY,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        text,
+        model_id: "eleven_v3",
+        voice_settings: { stability: 0.5, similarity_boost: 0.75 },
+        output_format: "mp3_44100_128",
+      }),
+    },
+  );
+
+  if (!res.ok) {
+    const txt = await res.text();
+    throw new Error(`ElevenLabs preview failed ${res.status}: ${txt}`);
+  }
+
+  return Buffer.from(await res.arrayBuffer());
 }
 
 // ─── Voiceover generation ─────────────────────────────────────────────────────
@@ -76,7 +127,7 @@ export async function generateVoiceover(
       },
       body: JSON.stringify({
         text: script,
-        model_id: "eleven_multilingual_v2",
+        model_id: "eleven_v3",
         voice_settings: { stability: 0.5, similarity_boost: 0.75 },
         output_format: "mp3_44100_128",
       }),
@@ -91,8 +142,11 @@ export async function generateVoiceover(
   const data = (await response.json()) as ElevenLabsResponse;
   const audioBuffer = Buffer.from(data.audio_base64, "base64");
 
-  const { characters, character_start_times_seconds, character_end_times_seconds } =
-    data.alignment;
+  const {
+    characters,
+    character_start_times_seconds,
+    character_end_times_seconds,
+  } = data.alignment;
 
   const wordTimestamps = charsToWords(
     characters,
@@ -120,7 +174,11 @@ function charsToWords(
     const ch = chars[i]!;
     if (ch === " " || ch === "\n") {
       if (word) {
-        words.push({ word, start: wordStart, end: ends[i - 1] ?? ends[i] ?? 0 });
+        words.push({
+          word,
+          start: wordStart,
+          end: ends[i - 1] ?? ends[i] ?? 0,
+        });
         word = "";
       }
     } else {

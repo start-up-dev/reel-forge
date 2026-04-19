@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect, useRef } from "react";
-import { ChevronDown, ChevronUp, Check, Play, Square } from "lucide-react";
+import { ChevronDown, ChevronUp, Check, Loader2, Play, Square } from "lucide-react";
 import { toast } from "sonner";
 import { VideoStatus } from "@repo/types";
 import type { Project } from "@repo/types";
@@ -66,9 +66,12 @@ export function Step1Idea({
   const [voicesLoading, setVoicesLoading] = useState(true);
   const [selectedVoiceId, setSelectedVoiceId] = useState<string | null>(video.voiceId ?? null);
   const [playingPreview, setPlayingPreview] = useState<string | null>(null);
+  const [loadingPreview, setLoadingPreview] = useState<string | null>(null);
   const audioRef = useRef<HTMLAudioElement | null>(null);
+  const blobUrlRef = useRef<string | null>(null);
 
   useEffect(() => {
+    if (project === null) return; // wait for project to load before fetching
     async function loadVoices() {
       setVoicesLoading(true);
       const result = await withToast(
@@ -79,12 +82,12 @@ export function Step1Idea({
       setVoicesLoading(false);
     }
     void loadVoices();
-  }, [api, project?.language]);
+  }, [api, project]);
 
-  // Cleanup audio on unmount
   useEffect(() => {
     return () => {
       audioRef.current?.pause();
+      if (blobUrlRef.current) URL.revokeObjectURL(blobUrlRef.current);
     };
   }, []);
 
@@ -93,16 +96,29 @@ export function Step1Idea({
     onScheduleSave({ voiceId: id });
   }
 
-  function togglePreview(previewUrl: string) {
-    if (playingPreview === previewUrl) {
+  async function togglePreview(voiceId: string) {
+    if (playingPreview === voiceId) {
       audioRef.current?.pause();
       setPlayingPreview(null);
-    } else {
-      if (audioRef.current) audioRef.current.pause();
-      audioRef.current = new Audio(previewUrl);
+      return;
+    }
+    audioRef.current?.pause();
+    if (blobUrlRef.current) {
+      URL.revokeObjectURL(blobUrlRef.current);
+      blobUrlRef.current = null;
+    }
+    setLoadingPreview(voiceId);
+    try {
+      const blobUrl = await api.assets.voicePreviewBlobUrl(voiceId, project?.language);
+      blobUrlRef.current = blobUrl;
+      audioRef.current = new Audio(blobUrl);
       void audioRef.current.play();
       audioRef.current.onended = () => setPlayingPreview(null);
-      setPlayingPreview(previewUrl);
+      setPlayingPreview(voiceId);
+    } catch {
+      toast.error("Failed to load preview");
+    } finally {
+      setLoadingPreview(null);
     }
   }
 
@@ -364,12 +380,14 @@ export function Step1Idea({
         ) : (
           <div className="flex gap-3 overflow-x-auto pb-2">
             {voices.map((v) => (
-              <button
+              <div
                 key={v.id}
-                type="button"
+                role="button"
+                tabIndex={0}
                 onClick={() => selectVoice(v.id)}
+                onKeyDown={(e) => e.key === "Enter" && selectVoice(v.id)}
                 className={cn(
-                  "flex shrink-0 items-center gap-2 rounded-xl border px-3 py-2.5 transition-all",
+                  "flex shrink-0 cursor-pointer items-center gap-2 rounded-xl border px-3 py-2.5 transition-all",
                   selectedVoiceId === v.id
                     ? "border-[var(--accent-primary)] bg-[var(--accent-primary)]/10"
                     : "border-[var(--bg-border)] bg-[var(--bg-elevated)] hover:border-[var(--text-muted)]"
@@ -384,23 +402,24 @@ export function Step1Idea({
                     {v.gender ?? v.language}
                   </p>
                 </div>
-                {v.previewUrl && (
-                  <button
-                    type="button"
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      togglePreview(v.previewUrl!);
-                    }}
-                    className="ml-1 flex h-6 w-6 items-center justify-center rounded-full bg-[var(--bg-border)] text-[var(--text-secondary)] hover:text-[var(--text-primary)] transition-colors"
-                  >
-                    {playingPreview === v.previewUrl ? (
-                      <Square className="h-2.5 w-2.5" />
-                    ) : (
-                      <Play className="h-2.5 w-2.5" />
-                    )}
-                  </button>
-                )}
-              </button>
+                <button
+                  type="button"
+                  disabled={loadingPreview === v.id}
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    void togglePreview(v.id);
+                  }}
+                  className="ml-1 flex h-6 w-6 items-center justify-center rounded-full bg-[var(--bg-border)] text-[var(--text-secondary)] hover:text-[var(--text-primary)] transition-colors disabled:opacity-50"
+                >
+                  {loadingPreview === v.id ? (
+                    <Loader2 className="h-2.5 w-2.5 animate-spin" />
+                  ) : playingPreview === v.id ? (
+                    <Square className="h-2.5 w-2.5" />
+                  ) : (
+                    <Play className="h-2.5 w-2.5" />
+                  )}
+                </button>
+              </div>
             ))}
           </div>
         )}

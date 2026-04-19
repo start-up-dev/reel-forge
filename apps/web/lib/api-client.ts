@@ -93,6 +93,16 @@ export function createApiClient(getToken: () => Promise<string | null>) {
     return request<T>(path, { ...options, token: token ?? undefined });
   }
 
+  async function authedBlobUrl(path: string): Promise<string> {
+    const token = await getToken();
+    const res = await fetch(`${API_BASE}${path}`, {
+      headers: token ? { Authorization: `Bearer ${token}` } : {},
+    });
+    if (!res.ok) throw new ApiError(res.status, `Failed to fetch audio (${res.status})`);
+    const blob = await res.blob();
+    return URL.createObjectURL(blob);
+  }
+
   return {
     // ── Projects ──────────────────────────────────────────────────────────
     projects: {
@@ -280,6 +290,10 @@ export function createApiClient(getToken: () => Promise<string | null>) {
       voices(language?: string): Promise<ApiResponse<VoiceInfo[]>> {
         const qs = language ? `?language=${encodeURIComponent(language)}` : "";
         return authedRequest(`/api/assets/voices${qs}`);
+      },
+      voicePreviewBlobUrl(voiceId: string, language?: string): Promise<string> {
+        const qs = language ? `?language=${encodeURIComponent(language)}` : "";
+        return authedBlobUrl(`/api/assets/voices/${voiceId}/preview${qs}`);
       },
     },
 
