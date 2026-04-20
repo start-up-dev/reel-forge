@@ -1,7 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
-import { Pause, Play } from "lucide-react";
+import { useState } from "react";
 import { SubtitleStyle } from "@repo/types";
 import { Button } from "@repo/ui/button";
 import { useApiClient, withToast } from "@/lib/api-client";
@@ -11,14 +10,7 @@ import { cn } from "@repo/ui/utils";
 interface Step5StyleProps {
   video: VideoDetail;
   onVideoUpdate: (v: VideoDetail) => void;
-  onScheduleSave: (
-    data: Partial<{
-      subtitleStyle: SubtitleStyle;
-      bgmEnabled: boolean;
-      bgmAssetId: string;
-      bgmVolume: number;
-    }>
-  ) => void;
+  onScheduleSave: (data: Partial<{ subtitleStyle: SubtitleStyle }>) => void;
   onBack: () => void;
   onAdvance: () => void;
 }
@@ -46,14 +38,6 @@ const SUBTITLE_STYLES: { value: SubtitleStyle; label: string; desc: string }[] =
   },
 ];
 
-interface BgmTrack {
-  id: string;
-  name: string;
-  category: string;
-  duration: number;
-  previewUrl: string;
-}
-
 export function Step5Style({
   video,
   onVideoUpdate,
@@ -65,76 +49,17 @@ export function Step5Style({
   const [subtitleStyle, setSubtitleStyle] = useState<SubtitleStyle>(
     video.subtitleStyle ?? SubtitleStyle.BoldPop
   );
-  const [bgmEnabled, setBgmEnabled] = useState(video.bgmEnabled);
-  const [bgmAssetId, setBgmAssetId] = useState(video.bgmAssetId ?? "");
-  const [bgmVolume, setBgmVolume] = useState(video.bgmVolume ?? 30);
-  const [bgmTracks, setBgmTracks] = useState<BgmTrack[]>([]);
-  const [playingTrackId, setPlayingTrackId] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
-  const audioRef = useRef<HTMLAudioElement>(null);
-
-  useEffect(() => {
-    async function loadTracks() {
-      const result = await withToast(
-        () => api.assets.bgm(),
-        "Failed to load BGM tracks"
-      );
-      if (result?.data) {
-        setBgmTracks(result.data as BgmTrack[]);
-      }
-    }
-    if (bgmEnabled) void loadTracks();
-  }, [bgmEnabled, api]);
 
   function handleSubtitleChange(style: SubtitleStyle) {
     setSubtitleStyle(style);
     onScheduleSave({ subtitleStyle: style });
   }
 
-  function handleBgmToggle(enabled: boolean) {
-    setBgmEnabled(enabled);
-    onScheduleSave({ bgmEnabled: enabled });
-    if (!enabled && audioRef.current) {
-      audioRef.current.pause();
-      setPlayingTrackId(null);
-    }
-  }
-
-  function handleTrackSelect(trackId: string) {
-    setBgmAssetId(trackId);
-    onScheduleSave({ bgmAssetId: trackId });
-  }
-
-  function handleVolumeChange(vol: number) {
-    setBgmVolume(vol);
-    onScheduleSave({ bgmVolume: vol });
-  }
-
-  function toggleTrackPreview(track: BgmTrack) {
-    if (!audioRef.current || !track.previewUrl) return;
-    if (playingTrackId === track.id) {
-      audioRef.current.pause();
-      setPlayingTrackId(null);
-    } else {
-      audioRef.current.pause();
-      audioRef.current.src = track.previewUrl;
-      audioRef.current.load();
-      audioRef.current.play().catch(() => setPlayingTrackId(null));
-      setPlayingTrackId(track.id);
-    }
-  }
-
   async function handleGenerateVideo() {
     setSubmitting(true);
-    // Save final style/bgm fields first
     await withToast(
-      () =>
-        api.videos.patch(video.id, {
-          subtitleStyle,
-          bgmEnabled,
-          bgmAssetId: bgmAssetId || undefined,
-          bgmVolume,
-        }),
+      () => api.videos.patch(video.id, { subtitleStyle }),
       "Failed to save settings"
     );
 
@@ -210,122 +135,6 @@ export function Step5Style({
           })}
         </div>
       </section>
-
-      {/* BGM section */}
-      <section className="mb-10">
-        <div className="mb-4 flex items-center justify-between">
-          <h2 className="text-sm font-semibold uppercase tracking-wider text-[var(--text-muted)]">
-            Background Music
-          </h2>
-          <button
-            type="button"
-            role="switch"
-            aria-checked={bgmEnabled}
-            onClick={() => handleBgmToggle(!bgmEnabled)}
-            className={cn(
-              "relative inline-flex h-6 w-11 items-center rounded-full transition-colors",
-              bgmEnabled ? "bg-[var(--accent-primary)]" : "bg-[var(--bg-border)]"
-            )}
-          >
-            <span
-              className={cn(
-                "inline-block h-4 w-4 rounded-full bg-white transition-transform",
-                bgmEnabled ? "translate-x-6" : "translate-x-1"
-              )}
-            />
-          </button>
-        </div>
-
-        {bgmEnabled && (
-          <div className="space-y-4">
-            {/* Track list */}
-            {bgmTracks.length === 0 ? (
-              <div className="flex gap-2 overflow-x-auto pb-2">
-                {Array.from({ length: 4 }).map((_, i) => (
-                  <div
-                    key={i}
-                    className="h-20 w-36 shrink-0 animate-pulse rounded-xl bg-[var(--bg-elevated)]"
-                  />
-                ))}
-              </div>
-            ) : (
-              <div className="flex gap-3 overflow-x-auto pb-2">
-                {bgmTracks.map((track) => {
-                  const isSelected = bgmAssetId === track.id;
-                  const isPlaying = playingTrackId === track.id;
-                  return (
-                    <div
-                      key={track.id}
-                      role="button"
-                      tabIndex={0}
-                      onClick={() => handleTrackSelect(track.id)}
-                      onKeyDown={(e) => {
-                        if (e.key === "Enter" || e.key === " ") handleTrackSelect(track.id);
-                      }}
-                      className={cn(
-                        "relative flex w-36 shrink-0 cursor-pointer flex-col gap-1 rounded-xl border p-3 text-left transition-all",
-                        isSelected
-                          ? "border-[var(--accent-primary)] bg-[var(--accent-primary)]/10"
-                          : "border-[var(--bg-border)] bg-[var(--bg-elevated)] hover:border-[var(--accent-primary)]/40"
-                      )}
-                    >
-                      <span className="inline-block rounded-full bg-[var(--accent-primary)]/20 px-1.5 py-0.5 text-[10px] font-medium text-[var(--accent-primary)]">
-                        {track.category}
-                      </span>
-                      <span className="text-xs font-medium text-[var(--text-primary)] truncate">
-                        {track.name}
-                      </span>
-                      <div className="flex items-center justify-between">
-                        <span className="text-[10px] text-[var(--text-muted)]">
-                          {Math.floor(track.duration / 60)}:{String(track.duration % 60).padStart(2, "0")}
-                        </span>
-                        <button
-                          type="button"
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            toggleTrackPreview(track);
-                          }}
-                          aria-label={isPlaying ? "Pause preview" : "Play preview"}
-                          className="rounded-full bg-[var(--bg-base)] p-1 text-[var(--text-secondary)] hover:text-[var(--text-primary)]"
-                        >
-                          {isPlaying ? (
-                            <Pause className="h-3 w-3" />
-                          ) : (
-                            <Play className="h-3 w-3" />
-                          )}
-                        </button>
-                      </div>
-                    </div>
-                  );
-                })}
-              </div>
-            )}
-
-            {/* Volume slider */}
-            <div className="flex items-center gap-3">
-              <span className="text-xs text-[var(--text-muted)] w-20">
-                Volume: {bgmVolume}%
-              </span>
-              <input
-                type="range"
-                min={0}
-                max={100}
-                value={bgmVolume}
-                onChange={(e) => handleVolumeChange(Number(e.target.value))}
-                className="flex-1 accent-[var(--accent-primary)]"
-                aria-label="BGM volume"
-              />
-            </div>
-          </div>
-        )}
-      </section>
-
-      {/* Hidden audio element for previews */}
-      <audio
-        ref={audioRef}
-        onEnded={() => setPlayingTrackId(null)}
-        className="hidden"
-      />
 
       {/* Generate button */}
       <div className="space-y-2">

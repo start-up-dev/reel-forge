@@ -562,12 +562,13 @@ export async function videosRoutes(fastify: FastifyInstance): Promise<void> {
           error: { code: "NOT_FOUND", message: "Video not found." },
         });
       }
-      const voiceAllowedStates = ["SCRIPT_READY", "VOICE_READY", "FAILED"];
+      // Allow rolling back to voice from any post-voice state (including stuck SCENES_PENDING)
+      const voiceAllowedStates = ["SCRIPT_READY", "VOICE_READY", "SCENES_PENDING", "SCENES_READY", "FAILED"];
       if (!voiceAllowedStates.includes(video.status)) {
         return reply.status(409).send({
           error: {
             code: "INVALID_STATE",
-            message: `Video must be in SCRIPT_READY, VOICE_READY, or FAILED state to generate voice (currently: ${video.status}).`,
+            message: `Video must be in SCRIPT_READY or a later state to regenerate voice (currently: ${video.status}).`,
           },
         });
       }
@@ -622,11 +623,13 @@ export async function videosRoutes(fastify: FastifyInstance): Promise<void> {
           error: { code: "NOT_FOUND", message: "Video not found." },
         });
       }
-      if (video.status !== "VOICE_READY") {
+      // Allow retry from FAILED or stuck SCENES_PENDING in addition to the happy-path VOICE_READY
+      const scenesAllowedStates = ["VOICE_READY", "SCENES_PENDING", "SCENES_READY", "FAILED"];
+      if (!scenesAllowedStates.includes(video.status)) {
         return reply.status(409).send({
           error: {
             code: "INVALID_STATE",
-            message: `Video must be in VOICE_READY state to generate scenes (currently: ${video.status}).`,
+            message: `Video must be in VOICE_READY or a retryable state to generate scenes (currently: ${video.status}).`,
           },
         });
       }

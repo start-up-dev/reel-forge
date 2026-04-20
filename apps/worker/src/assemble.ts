@@ -61,8 +61,6 @@ export async function assembleVideo(videoId: string): Promise<void> {
     const mixedPath = await mixAudio(
       concatenatedPath,
       assets.audioPath,
-      assets.bgmPath,
-      video.bgmVolume,
       video.durationSeconds,
       assets.dir,
     );

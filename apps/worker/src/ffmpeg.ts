@@ -22,7 +22,9 @@ export async function normalizeClip(clip: ClipEntry, dir: string): Promise<strin
     "-c:v", "libx264",
     "-crf", "23",
     "-preset", "fast",
-    "-an", // drop audio from source clips
+    "-c:a", "aac",
+    "-b:a", "192k",
+    "-ar", "44100",
     "-pix_fmt", "yuv420p",
   ];
 
@@ -73,61 +75,36 @@ export async function concatenateClips(
   return outPath;
 }
 
-// Step 3 — Mix voiceover (and optional BGM) onto the concatenated video.
+// Step 3 — Mix voiceover over clip audio (at 30% as BGM) onto the concatenated video.
 // audioDurationSeconds is authoritative — output is trimmed to exactly this length.
 export async function mixAudio(
   videoPath: string,
   audioPath: string,
-  bgmPath: string | null,
-  bgmVolume: number,
   audioDurationSeconds: number,
   dir: string,
 ): Promise<string> {
   const outPath = join(dir, "mixed.mp4");
 
-  if (!bgmPath) {
-    await execa(
-      "ffmpeg",
-      [
-        "-y",
-        "-i", videoPath,
-        "-i", audioPath,
-        "-map", "0:v",
-        "-map", "1:a",
-        "-c:v", "copy",
-        "-c:a", "aac",
-        "-b:a", "192k",
-        "-t", String(audioDurationSeconds),
-        outPath,
-      ],
-      { stderr: "pipe" },
-    ).catch((err) => {
-      throw new Error(`FFmpeg audio mix failed: ${(err as Error).message}`);
-    });
-  } else {
-    const bgmVol = (bgmVolume / 100).toFixed(2);
-    await execa(
-      "ffmpeg",
-      [
-        "-y",
-        "-i", videoPath,
-        "-i", audioPath,
-        "-i", bgmPath,
-        "-filter_complex",
-        `[1:a]volume=1.0[voice];[2:a]volume=${bgmVol}[bgm];[voice][bgm]amix=inputs=2:duration=first:dropout_transition=2[aout]`,
-        "-map", "0:v",
-        "-map", "[aout]",
-        "-c:v", "copy",
-        "-c:a", "aac",
-        "-b:a", "192k",
-        "-t", String(audioDurationSeconds),
-        outPath,
-      ],
-      { stderr: "pipe" },
-    ).catch((err) => {
-      throw new Error(`FFmpeg BGM mix failed: ${(err as Error).message}`);
-    });
-  }
+  await execa(
+    "ffmpeg",
+    [
+      "-y",
+      "-i", videoPath,
+      "-i", audioPath,
+      "-filter_complex",
+      "[0:a]volume=0.30[clipbgm];[1:a]volume=1.0[voice];[clipbgm][voice]amix=inputs=2:duration=longest:dropout_transition=0[aout]",
+      "-map", "0:v",
+      "-map", "[aout]",
+      "-c:v", "copy",
+      "-c:a", "aac",
+      "-b:a", "192k",
+      "-t", String(audioDurationSeconds),
+      outPath,
+    ],
+    { stderr: "pipe" },
+  ).catch((err) => {
+    throw new Error(`FFmpeg audio mix failed: ${(err as Error).message}`);
+  });
 
   return outPath;
 }

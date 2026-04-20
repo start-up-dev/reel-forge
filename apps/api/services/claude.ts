@@ -88,16 +88,12 @@ export async function generateIdeas(project: ProjectRow, topic: string): Promise
 
 ## আইডিয়া জেনারেশন
 ঠিক ৩টি আলাদা ভিডিও আইডিয়া দাও। প্রতিটি আইডিয়া punchy, specific, এবং scroll-stopping হতে হবে।
-Return ONLY a JSON array — no markdown, no explanation:
-[{"title":"...","body":"..."},{"title":"...","body":"..."},{"title":"...","body":"..."}]
 title: ৫-৮ শব্দে hook — দর্শক আটকে যাবে
 body: ২-৩ বাক্যে ভিডিওর angle এবং key points`
     : `You are a viral short-form video content strategist.
 ${projectContext(project)}
 
 Generate exactly 3 distinct video ideas for the given topic. Each idea must be punchy, specific, and scroll-stopping.
-Return ONLY a JSON array with this exact shape, no markdown, no explanation:
-[{"title":"...", "body":"..."}, {"title":"...", "body":"..."}, {"title":"...", "body":"..."}]
 title: 5–8 words, hooks the viewer instantly
 body: 2–3 sentence description of the video angle and key points
 Write all content in ${project.language}.`;
@@ -110,12 +106,41 @@ Write all content in ${project.language}.`;
     model: "claude-sonnet-4-6",
     max_tokens: 1024,
     system,
+    tools: [
+      {
+        name: "submit_ideas",
+        description: "Submit exactly 3 generated video ideas",
+        input_schema: {
+          type: "object" as const,
+          properties: {
+            ideas: {
+              type: "array",
+              minItems: 3,
+              maxItems: 3,
+              items: {
+                type: "object",
+                properties: {
+                  title: { type: "string" },
+                  body: { type: "string" },
+                },
+                required: ["title", "body"],
+              },
+            },
+          },
+          required: ["ideas"],
+        },
+      },
+    ],
+    tool_choice: { type: "tool", name: "submit_ideas" },
     messages: [{ role: "user", content: userContent }],
   });
 
-  const raw = message.content[0]?.type === "text" ? message.content[0].text.trim() : "[]";
-  const match = raw.match(/\[[\s\S]*\]/);
-  return JSON.parse(match?.[0] ?? "[]") as IdeaCard[];
+  const toolUse = message.content.find(
+    (b): b is Anthropic.ToolUseBlock => b.type === "tool_use",
+  );
+  if (!toolUse) throw new Error("Idea generation returned no tool call.");
+  const { ideas } = toolUse.input as { ideas: IdeaCard[] };
+  return ideas ?? [];
 }
 
 // ─── Script generation ────────────────────────────────────────────────────────
@@ -176,10 +201,64 @@ export async function splitScenes(
   const message = await client.messages.create({
     model: "claude-sonnet-4-6",
     max_tokens: 2048,
+    tools: [
+      {
+        name: "submit_scenes",
+        description: "Submit the scene split for the voiceover script",
+        input_schema: {
+          type: "object" as const,
+          properties: {
+            scenes: {
+              type: "array",
+              minItems: targetCount,
+              maxItems: targetCount,
+              items: {
+                type: "object",
+                properties: {
+                  sceneIndex: {
+                    type: "integer",
+                    description: "0-based scene index",
+                  },
+                  textExcerpt: {
+                    type: "string",
+                    description: "Exact words from the script this scene covers",
+                  },
+                  visualPrompt: {
+                    type: "string",
+                    description:
+                      "Detailed image generation prompt (cinematic style, no text overlays, no specific real people)",
+                  },
+                  motionPrompt: {
+                    type: "string",
+                    description:
+                      "1–2 sentences describing camera movement and subject animation (no text overlays, no real people)",
+                  },
+                  durationHintSeconds: {
+                    type: "integer",
+                    minimum: 1,
+                    maximum: 6,
+                    description: `Whole-number seconds this scene lasts (1–6). All scenes must sum to exactly ${audioDurationSeconds}.`,
+                  },
+                },
+                required: [
+                  "sceneIndex",
+                  "textExcerpt",
+                  "visualPrompt",
+                  "motionPrompt",
+                  "durationHintSeconds",
+                ],
+              },
+            },
+          },
+          required: ["scenes"],
+        },
+      },
+    ],
+    tool_choice: { type: "tool", name: "submit_scenes" },
     messages: [
       {
         role: "user",
-        content: `You are a video production assistant. Split this voiceover script into scenes for a short-form video.
+        content: `You are a video production assistant. Split this voiceover script into exactly ${targetCount} scene${targetCount === 1 ? "" : "s"} for a short-form video.
 
 Script:
 ${script}
@@ -190,20 +269,21 @@ Required scene count: exactly ${targetCount} scene${targetCount === 1 ? "" : "s"
 Rules:
 - Create EXACTLY ${targetCount} scene${targetCount === 1 ? "" : "s"} — no more, no fewer
 - Each scene covers a logical chunk of the script
-- textExcerpt: the exact words from the script this scene covers (if only 1 scene, use the full script)
-- visualPrompt: a detailed, vivid image generation prompt for the static base image (no text overlays, cinematic style, no specific real people)
-- motionPrompt: 1–2 sentences describing camera movement and subject animation for the video clip (e.g. "slow push-in toward the glowing screen, dust particles drift upward"). No text overlays, no real people.
-- durationHintSeconds: whole-number integer seconds this scene lasts, max 6. All values must sum to exactly ${audioDurationSeconds}. MUST be an integer ≥ 1.
+- textExcerpt: the exact words from the script this scene covers
+- visualPrompt: detailed, vivid image generation prompt (cinematic style, no text overlays, no specific real people)
+- motionPrompt: 1–2 sentences on camera movement and subject animation (no text overlays, no real people)
+- durationHintSeconds: whole-number integer 1–6. All values must sum to exactly ${audioDurationSeconds}.
 
-Return ONLY a JSON array, no markdown:
-[{"sceneIndex":0,"textExcerpt":"...","visualPrompt":"...","motionPrompt":"...","durationHintSeconds":N}, ...]`,
+Call submit_scenes with your result.`,
       },
     ],
   });
 
-  const raw = message.content[0]?.type === "text" ? message.content[0].text.trim() : "[]";
-  const match = raw.match(/\[[\s\S]*\]/);
-  const result = JSON.parse(match?.[0] ?? "[]") as SceneSplit[];
-  if (result.length === 0) throw new Error("Scene split returned no scenes.");
-  return result;
+  const toolUse = message.content.find(
+    (b): b is Anthropic.ToolUseBlock => b.type === "tool_use",
+  );
+  if (!toolUse) throw new Error("Scene split returned no tool call.");
+  const { scenes } = toolUse.input as { scenes: SceneSplit[] };
+  if (!scenes || scenes.length === 0) throw new Error("Scene split returned no scenes.");
+  return scenes;
 }

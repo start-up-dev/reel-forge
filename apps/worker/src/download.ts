@@ -8,7 +8,6 @@ export interface DownloadedAssets {
   audioPath: string;
   wordTimestampsPath: string;
   clipPaths: { sceneIndex: number; path: string; durationHint: number | null }[];
-  bgmPath: string | null;
 }
 
 export async function downloadAssetsFromGCS(
@@ -48,13 +47,5 @@ export async function downloadAssetsFromGCS(
     }),
   );
 
-  let bgmPath: string | null = null;
-  if (video.bgmEnabled && video.bgmAssetId) {
-    bgmPath = join(dir, "bgm.mp3");
-    await downloadToFile(`assets/bgm/${video.bgmAssetId}.mp3`, bgmPath).catch((err) => {
-      throw new Error(`Failed to download BGM track: ${(err as Error).message}`);
-    });
-  }
-
-  return { dir, audioPath, wordTimestampsPath, clipPaths, bgmPath };
+  return { dir, audioPath, wordTimestampsPath, clipPaths };
 }
