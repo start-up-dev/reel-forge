@@ -22,9 +22,10 @@ RUN pnpm --filter @repo/worker deploy /deploy
 # Stage 2: Runtime — jrottenberg/ffmpeg base with Node.js installed
 FROM jrottenberg/ffmpeg:latest
 
-RUN apt-get update && apt-get install -y curl ca-certificates && \
+RUN apt-get update && apt-get install -y curl ca-certificates fonts-liberation fonts-noto fonts-beng fontconfig && \
     curl -fsSL https://deb.nodesource.com/setup_20.x | bash - && \
     apt-get install -y nodejs && \
+    fc-cache -f && \
     rm -rf /var/lib/apt/lists/*
 
 WORKDIR /app

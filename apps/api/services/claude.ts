@@ -17,27 +17,45 @@ export interface SceneSplit {
   durationHintSeconds: number;
 }
 
-// ─── Skill helpers ────────────────────────────────────────────────────────────
-
-function isPlaceholder(id: string | undefined): boolean {
-  return !id || id.startsWith("PLACEHOLDER_");
-}
-
-const SCRIPT_SKILL_BY_LANGUAGE: Record<string, string | undefined> = {
-  Bengali: env.CLAUDE_SKILL_SCRIPT_BENGALI,
-  English: env.CLAUDE_SKILL_SCRIPT_ENGLISH,
-};
-
-function getScriptSkillId(language: string): string | undefined {
-  return SCRIPT_SKILL_BY_LANGUAGE[language] ?? env.CLAUDE_SKILL_SCRIPT_ENGLISH;
-}
-
 const WORDS_FOR_DURATION: Record<number, [number, number]> = {
   15: [30, 45],
   30: [65, 85],
   45: [100, 120],
   60: [135, 160],
 };
+
+// ─── Bengali skill system prompt (from bengali-script-writer.skill) ───────────
+
+const BENGALI_SCRIPT_SYSTEM = `তুমি বিশ্বের সেরা ভাইরাল কনটেন্ট স্ক্রিপ্ট রাইটার। তোমার টার্গেট অডিয়েন্স: বাংলাদেশ। ভাষা: বাংলা (কথ্য বাংলা + প্রয়োজনে Banglish)।
+
+তুমি TikTok, Facebook Reels, Instagram Reels, YouTube Shorts — এই সব প্ল্যাটফর্মের জন্য ভাইরাল স্ক্রিপ্ট লিখো যা মানুষ শেষ পর্যন্ত দেখে, শেয়ার করে, এবং মনে রাখে।
+
+## মূল দর্শন
+1. Hook is King — প্রথম ৩ সেকেন্ডেই দর্শককে আটকাতে হবে।
+2. Emotion over Information — মানুষ তথ্য মনে রাখে না, অনুভূতি মনে রাখে।
+3. বাংলাদেশি Context — ঢাকার ট্র্যাফিক, CNG, মামা-চাচা culture, বিয়ের অনুষ্ঠান, পরীক্ষার চাপ, রিকশা, চায়ের দোকান — এই রিয়েল লাইফ রেফারেন্স ব্যবহার করো।
+4. Pattern Interrupt — প্রতিটা স্ক্রিপ্টে এমন কিছু রাখো যা দর্শক expect করেনি।
+5. Strong CTA — শেষে এমন কিছু বলো যা মানুষ শেয়ার/কমেন্ট/সেভ করতে বাধ্য হয়।
+
+## হুক ফর্মুলা
+- SHOCK HOOK: "বাংলাদেশে প্রতিদিন [অবাক করা তথ্য] হচ্ছে!"
+- QUESTION HOOK: "তুমি কি জানো কেন [রহস্যময় প্রশ্ন]?"
+- STORY HOOK: "সেদিন রিকশায় বসে একটা জিনিস বুঝলাম..."
+- PAIN HOOK: "পরীক্ষার আগের রাতে এটা করলে [ফলাফল]"
+- PROMISE HOOK: "এই ১টা কাজ করলে [বড় সুবিধা]"
+- CONTROVERSY: "বেশিরভাগ মানুষ এই ভুলটা করে..."
+- CURIOSITY GAP: "ভিডিওর শেষে একটা কথা বলব যেটা মাথা ঘুরিয়ে দেবে"
+
+## ভাষার নিয়ম
+- কথ্য বাংলা: "কী অবস্থা ভাই!", "ধুর মিয়া!", Banglish okay: "seriously বলছি"
+- এড়িয়ে চলো: সাধু ভাষা, অতিরিক্ত formal ভাষা, অনুবাদের মতো ইংরেজি
+
+## ভাইরাল ট্রিগার (কমপক্ষে ২টি রাখো)
+- Relatability, Surprise/twist, Emotion (হাসি/কান্না/গর্ব), Community ("বাংলাদেশিরাই বুঝবে"), Tag a friend
+
+## আউটপুট নিয়ম
+- শুধু spoken script — কোনো scene direction, title, label, বা markdown নয়
+- ভাষা সম্পূর্ণ বাংলা (প্রয়োজনে Banglish)`;
 
 // ─── Project context builder ──────────────────────────────────────────────────
 
@@ -58,51 +76,42 @@ function projectContext(project: ProjectRow): string {
     .join("\n");
 }
 
+function isBengali(project: ProjectRow): boolean {
+  return project.language?.toLowerCase() === "bengali";
+}
+
 // ─── Idea generation ──────────────────────────────────────────────────────────
 
 export async function generateIdeas(project: ProjectRow, topic: string): Promise<IdeaCard[]> {
-  const skillId = env.CLAUDE_SKILL_IDEAS;
-  const platforms = Array.isArray(project.platforms)
-    ? project.platforms.join(", ")
-    : project.platforms;
+  const system = isBengali(project)
+    ? `${BENGALI_SCRIPT_SYSTEM}
 
-  const userMessage = `Platform: ${platforms}
-Niche: ${project.niche}
-Target audience: ${project.targetAudience}
-Language: ${project.language}
-Style: ${project.videoStyle}
-Tone: ${project.tone}
-
-Topic: ${topic}
-
-Generate 3 distinct video ideas. Return ONLY JSON:
-[{"title":"...","body":"..."},{"title":"...","body":"..."},{"title":"...","body":"..."}]`;
-
-  let message: Anthropic.Message;
-
-  if (isPlaceholder(skillId)) {
-    // Fallback: use system prompt
-    message = await client.messages.create({
-      model: "claude-sonnet-4-6",
-      max_tokens: 512,
-      system: `You are a viral short-form video content strategist.
+## আইডিয়া জেনারেশন
+ঠিক ৩টি আলাদা ভিডিও আইডিয়া দাও। প্রতিটি আইডিয়া punchy, specific, এবং scroll-stopping হতে হবে।
+Return ONLY a JSON array — no markdown, no explanation:
+[{"title":"...","body":"..."},{"title":"...","body":"..."},{"title":"...","body":"..."}]
+title: ৫-৮ শব্দে hook — দর্শক আটকে যাবে
+body: ২-৩ বাক্যে ভিডিওর angle এবং key points`
+    : `You are a viral short-form video content strategist.
 ${projectContext(project)}
 
 Generate exactly 3 distinct video ideas for the given topic. Each idea must be punchy, specific, and scroll-stopping.
 Return ONLY a JSON array with this exact shape, no markdown, no explanation:
 [{"title":"...", "body":"..."}, {"title":"...", "body":"..."}, {"title":"...", "body":"..."}]
 title: 5–8 words, hooks the viewer instantly
-body: 2–3 sentence description of the video angle and key points`,
-      messages: [{ role: "user", content: `Topic: ${topic}` }],
-    });
-  } else {
-    message = await client.messages.create({
-      model: "claude-sonnet-4-6",
-      max_tokens: 512,
-      system: [{ type: "skill" as const, id: skillId } as unknown as Anthropic.TextBlockParam],
-      messages: [{ role: "user", content: userMessage }],
-    });
-  }
+body: 2–3 sentence description of the video angle and key points
+Write all content in ${project.language}.`;
+
+  const userContent = isBengali(project)
+    ? `${projectContext(project)}\n\nটপিক: ${topic}`
+    : `Topic: ${topic}`;
+
+  const message = await client.messages.create({
+    model: "claude-sonnet-4-6",
+    max_tokens: 1024,
+    system,
+    messages: [{ role: "user", content: userContent }],
+  });
 
   const raw = message.content[0]?.type === "text" ? message.content[0].text.trim() : "[]";
   const match = raw.match(/\[[\s\S]*\]/);
@@ -116,34 +125,16 @@ export async function generateScript(
   idea: string,
   targetDurationSeconds = 30,
 ): Promise<string> {
-  const skillId = getScriptSkillId(project.language);
   const [minW, maxW] = WORDS_FOR_DURATION[targetDurationSeconds] ?? [65, 85];
-  const platforms = Array.isArray(project.platforms)
-    ? project.platforms.join(", ")
-    : project.platforms;
 
-  const userMessage = `Target: ${targetDurationSeconds} seconds spoken (${minW}–${maxW} words).
-Platform: ${platforms}
-Niche: ${project.niche}
-Target audience: ${project.targetAudience}
-Tone: ${project.tone}
-Additional: ${project.claudeSystemPrompt ?? "none"}
+  const userContent = isBengali(project)
+    ? `${projectContext(project)}
 
-Idea: ${idea}
+সময়: ${targetDurationSeconds} সেকেন্ড (${minW}-${maxW} শব্দ)
+আইডিয়া: ${idea}
 
-Write the script now. Return ONLY the script text.`;
-
-  let message: Anthropic.Message;
-
-  if (isPlaceholder(skillId)) {
-    // Fallback: use system prompt
-    message = await client.messages.create({
-      model: "claude-sonnet-4-6",
-      max_tokens: 1024,
-      messages: [
-        {
-          role: "user",
-          content: `You are a viral short-form video scriptwriter.
+এখনই স্ক্রিপ্ট লিখো। শুধু spoken text — কোনো label, title, বা markdown নয়।`
+    : `You are a viral short-form video scriptwriter.
 
 Project context:
 ${projectContext(project)}
@@ -155,21 +146,18 @@ Rules:
 - End with a clear call to action
 - Write entirely in ${project.language}
 - Return ONLY the script text, no titles, no labels, no markdown
+${project.claudeSystemPrompt ? `\nAdditional instructions: ${project.claudeSystemPrompt}` : ""}
 
 User's idea: ${idea}
 
-Write the script now.`,
-        },
-      ],
-    });
-  } else {
-    message = await client.messages.create({
-      model: "claude-sonnet-4-6",
-      max_tokens: 1024,
-      system: [{ type: "skill" as const, id: skillId } as unknown as Anthropic.TextBlockParam],
-      messages: [{ role: "user", content: userMessage }],
-    });
-  }
+Write the script now.`;
+
+  const message = await client.messages.create({
+    model: "claude-sonnet-4-6",
+    max_tokens: 1024,
+    ...(isBengali(project) ? { system: BENGALI_SCRIPT_SYSTEM } : {}),
+    messages: [{ role: "user", content: userContent }],
+  });
 
   const script = message.content[0]?.type === "text" ? message.content[0].text.trim() : "";
   if (!script) throw new Error("Script generation returned empty.");
@@ -182,31 +170,16 @@ export async function splitScenes(
   script: string,
   audioDurationSeconds: number,
 ): Promise<SceneSplit[]> {
-  const skillId = env.CLAUDE_SKILL_GROK_PROMPTS;
   const minScenes = Math.ceil(audioDurationSeconds / 6);
   const targetCount = Math.max(minScenes, Math.round(audioDurationSeconds / 5));
 
-  const userMessage = `Script:\n${script}
-
-Audio duration: ${audioDurationSeconds} seconds
-Required scenes: exactly ${targetCount}
-Max durationHintSeconds per scene: 6 (Grok generates 6-second clips)
-Sum of all durationHintSeconds: must equal exactly ${audioDurationSeconds}
-
-Return ONLY a JSON array:
-[{"sceneIndex":0,"textExcerpt":"...","visualPrompt":"...","motionPrompt":"...","durationHintSeconds":N}]`;
-
-  let message: Anthropic.Message;
-
-  if (isPlaceholder(skillId)) {
-    // Fallback: use system prompt
-    message = await client.messages.create({
-      model: "claude-sonnet-4-6",
-      max_tokens: 2048,
-      messages: [
-        {
-          role: "user",
-          content: `You are a video production assistant. Split this voiceover script into scenes for a short-form video.
+  const message = await client.messages.create({
+    model: "claude-sonnet-4-6",
+    max_tokens: 2048,
+    messages: [
+      {
+        role: "user",
+        content: `You are a video production assistant. Split this voiceover script into scenes for a short-form video.
 
 Script:
 ${script}
@@ -224,17 +197,9 @@ Rules:
 
 Return ONLY a JSON array, no markdown:
 [{"sceneIndex":0,"textExcerpt":"...","visualPrompt":"...","motionPrompt":"...","durationHintSeconds":N}, ...]`,
-        },
-      ],
-    });
-  } else {
-    message = await client.messages.create({
-      model: "claude-sonnet-4-6",
-      max_tokens: 2048,
-      system: [{ type: "skill" as const, id: skillId } as unknown as Anthropic.TextBlockParam],
-      messages: [{ role: "user", content: userMessage }],
-    });
-  }
+      },
+    ],
+  });
 
   const raw = message.content[0]?.type === "text" ? message.content[0].text.trim() : "[]";
   const match = raw.match(/\[[\s\S]*\]/);

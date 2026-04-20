@@ -66,7 +66,7 @@ function makeStyle(
   // Format: Name, Fontname, Fontsize, PrimaryColour, SecondaryColour, OutlineColour, BackColour,
   //         Bold, Italic, Underline, StrikeOut, ScaleX, ScaleY, Spacing, Angle,
   //         BorderStyle, Outline, Shadow, Alignment, MarginL, MarginR, MarginV, Encoding
-  return `Style: ${name},Arial,${fontsize},${primary},${secondary},${outline},${back},${boldVal},${italicVal},0,0,100,100,0,0,1,${outlineWidth},${shadow},${alignment},10,10,${marginV},0`;
+  return `Style: ${name},Noto Sans,${fontsize},${primary},${secondary},${outline},${back},${boldVal},${italicVal},0,0,100,100,0,0,1,${outlineWidth},${shadow},${alignment},10,10,${marginV},0`;
 }
 
 interface AssEvent {
