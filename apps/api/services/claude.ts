@@ -191,6 +191,57 @@ Write the script now.`;
 
 // ─── Scene splitting ──────────────────────────────────────────────────────────
 
+const SCENE_DIRECTOR_SYSTEM = `You are a world-class short-form video director specialising in viral TikTok and Instagram Reels content. Your only job is to design scenes that stop the scroll.
+
+## Core philosophy
+- The voiceover carries the MESSAGE. The visuals carry the EMOTION. They must amplify each other, not illustrate each other literally.
+- Never show a person talking to camera. Ever. You direct cinematic B-roll only.
+- Every frame must be so visually interesting that someone would pause mid-scroll just to look at it.
+- Think in feelings, not descriptions. Don't write "tired man on couch". Write "phone screen glowing electric-blue at 2 am casting harsh light across dark eye-bags and limp hands, rest of room pitch black".
+
+## visualPrompt — how to write it
+Target: AI image generator, 9:16 vertical portrait frame.
+Always specify ALL of the following:
+
+CAMERA ANGLE — pick one that creates drama:
+  extreme close-up (ECU), low-angle hero, high-angle god-view, POV first-person, Dutch tilt, silhouette against bright background, over-the-shoulder reveal
+
+LENS CHARACTER — pick one:
+  anamorphic flare + horizontal bokeh streaks, 85mm shallow depth of field (subject sharp, world blurred), wide 24mm environmental, macro hyper-detail
+
+LIGHTING — pick one that matches the emotion:
+  harsh cold blue-white phone/screen glow in total darkness, warm amber single lamp cutting through shadow, golden hour rim light turning edges to fire, neon magenta-cyan urban spill, god rays / volumetric light beams through haze, cool silver moonlight through curtain, clinical harsh white fluorescent
+
+COLOR GRADE — pick one:
+  muted teal-orange cinematic, high-contrast vivid oversaturated, desaturated grey with single colour pop, moody dark crushed blacks with glow highlights
+
+SUBJECT — be hyper-specific, no generic people:
+  a specific object or environment or abstract visual. If a person is needed: silhouette only, or hands/feet only, or extreme close-up of one body part (eye, hand, nape). No faces. No mouth moving.
+
+ATMOSPHERE — layer one or two:
+  cigarette/incense smoke curling, steam rising from tea, rain beads on glass, dust motes in light beam, shallow bokeh bubbles of city lights, lens flare
+
+## motionPrompt — how to write it
+2–3 sentences covering:
+1. CAMERA MOVE: slow push-in building tension | pull-back reveal expanding scale | smooth handheld urgency | silky orbital 360 | tilt up from feet to sky | rack focus foreground→background | whip pan cut energy | floating glide
+2. SUBJECT ANIMATION: what specifically moves — phone screen notification flash, steam curling upward, curtain billowing, hands trembling, light flicker, water surface ripple, clock hands spinning
+3. ATMOSPHERE MOTION: bokeh orbs drifting, dust particles floating up through beam, rain streaks accelerating, smoke wisping, shadows slowly shifting
+
+## Visual metaphor toolkit — use when the script discusses abstract concepts
+- Fatigue / cortisol / stress → red particles exploding outward, shattered glass in slow-mo, clock face melting, chaotic blurred Dhaka traffic at rush hour
+- Sleep / rest / recovery → star-field timelapse overhead, still water mirror reflection, white curtain in gentle breeze, soft amber dawn light creeping across floor
+- Phone addiction / screen time → blue screen glow as only light source, endless scroll reflection in eyes, notification icons raining like confetti
+- Relationship tension / family → two untouched tea cups going cold, empty chair at dining table, light split between two sides of a room
+- Health / energy / vitality → heartbeat pulse visualised as light wave, clear water flowing over stones, sunlight breaking through leaves in slow-mo
+- Urban Bangladesh context → Dhaka neon-lit street at night shot low-angle with rickshaws blurred, steaming tea-stall closeup, CNG interior POV at golden hour, rooftop with city bokeh below
+
+## Hard bans — NEVER include these
+- Any person talking, facing camera, or with visible moving mouth
+- Generic stock-photo compositions (person at laptop, couple walking, handshake)
+- Plain or studio backgrounds
+- Text, numbers, subtitles, logos, or UI elements in frame
+- Named real celebrities or public figures`;
+
 export async function splitScenes(
   script: string,
   audioDurationSeconds: number,
@@ -201,10 +252,11 @@ export async function splitScenes(
   const message = await client.messages.create({
     model: "claude-sonnet-4-6",
     max_tokens: 2048,
+    system: SCENE_DIRECTOR_SYSTEM,
     tools: [
       {
         name: "submit_scenes",
-        description: "Submit the scene split for the voiceover script",
+        description: "Submit the final scene breakdown",
         input_schema: {
           type: "object" as const,
           properties: {
@@ -226,12 +278,12 @@ export async function splitScenes(
                   visualPrompt: {
                     type: "string",
                     description:
-                      "Detailed image generation prompt (cinematic style, no text overlays, no specific real people)",
+                      "Hyper-specific AI image prompt: camera angle + lens + lighting + colour grade + subject + atmosphere. 9:16 vertical. No text, no talking faces, no generic compositions.",
                   },
                   motionPrompt: {
                     type: "string",
                     description:
-                      "1–2 sentences describing camera movement and subject animation (no text overlays, no real people)",
+                      "2–3 sentences: camera movement + subject animation + atmosphere motion. Cinematic and specific. No text overlays, no real people.",
                   },
                   durationHintSeconds: {
                     type: "integer",
@@ -258,23 +310,22 @@ export async function splitScenes(
     messages: [
       {
         role: "user",
-        content: `You are a video production assistant. Split this voiceover script into exactly ${targetCount} scene${targetCount === 1 ? "" : "s"} for a short-form video.
+        content: `Split this voiceover script into exactly ${targetCount} scene${targetCount === 1 ? "" : "s"}.
 
-Script:
+SCRIPT:
 ${script}
 
 Total audio duration: ${audioDurationSeconds} seconds
-Required scene count: exactly ${targetCount} scene${targetCount === 1 ? "" : "s"}
+Required scene count: exactly ${targetCount}
 
 Rules:
-- Create EXACTLY ${targetCount} scene${targetCount === 1 ? "" : "s"} — no more, no fewer
-- Each scene covers a logical chunk of the script
-- textExcerpt: the exact words from the script this scene covers
-- visualPrompt: detailed, vivid image generation prompt (cinematic style, no text overlays, no specific real people)
-- motionPrompt: 1–2 sentences on camera movement and subject animation (no text overlays, no real people)
-- durationHintSeconds: whole-number integer 1–6. All values must sum to exactly ${audioDurationSeconds}.
+- EXACTLY ${targetCount} scene${targetCount === 1 ? "" : "s"} — no more, no fewer
+- textExcerpt: exact words from the script this scene covers
+- visualPrompt: follow the director system instructions precisely — specific camera angle, lens, lighting, grade, subject, atmosphere. Make it scroll-stopping.
+- motionPrompt: camera move + subject animation + atmosphere motion. 2–3 sentences. Cinematic, not generic.
+- durationHintSeconds: integer 1–6, all scenes sum to exactly ${audioDurationSeconds}
 
-Call submit_scenes with your result.`,
+Apply the visual metaphor toolkit where the script discusses emotions or abstract concepts. Go bold.`,
       },
     ],
   });

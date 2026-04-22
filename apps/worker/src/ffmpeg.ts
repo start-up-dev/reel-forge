@@ -92,7 +92,7 @@ export async function mixAudio(
       "-i", videoPath,
       "-i", audioPath,
       "-filter_complex",
-      "[0:a]volume=0.30[clipbgm];[1:a]volume=1.0[voice];[clipbgm][voice]amix=inputs=2:duration=longest:dropout_transition=0[aout]",
+      "[0:a]volume=0.30[clipbgm];[1:a]volume=1.0[voice];[clipbgm][voice]amix=inputs=2:duration=longest:dropout_transition=0:normalize=0[aout]",
       "-map", "0:v",
       "-map", "[aout]",
       "-c:v", "copy",
