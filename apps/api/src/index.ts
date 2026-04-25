@@ -28,9 +28,33 @@ const app = Fastify({
 // ─── Plugins ──────────────────────────────────────────────────────────────────
 
 await app.register(helmet, { global: true });
+
+// Robust CORS handling
+const allowedOrigins = [
+  env.NEXT_PUBLIC_APP_URL.replace(/\/$/, ""), // Configured URL without trailing slash
+  "http://localhost:3000",
+  "http://127.0.0.1:3000",
+];
+
 await app.register(cors, {
-  origin: [env.NEXT_PUBLIC_APP_URL],
+  origin: (origin, cb) => {
+    // Allow requests with no origin (like mobile apps or curl)
+    if (!origin) {
+      cb(null, true);
+      return;
+    }
+    
+    const normalizedOrigin = origin.replace(/\/$/, "");
+    if (allowedOrigins.includes(normalizedOrigin)) {
+      cb(null, true);
+      return;
+    }
+    
+    cb(new Error("Not allowed by CORS"), false);
+  },
   credentials: true,
+  methods: ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
+  allowedHeaders: ["Content-Type", "Authorization", "X-Operator-Secret"],
 });
 await app.register(sensible);
 // Accept multipart uploads up to 50 MB (image uploads in scene review)
