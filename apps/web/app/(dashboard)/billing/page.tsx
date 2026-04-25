@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, Suspense } from "react";
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import { ExternalLink, CheckCircle, Loader2, ArrowUpRight } from "lucide-react";
@@ -44,7 +44,7 @@ const plans = [
   },
 ];
 
-export default function BillingPage() {
+function BillingContent() {
   const { user, loading, refetch } = useUser();
   const api = useApiClient();
   const searchParams = useSearchParams();
@@ -306,5 +306,19 @@ export default function BillingPage() {
         </div>
       </section>
     </div>
+  );
+}
+
+export default function BillingPage() {
+  return (
+    <Suspense
+      fallback={
+        <div className="flex items-center justify-center py-16">
+          <Loader2 className="h-5 w-5 animate-spin text-[var(--text-muted)]" />
+        </div>
+      }
+    >
+      <BillingContent />
+    </Suspense>
   );
 }
