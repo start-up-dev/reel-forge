@@ -242,13 +242,28 @@ ATMOSPHERE — layer one or two:
 - Text, numbers, subtitles, logos, or UI elements in frame
 - Named real celebrities or public figures`;
 
-export async function splitScenes(
+function extractScenes(rawInput: unknown): SceneSplit[] | null {
+  const input = rawInput as { scenes?: unknown };
+  let candidate = input.scenes;
+
+  // Claude sometimes JSON-encodes the array as a string — unwrap it
+  if (typeof candidate === "string") {
+    try {
+      candidate = JSON.parse(candidate);
+    } catch {
+      return null;
+    }
+  }
+
+  if (!Array.isArray(candidate) || candidate.length === 0) return null;
+  return candidate as SceneSplit[];
+}
+
+async function callSplitScenes(
   script: string,
   audioDurationSeconds: number,
-): Promise<SceneSplit[]> {
-  const minScenes = Math.ceil(audioDurationSeconds / 6);
-  const targetCount = Math.max(minScenes, Math.round(audioDurationSeconds / 5));
-
+  targetCount: number,
+): Promise<unknown> {
   const message = await client.messages.create({
     model: "claude-sonnet-4-6",
     max_tokens: 2048,
@@ -324,6 +339,7 @@ Rules:
 - visualPrompt: follow the director system instructions precisely — specific camera angle, lens, lighting, grade, subject, atmosphere. Make it scroll-stopping.
 - motionPrompt: camera move + subject animation + atmosphere motion. 2–3 sentences. Cinematic, not generic.
 - durationHintSeconds: integer 1–6, all scenes sum to exactly ${audioDurationSeconds}
+- The "scenes" field must be a JSON array, not a stringified JSON value.
 
 Apply the visual metaphor toolkit where the script discusses emotions or abstract concepts. Go bold.`,
       },
@@ -334,10 +350,22 @@ Apply the visual metaphor toolkit where the script discusses emotions or abstrac
     (b): b is Anthropic.ToolUseBlock => b.type === "tool_use",
   );
   if (!toolUse) throw new Error("Scene split returned no tool call.");
-  const input = toolUse.input as { scenes?: unknown };
-  if (!Array.isArray(input.scenes) || input.scenes.length === 0) {
-    console.error("[splitScenes] Unexpected tool input shape:", JSON.stringify(toolUse.input));
-    throw new Error(`Scene split returned invalid data: expected scenes array, got ${typeof input.scenes}`);
+  return toolUse.input; // raw shape; extractScenes validates
+}
+
+export async function splitScenes(
+  script: string,
+  audioDurationSeconds: number,
+): Promise<SceneSplit[]> {
+  const minScenes = Math.ceil(audioDurationSeconds / 6);
+  const targetCount = Math.max(minScenes, Math.round(audioDurationSeconds / 5));
+
+  for (let attempt = 1; attempt <= 2; attempt++) {
+    const raw = await callSplitScenes(script, audioDurationSeconds, targetCount);
+    const scenes = extractScenes(raw);
+    if (scenes) return scenes;
+    console.warn(`[splitScenes] attempt ${attempt} returned invalid shape:`, JSON.stringify(raw));
   }
-  return input.scenes as SceneSplit[];
+
+  throw new Error("Scene split failed after 2 attempts: model did not return a valid scenes array.");
 }
