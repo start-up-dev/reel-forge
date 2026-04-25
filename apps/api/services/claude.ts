@@ -1,4 +1,5 @@
 import Anthropic from "@anthropic-ai/sdk";
+import { jsonrepair } from "jsonrepair";
 import { env } from "../lib/env.js";
 import type { ProjectRow } from "../lib/db/schema.js";
 
@@ -242,17 +243,31 @@ ATMOSPHERE — layer one or two:
 - Text, numbers, subtitles, logos, or UI elements in frame
 - Named real celebrities or public figures`;
 
+function tryParseArray(s: string): unknown[] | null {
+  // First attempt: strict JSON
+  try {
+    const parsed = JSON.parse(s);
+    if (Array.isArray(parsed) && parsed.length > 0) return parsed;
+  } catch {
+    // fall through to repair
+  }
+  // Second attempt: jsonrepair handles unescaped quotes, trailing commas, etc.
+  try {
+    const parsed = JSON.parse(jsonrepair(s));
+    if (Array.isArray(parsed) && parsed.length > 0) return parsed;
+  } catch {
+    // unrecoverable
+  }
+  return null;
+}
+
 function extractScenes(rawInput: unknown): SceneSplit[] | null {
   const input = rawInput as { scenes?: unknown };
   let candidate = input.scenes;
 
-  // Claude sometimes JSON-encodes the array as a string — unwrap it
+  // Claude sometimes JSON-encodes the array as a string; repair+parse it
   if (typeof candidate === "string") {
-    try {
-      candidate = JSON.parse(candidate);
-    } catch {
-      return null;
-    }
+    candidate = tryParseArray(candidate);
   }
 
   if (!Array.isArray(candidate) || candidate.length === 0) return null;
@@ -328,7 +343,7 @@ async function callSplitScenes(
         content: `Split this voiceover script into exactly ${targetCount} scene${targetCount === 1 ? "" : "s"}.
 
 SCRIPT:
-${script}
+${script.replace(/"/g, "“").replace(/"/g, "”")}
 
 Total audio duration: ${audioDurationSeconds} seconds
 Required scene count: exactly ${targetCount}

@@ -59,6 +59,9 @@ importers:
       google-auth-library:
         specifier: ^10.6.2
         version: 10.6.2
+      jsonrepair:
+        specifier: ^3.14.0
+        version: 3.14.0
       stripe:
         specifier: ^17.7.0
         version: 17.7.0
@@ -3411,6 +3414,10 @@ packages:
   json5@2.2.3:
     resolution: {integrity: sha512-XmOWe7eyHYH14cLdVPoyg+GOH3rYX++KpzrylJwSW98t3Nk+U8XOl8FWKOgwtzdb8lXGf6zYwDUzeHMWfxasyg==}
     engines: {node: '>=6'}
+    hasBin: true
+
+  jsonrepair@3.14.0:
+    resolution: {integrity: sha512-tWPGKMZf/8UPim+fcW2EfcQ/d/7aKUrP6IECz9G3Tu6Q5dX0orSleqJ9z6sSw7qrQkjF8/Edo4DvsWBZ8H+HNg==}
     hasBin: true
 
   jsx-ast-utils@3.3.5:
@@ -7558,6 +7565,8 @@ snapshots:
   json-stable-stringify-without-jsonify@1.0.1: {}
 
   json5@2.2.3: {}
+
+  jsonrepair@3.14.0: {}
 
   jsx-ast-utils@3.3.5:
     dependencies:
