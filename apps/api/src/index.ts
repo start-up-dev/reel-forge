@@ -43,13 +43,19 @@ await app.register(cors, {
       cb(null, true);
       return;
     }
-    
+
+    // Allow Chrome extension origins (operator extension)
+    if (origin.startsWith("chrome-extension://")) {
+      cb(null, true);
+      return;
+    }
+
     const normalizedOrigin = origin.replace(/\/$/, "");
     if (allowedOrigins.includes(normalizedOrigin)) {
       cb(null, true);
       return;
     }
-    
+
     cb(new Error("Not allowed by CORS"), false);
   },
   credentials: true,
