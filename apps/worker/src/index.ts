@@ -48,9 +48,27 @@ try {
 
 // Drain any videos left pending from before this worker started.
 // ASSEMBLY_PROCESSING videos are reset first — they were interrupted mid-run.
-drainPendingVideos().catch((err) =>
-  app.log.error({ err }, "[startup] drainPendingVideos failed"),
+// Retry with backoff to handle Neon auto-suspend cold-start failures.
+withRetry(() => drainPendingVideos(), 5, 3000).catch((err) =>
+  app.log.error({ err }, "[startup] drainPendingVideos failed after retries"),
 );
+
+async function withRetry<T>(
+  fn: () => Promise<T>,
+  attempts: number,
+  delayMs: number,
+): Promise<T> {
+  for (let i = 0; i < attempts; i++) {
+    try {
+      return await fn();
+    } catch (err) {
+      if (i === attempts - 1) throw err;
+      app.log.warn({ err, attempt: i + 1 }, "[startup] DB connect failed, retrying...");
+      await new Promise((r) => setTimeout(r, delayMs * (i + 1)));
+    }
+  }
+  throw new Error("unreachable");
+}
 
 async function drainPendingVideos(): Promise<void> {
   // Reset any videos that were mid-processing when the worker last died
