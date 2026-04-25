@@ -42,6 +42,8 @@ deploy_worker() {
     --service-account $SERVICE_ACCOUNT \
     --cpu 2 --memory 4Gi \
     --timeout 3600 \
+    --no-cpu-throttling \
+    --min-instances 1 \
     --set-env-vars="NODE_ENV=production,GCP_PROJECT_ID=${PROJECT_ID},GCS_BUCKET_NAME=${GCS_BUCKET},RESEND_FROM_EMAIL=${RESEND_EMAIL}" \
     --set-secrets="DATABASE_URL=database-url:latest,OPERATOR_SECRET=operator-secret:latest,RESEND_API_KEY=resend-api-key:latest" \
     --allow-unauthenticated
