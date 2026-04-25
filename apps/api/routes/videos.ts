@@ -71,9 +71,10 @@ async function processScenes(
   videoId: string,
   script: string,
   durationSeconds: number,
+  renderStyle?: string | null,
 ): Promise<void> {
   try {
-    const sceneList = await splitScenes(script, durationSeconds);
+    const sceneList = await splitScenes(script, durationSeconds, renderStyle ?? undefined);
 
     // Replace existing scenes (supports idempotent re-generation)
     await db.delete(scenes).where(eq(scenes.videoId, videoId));
@@ -381,6 +382,10 @@ export async function videosRoutes(fastify: FastifyInstance): Promise<void> {
         targetDurationSeconds: z.number().int()
           .refine(v => [15, 30, 45, 60].includes(v))
           .optional(),
+        renderStyle: z
+          .enum(["mascot", "cartoon", "animation_2d", "motion_graphics", "cinematic", "stock_footage", "whiteboard"])
+          .nullable()
+          .optional(),
       });
 
       const parsed = patchBody.safeParse(request.body);
@@ -494,7 +499,7 @@ export async function videosRoutes(fastify: FastifyInstance): Promise<void> {
       }
 
       const [video] = await db
-        .select({ id: videos.id, projectId: videos.projectId, targetDurationSeconds: videos.targetDurationSeconds })
+        .select({ id: videos.id, projectId: videos.projectId, targetDurationSeconds: videos.targetDurationSeconds, renderStyle: videos.renderStyle })
         .from(videos)
         .where(
           and(eq(videos.id, id), eq(videos.userId, user.id), isNull(videos.deletedAt)),
@@ -525,7 +530,7 @@ export async function videosRoutes(fastify: FastifyInstance): Promise<void> {
         .where(eq(videos.id, id));
 
       try {
-        const script = await generateScript(project, parsed.data.idea, video.targetDurationSeconds ?? 30);
+        const script = await generateScript(project, parsed.data.idea, video.targetDurationSeconds ?? 30, video.renderStyle ?? undefined);
         const [updated] = await db
           .update(videos)
           .set({ script, status: "SCRIPT_READY", updatedAt: new Date() })
@@ -651,7 +656,7 @@ export async function videosRoutes(fastify: FastifyInstance): Promise<void> {
         .where(eq(videos.id, id));
 
       // Fire and forget — client polls status via SSE
-      void processScenes(id, video.script, video.durationSeconds);
+      void processScenes(id, video.script, video.durationSeconds, video.renderStyle);
 
       return reply.status(202).send({ data: { videoId: id, status: "SCENES_PENDING" } });
     },

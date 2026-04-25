@@ -3,7 +3,7 @@
 import { useState, useEffect, useRef } from "react";
 import { ChevronDown, ChevronUp, Check, Loader2, Play, Square } from "lucide-react";
 import { toast } from "sonner";
-import { VideoStatus } from "@repo/types";
+import { RenderStyle, VideoStatus } from "@repo/types";
 import type { Project } from "@repo/types";
 import { Button } from "@repo/ui/button";
 import { useApiClient, withToast } from "@/lib/api-client";
@@ -14,7 +14,7 @@ interface Step1IdeaProps {
   video: VideoDetail;
   project: Project | null;
   onVideoUpdate: (v: VideoDetail) => void;
-  onScheduleSave: (data: { idea?: string; voiceId?: string | null; targetDurationSeconds?: number }) => void;
+  onScheduleSave: (data: { idea?: string; voiceId?: string | null; targetDurationSeconds?: number; renderStyle?: RenderStyle | null }) => void;
   onAdvance: () => void;
 }
 
@@ -31,6 +31,16 @@ const DURATION_OPTIONS = [
   { value: 45, label: "45s", hint: "In-depth" },
   { value: 60, label: "60s", hint: "Full story" },
 ] as const;
+
+const VIDEO_STYLE_OPTIONS: { value: RenderStyle; label: string; emoji: string }[] = [
+  { value: RenderStyle.Mascot,        label: "Mascot",         emoji: "🧸" },
+  { value: RenderStyle.Cartoon,       label: "Cartoon",        emoji: "🎨" },
+  { value: RenderStyle.Animation2D,   label: "2D Animation",   emoji: "✏️" },
+  { value: RenderStyle.MotionGraphics,label: "Motion Graphics",emoji: "📊" },
+  { value: RenderStyle.Cinematic,     label: "Cinematic",      emoji: "🎬" },
+  { value: RenderStyle.StockFootage,  label: "Stock Footage",  emoji: "📷" },
+  { value: RenderStyle.Whiteboard,    label: "Whiteboard",     emoji: "📋" },
+];
 
 const TIPS = [
   "Be specific about your niche or audience (e.g. 'morning routine for busy parents')",
@@ -60,6 +70,9 @@ export function Step1Idea({
 
   // Video length
   const [targetDuration, setTargetDuration] = useState(video.targetDurationSeconds ?? 30);
+
+  // Render style
+  const [renderStyle, setRenderStyle] = useState<RenderStyle | null>(video.renderStyle ?? null);
 
   // Voice selection
   const [voices, setVoices] = useState<VoiceInfo[]>([]);
@@ -142,6 +155,10 @@ export function Step1Idea({
   }
 
   async function handleUseIdea(idea: IdeaCard) {
+    if (!renderStyle) {
+      toast.error("Select a video style before continuing");
+      return;
+    }
     if (!selectedVoiceId) {
       toast.error("Select a voice before continuing");
       return;
@@ -164,6 +181,10 @@ export function Step1Idea({
   async function handleDirectSubmit() {
     if (!directIdea.trim()) {
       toast.error("Enter your idea first");
+      return;
+    }
+    if (!renderStyle) {
+      toast.error("Select a video style before continuing");
       return;
     }
     if (!selectedVoiceId) {
@@ -219,6 +240,39 @@ export function Step1Idea({
             </button>
           ))}
         </div>
+      </div>
+
+      {/* Video Style */}
+      <div className="mb-6">
+        <p className="mb-2 text-xs font-medium uppercase tracking-widest text-[var(--text-muted)]">
+          Video Style
+        </p>
+        <div className="flex flex-wrap gap-2">
+          {VIDEO_STYLE_OPTIONS.map((opt) => (
+            <button
+              key={opt.value}
+              type="button"
+              onClick={() => {
+                setRenderStyle(opt.value);
+                onScheduleSave({ renderStyle: opt.value });
+              }}
+              className={cn(
+                "flex items-center gap-1.5 rounded-full border px-3 py-1.5 text-sm font-medium transition-all",
+                renderStyle === opt.value
+                  ? "border-[var(--accent-primary)] bg-[var(--accent-primary)]/10 text-[var(--text-primary)]"
+                  : "border-[var(--bg-border)] bg-[var(--bg-elevated)] text-[var(--text-secondary)] hover:border-[var(--text-muted)]"
+              )}
+            >
+              <span>{opt.emoji}</span>
+              <span>{opt.label}</span>
+            </button>
+          ))}
+        </div>
+        {!renderStyle && (
+          <p className="mt-2 text-xs text-[var(--accent-warning)]">
+            Select a style to continue
+          </p>
+        )}
       </div>
 
       {/* Mode toggle */}

@@ -65,6 +65,16 @@ export const clipRequestStatusEnum = pgEnum("clip_request_status", [
   "failed",
 ]);
 
+export const renderStyleEnum = pgEnum("render_style", [
+  "mascot",
+  "cartoon",
+  "animation_2d",
+  "motion_graphics",
+  "cinematic",
+  "stock_footage",
+  "whiteboard",
+]);
+
 // ─── Tables ───────────────────────────────────────────────────────────────────
 
 /**
@@ -163,6 +173,7 @@ export const videos = pgTable(
     bgmAssetId: text("bgm_asset_id"),
     bgmVolume: integer("bgm_volume").notNull().default(30),   // Fixed: integer 0–100
     targetDurationSeconds: integer("target_duration_seconds").notNull().default(30),
+    renderStyle: renderStyleEnum("render_style"),
     voiceId: text("voice_id"),
     outputUrl: text("output_url"),
     error: text("error"),

@@ -144,27 +144,83 @@ Write all content in ${project.language}.`;
   return ideas ?? [];
 }
 
+// ─── Render style modifiers ───────────────────────────────────────────────────
+
+const RENDER_STYLE_SCRIPT_MODIFIERS: Record<string, string> = {
+  mascot: "Script style: Write entirely from the MASCOT CHARACTER's first-person point of view. The mascot IS the subject matter, personified — it speaks directly to the viewer with a playful, confident, slightly dramatic personality. e.g. 'আমি [subject] বলছি — আমাকে এত ভয় পাও ক্যান?'",
+  cartoon: "Script style: Write for cartoon animation. Use exaggerated emotions, comedic timing, and big reaction beats. At least one surprising twist. Punchy, rhythmic sentences.",
+  animation_2d: "Script style: Clean educational explainer. Facts-forward, confident tone. Short declarative sentences that work well with animated reveals. Use sequential structure ('প্রথমে... তারপর... সবশেষে...').",
+  motion_graphics: "Script style: Ultra-punchy kinetic script. Stats, facts, bold claims. Every sentence feels like a graphic reveal. Maximum impact per word. e.g. '৩টি কারণ। ৩০ সেকেন্ড। বদলে যাবে সব।'",
+  cinematic: "Script style: Cinematic narrative. Immersive, story-driven, documentary tone. Allow longer atmospheric sentences. Build emotional arc from hook to resolution.",
+  stock_footage: "Script style: Polished professional brand video. Warm but authoritative tone. Informational with clear value proposition. Natural and accessible language.",
+  whiteboard: "Script style: Step-by-step tutorial. Sequential structure ('প্রথমে...', 'এরপর...', 'শেষে...'). Friendly encouraging teacher tone. Each sentence introduces one concept clearly.",
+};
+
+const RENDER_STYLE_SCENE_MODIFIERS: Record<string, string> = {
+  mascot: `## Visual Style: MASCOT
+Override: A mascot character with a visible face IS the subject — this is required. Describe it consistently as a bright 3D cartoon character with exaggerated proportions and large expressive eyes.
+- Every scene prominently features the mascot in an emotion-driven pose that matches the script beat
+- Environments: vibrant, stylised 3D spaces — warm, energetic, playful
+- motionPrompt: character-driven animation — bouncy entrances, exaggerated reactions, expressive body language`,
+
+  cartoon: `## Visual Style: 2D CARTOON
+Override: Expressive 2D cartoon characters with visible faces ARE the subjects.
+- Thick black outlines, bold flat colours, exaggerated proportions, simplified cartoon backgrounds
+- Emotions must be massive: huge eyes, dramatic sweat drops, enormous grins
+- motionPrompt: squash-and-stretch physics, snappy cuts, exaggerated reaction takes`,
+
+  animation_2d: `## Visual Style: 2D ANIMATION / EXPLAINER
+No characters. Flat vector illustration only.
+- Geometric shapes, icons, bold minimal colour palettes (2–3 colours max), solid or gradient backgrounds
+- Abstract visual representations of the concept — no realistic subjects, no faces
+- motionPrompt: smooth tween transitions, shape morphing, slide-in icon reveals`,
+
+  motion_graphics: `## Visual Style: MOTION GRAPHICS
+Pure abstract kinetic graphics. No humans, no characters.
+- Bold oversaturated colours, stark contrast, geometric compositions
+- Each scene: a specific graphic concept — counter animations, shape explosions, bold typographic layouts (describe the layout concept, not actual text)
+- motionPrompt: kinetic builds, hard cuts on beat, colour flash, shape explosions, counter spin-up`,
+
+  cinematic: `## Visual Style: CINEMATIC
+Apply the full scene director system above. Photorealistic cinematic B-roll.`,
+
+  stock_footage: `## Visual Style: STOCK FOOTAGE
+Override: Natural human faces and expressions ARE allowed — subjects are NOT talking to camera, just living naturally.
+- Clean lifestyle aesthetic: diverse humans, natural environments (offices, kitchens, parks, cafes), soft professional lighting
+- Colour grade: neutral-warm, clean, no dramatic cinematic extremes
+- motionPrompt: gentle handheld float, subtle push-in, natural human movement`,
+
+  whiteboard: `## Visual Style: WHITEBOARD / DOODLE
+Every scene: hand-drawn line-art sketch on white or cream background.
+- Simple progressive illustrations — arrows, diagrams, icons, stick figures with expression. One accent colour fill max.
+- No photorealistic elements, no complex backgrounds
+- motionPrompt: progressive pen-draw reveal, one element appearing at a time, arrows materialising on cue`,
+};
+
 // ─── Script generation ────────────────────────────────────────────────────────
 
 export async function generateScript(
   project: ProjectRow,
   idea: string,
   targetDurationSeconds = 30,
+  renderStyle?: string,
 ): Promise<string> {
   const [minW, maxW] = WORDS_FOR_DURATION[targetDurationSeconds] ?? [65, 85];
+
+  const styleModifier = renderStyle ? (RENDER_STYLE_SCRIPT_MODIFIERS[renderStyle] ?? "") : "";
 
   const userContent = isBengali(project)
     ? `${projectContext(project)}
 
 সময়: ${targetDurationSeconds} সেকেন্ড (${minW}-${maxW} শব্দ)
 আইডিয়া: ${idea}
-
+${styleModifier ? `\n${styleModifier}` : ""}
 এখনই স্ক্রিপ্ট লিখো। শুধু spoken text — কোনো label, title, বা markdown নয়।`
     : `You are a viral short-form video scriptwriter.
 
 Project context:
 ${projectContext(project)}
-
+${styleModifier ? `\n${styleModifier}\n` : ""}
 Rules:
 - Script must be ${minW}-${maxW} words (${targetDurationSeconds} seconds at natural speech pace)
 - No scene directions — spoken words only
@@ -278,11 +334,17 @@ async function callSplitScenes(
   script: string,
   audioDurationSeconds: number,
   targetCount: number,
+  renderStyle?: string,
 ): Promise<unknown> {
+  const sceneStyleModifier = renderStyle ? (RENDER_STYLE_SCENE_MODIFIERS[renderStyle] ?? "") : "";
+  const system = sceneStyleModifier
+    ? `${SCENE_DIRECTOR_SYSTEM}\n\n${sceneStyleModifier}`
+    : SCENE_DIRECTOR_SYSTEM;
+
   const message = await client.messages.create({
     model: "claude-sonnet-4-6",
     max_tokens: 2048,
-    system: SCENE_DIRECTOR_SYSTEM,
+    system,
     tools: [
       {
         name: "submit_scenes",
@@ -371,12 +433,13 @@ Apply the visual metaphor toolkit where the script discusses emotions or abstrac
 export async function splitScenes(
   script: string,
   audioDurationSeconds: number,
+  renderStyle?: string,
 ): Promise<SceneSplit[]> {
   const minScenes = Math.ceil(audioDurationSeconds / 6);
   const targetCount = Math.max(minScenes, Math.round(audioDurationSeconds / 5));
 
   for (let attempt = 1; attempt <= 2; attempt++) {
-    const raw = await callSplitScenes(script, audioDurationSeconds, targetCount);
+    const raw = await callSplitScenes(script, audioDurationSeconds, targetCount, renderStyle);
     const scenes = extractScenes(raw);
     if (scenes) return scenes;
     console.warn(`[splitScenes] attempt ${attempt} returned invalid shape:`, JSON.stringify(raw));

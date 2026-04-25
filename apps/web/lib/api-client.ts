@@ -5,6 +5,7 @@ import type {
   ApiResponse,
   PaginatedResponse,
   Project,
+  RenderStyle,
   Scene,
   SubtitleStyle,
   User,
@@ -172,8 +173,9 @@ export function createApiClient(getToken: () => Promise<string | null>) {
             | "bgmVolume"
             | "voiceId"
             | "targetDurationSeconds"
+            | "renderStyle"
           >
-        >
+        > & { renderStyle?: RenderStyle | null }
       ): Promise<ApiResponse<Video>> {
         return authedRequest(`/api/videos/${id}`, {
           method: "PATCH",

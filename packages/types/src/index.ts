@@ -24,6 +24,16 @@ export enum VideoStyle {
   POV = "pov",
 }
 
+export enum RenderStyle {
+  Mascot = "mascot",
+  Cartoon = "cartoon",
+  Animation2D = "animation_2d",
+  MotionGraphics = "motion_graphics",
+  Cinematic = "cinematic",
+  StockFootage = "stock_footage",
+  Whiteboard = "whiteboard",
+}
+
 // PRD §7.2 — corrected values
 export enum Tone {
   Casual = "casual",
@@ -131,6 +141,7 @@ export interface Video {
   bgmAssetId: string | null;
   bgmVolume: number;                // integer 0–100, default 30
   targetDurationSeconds: number;    // 15 | 30 | 45 | 60
+  renderStyle: RenderStyle | null;  // visual/render style for script + scene prompts
   voiceId: string | null;           // overrides project voiceId when set
   outputUrl: string | null;
   error: string | null;
