@@ -163,7 +163,7 @@ gcloud run deploy reelforge-api \
   --image us-central1-docker.pkg.dev/reelforge-493603/reelforge-repo/api:latest \
   --region us-central1 \
   --service-account reel-forge-api@reelforge-493603.iam.gserviceaccount.com \
-  --set-env-vars="NODE_ENV=production,GCP_PROJECT_ID=reelforge-493603,GCS_BUCKET_NAME=reel-forge-assets,NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY=pk_test_YXNzdXJlZC1zaHJpbXAtNTIuY2xlcmsuYWNjb3VudHMuZGV2JA,RESEND_FROM_EMAIL=hello@yourdomain.com,NEXT_PUBLIC_APP_URL=https://reelforge-web-517804710320.us-central1.run.app,API_URL=https://reelforge-api-517804710320.us-central1.run.app",WORKER_URL=https://reelforge-web-517804710320.us-central1.run.app \
+  --set-env-vars="NODE_ENV=production,GCP_PROJECT_ID=reelforge-493603,GCS_BUCKET_NAME=reel-forge-assets,NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY=pk_test_YXNzdXJlZC1zaHJpbXAtNTIuY2xlcmsuYWNjb3VudHMuZGV2JA,RESEND_FROM_EMAIL=hello@reelforge.ai,NEXT_PUBLIC_APP_URL=https://reelforge-web-517804710320.us-central1.run.app,API_URL=https://reelforge-api-517804710320.us-central1.run.app,WORKER_URL=https://reelforge-worker-517804710320.us-central1.run.app" \
   --set-secrets="DATABASE_URL=database-url:latest,CLERK_SECRET_KEY=clerk-secret-key:latest,STRIPE_SECRET_KEY=stripe-secret-key:latest,STRIPE_WEBHOOK_SECRET=stripe-webhook-secret:latest,STRIPE_STARTER_PRICE_ID=stripe-starter-price-id:latest,STRIPE_PRO_PRICE_ID=stripe-pro-price-id:latest,STRIPE_TRIAL_PRICE_ID=stripe-trial-price-id:latest,ANTHROPIC_API_KEY=anthropic-api-key:latest,ELEVENLABS_API_KEY=elevenlabs-api-key:latest,XAI_API_KEY=xai-api-key:latest,RESEND_API_KEY=resend-api-key:latest,OPERATOR_SECRET=operator-secret:latest" \
   --allow-unauthenticated
 ```
