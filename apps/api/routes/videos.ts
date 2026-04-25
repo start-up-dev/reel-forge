@@ -115,6 +115,7 @@ async function processScenes(
       .set({ status: "SCENES_READY", updatedAt: new Date() })
       .where(eq(videos.id, videoId));
   } catch (err) {
+    console.error(`[processScenes] failed for video ${videoId}:`, err);
     await db
       .update(videos)
       .set({

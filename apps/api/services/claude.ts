@@ -334,7 +334,10 @@ Apply the visual metaphor toolkit where the script discusses emotions or abstrac
     (b): b is Anthropic.ToolUseBlock => b.type === "tool_use",
   );
   if (!toolUse) throw new Error("Scene split returned no tool call.");
-  const { scenes } = toolUse.input as { scenes: SceneSplit[] };
-  if (!scenes || scenes.length === 0) throw new Error("Scene split returned no scenes.");
-  return scenes;
+  const input = toolUse.input as { scenes?: unknown };
+  if (!Array.isArray(input.scenes) || input.scenes.length === 0) {
+    console.error("[splitScenes] Unexpected tool input shape:", JSON.stringify(toolUse.input));
+    throw new Error(`Scene split returned invalid data: expected scenes array, got ${typeof input.scenes}`);
+  }
+  return input.scenes as SceneSplit[];
 }

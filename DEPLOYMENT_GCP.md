@@ -2,6 +2,17 @@
 
 This guide provides one-liner commands and step-by-step instructions to deploy the ReelForge platform (API, Web, and Worker) to Google Cloud Platform using Cloud Run.
 
+## 🚀 One-Click Deployment
+
+We have provided a script that automates the entire build and deploy process for all three services.
+
+```bash
+chmod +x deploy.sh
+./deploy.sh
+```
+
+---
+
 ## 0. Environment Configuration
 
 - **Project ID:** `reelforge-493603`
