@@ -482,8 +482,33 @@ chrome.runtime.onMessage.addListener(
               data: { uploadUrl: string; gcsPath: string };
             };
 
-            // 2. Download video with retries — Grok may still be finalising the file
-            //    when the content script first detects the video element (e.g. at 10%).
+            // 2. Download the video.
+            //
+            // Grok's generated videos are served from imagine-public.x.ai, a
+            // different origin from grok.com. Fetching from MAIN world (origin =
+            // grok.com) gets CORS-blocked. The SW fetches directly — host_permissions
+            // for *.x.ai bypass CORS without needing session cookies.
+            //
+            // For blob: URLs or grok.com-authenticated URLs we fall back to an
+            // executeScript MAIN world fetch which has access to page cookies and
+            // the browser's blob store.
+            //
+            // We also wait 30 s before the first attempt: Grok's CDN sometimes
+            // needs a moment after the video element appears before the file is
+            // fully written and serveable.
+
+            const isPublicCdn =
+              !videoUrl.startsWith("blob:") && !/grok\.com|x\.com/i.test(videoUrl);
+
+            console.log(
+              `[SW] Download strategy: ${isPublicCdn ? "SW-direct (public CDN)" : "MAIN-world fetch"}`,
+              videoUrl.substring(0, 80),
+            );
+
+            // Wait for CDN to finalise the video file before first attempt.
+            console.log("[SW] Waiting 30 s for CDN to finalise video...");
+            await new Promise((r) => setTimeout(r, 30_000));
+
             let videoBytes: Uint8Array | undefined;
 
             for (let dlAttempt = 0; dlAttempt < DL_RETRIES; dlAttempt++) {
@@ -495,26 +520,113 @@ chrome.runtime.onMessage.addListener(
                 await new Promise((r) => setTimeout(r, DL_RETRY_DELAY_MS));
               }
 
-              const dlResults = await chrome.scripting.executeScript({
-                target: { tabId },
-                world: "MAIN",
-                func: async (vUrl: string): Promise<Uint8Array> => {
-                  const videoRes = await fetch(vUrl, { credentials: "include" });
-                  if (!videoRes.ok)
-                    throw new Error(`Video download failed: ${videoRes.status}`);
-                  return new Uint8Array(await videoRes.arrayBuffer());
-                },
-                args: [videoUrl],
-              });
+              if (isPublicCdn) {
+                // SW-direct fetch: host_permissions for *.x.ai bypass CORS.
+                // No session cookies needed for public CDN URLs.
+                try {
+                  const res = await fetch(videoUrl);
+                  console.log(
+                    `[SW] Direct fetch attempt ${dlAttempt + 1}: status=${res.status}`,
+                    `Content-Length=${res.headers.get("content-length") ?? "?"}`,
+                  );
+                  if (res.ok) {
+                    const buf = await res.arrayBuffer();
+                    if (buf.byteLength > 0) {
+                      videoBytes = new Uint8Array(buf);
+                      console.log(`[SW] Video downloaded — ${videoBytes.byteLength} bytes (SW-direct)`);
+                      break;
+                    }
+                    console.warn(`[SW] SW-direct fetch returned 0 bytes`);
+                  }
+                } catch (e) {
+                  console.warn("[SW] SW-direct fetch error:", e);
+                }
+              } else {
+                // MAIN world executeScript: needed for blob: URLs or grok.com URLs
+                // that require session cookies. Logs are returned in the payload
+                // (tab console is closed on failure — this surfaces them in SW).
+                const dlResults = await chrome.scripting.executeScript({
+                  target: { tabId },
+                  world: "MAIN",
+                  func: async (url: string): Promise<{ bytes: number[]; logs: string[] }> => {
+                    const logs: string[] = [];
+                    const log = (...a: unknown[]): void => {
+                      const msg = a
+                        .map((x) => (typeof x === "object" ? JSON.stringify(x) : String(x)))
+                        .join(" ");
+                      console.log("[RF-DL]", msg);
+                      logs.push(msg);
+                    };
 
-              const result = dlResults[0]?.result;
-              if (result && result.byteLength > 0) {
-                videoBytes = result;
-                console.log(`[SW] Video downloaded — ${videoBytes.byteLength} bytes`);
-                break;
+                    log(`URL type: ${url.startsWith("blob:") ? "BLOB" : "HTTPS"} len=${url.length}`, url.substring(0, 100));
+
+                    const allVideos = Array.from(document.querySelectorAll("video"));
+                    for (const v of allVideos) {
+                      log(
+                        `video readyState=${v.readyState} duration=${v.duration}`,
+                        `networkState=${v.networkState}`,
+                        `error=${v.error ? v.error.code + "/" + v.error.message : "none"}`,
+                        `src=${v.currentSrc.substring(0, 80)}`,
+                      );
+                    }
+
+                    async function fetchBytes(fetchUrl: string, label: string): Promise<number[]> {
+                      let res: Response;
+                      try {
+                        res = await fetch(fetchUrl, { credentials: "include" });
+                      } catch (e) {
+                        log(`Network error [${label}]:`, String(e));
+                        return [];
+                      }
+                      log(
+                        `Response [${label}]: ${res.status}`,
+                        `len=${res.headers.get("content-length") ?? "?"}`,
+                        `type=${res.headers.get("content-type") ?? "?"}`,
+                      );
+                      if (!res.ok) return [];
+                      const buf = await res.arrayBuffer();
+                      log(`Bytes [${label}]:`, buf.byteLength);
+                      return Array.from(new Uint8Array(buf));
+                    }
+
+                    let bytes = await fetchBytes(url, "primary");
+                    if (bytes.length > 0) return { bytes, logs };
+
+                    // If primary returned 0, scan performance entries for the real URL.
+                    const entries = performance.getEntriesByType("resource") as PerformanceResourceTiming[];
+                    const candidates = entries
+                      .filter(
+                        (e) =>
+                          e.name !== url &&
+                          (/\.(mp4|webm|mov|m4v)(\?|#|$)/i.test(e.name) || e.initiatorType === "video"),
+                      )
+                      .sort((a, b) => b.startTime - a.startTime)
+                      .slice(0, 3);
+                    log("Perf candidates:", candidates.map((e) => e.name.substring(0, 80)));
+
+                    for (const entry of candidates) {
+                      bytes = await fetchBytes(entry.name, "perf");
+                      if (bytes.length > 0) return { bytes, logs };
+                    }
+
+                    log("All sources returned 0 bytes");
+                    return { bytes: [], logs };
+                  },
+                  args: [videoUrl],
+                });
+
+                const result = dlResults[0]?.result;
+                if (result?.logs) {
+                  for (const line of result.logs) console.log(`[RF-DL] ${line}`);
+                }
+                if (result?.bytes && result.bytes.length > 0) {
+                  videoBytes = new Uint8Array(result.bytes);
+                  console.log(`[SW] Video downloaded — ${videoBytes.byteLength} bytes (MAIN-world)`);
+                  break;
+                }
               }
 
-              console.warn(`[SW] Download attempt ${dlAttempt + 1} returned empty bytes`);
+              console.warn(`[SW] Download attempt ${dlAttempt + 1} returned 0 bytes`);
             }
 
             if (!videoBytes || videoBytes.byteLength === 0)
@@ -522,7 +634,7 @@ chrome.runtime.onMessage.addListener(
 
             // 3. PUT to GCS from the SW. Extension host_permissions for
             //    storage.googleapis.com bypass the CORS preflight check.
-            const blob = new Blob([videoBytes.slice()], { type: "video/mp4" });
+            const blob = new Blob([videoBytes.buffer as ArrayBuffer], { type: "video/mp4" });
             let lastErr = "";
             for (let i = 0; i < 3; i++) {
               try {

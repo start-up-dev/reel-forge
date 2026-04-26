@@ -131,10 +131,20 @@ async function processClip(msg: ProcessClipMsg): Promise<void> {
   //    the src stabilises and the browser can read video metadata (duration).
   await waitForVideoReady(videoEl, 5 * 60 * 1000);
 
-  const videoSrc = videoEl.src || videoEl.querySelector("source")?.src;
+  // currentSrc is what the browser is actually playing (may differ from the src
+  // attribute after React re-renders); prefer it over video.src.
+  const videoSrc =
+    videoEl.currentSrc ||
+    videoEl.src ||
+    videoEl.querySelector("source")?.src;
   if (!videoSrc) throw new Error("Video element found but src is empty");
 
-  console.log("[RF] Video ready:", videoSrc.substring(0, 80));
+  const isBlob = videoSrc.startsWith("blob:");
+  console.log(
+    `[RF] Video ready: ${isBlob ? "blob" : "https"} url, ` +
+      `duration=${videoEl.duration.toFixed(1)}s readyState=${videoEl.readyState}`,
+    videoSrc.substring(0, 80),
+  );
 
   // 10. Hand off to the service worker.
   //     The SW injects a downloader into the page MAIN world (Origin = grok.com,
@@ -173,13 +183,21 @@ async function waitForVideoReady(
   timeoutMs: number,
 ): Promise<void> {
   const deadline = Date.now() + timeoutMs;
-  let lastSrc = videoEl.src || videoEl.querySelector("source")?.src || "";
+  let lastSrc = videoEl.currentSrc || videoEl.src || videoEl.querySelector("source")?.src || "";
   let srcStableSince = Date.now();
 
   while (Date.now() < deadline) {
     await sleep(1000);
 
-    const currentSrc = videoEl.src || videoEl.querySelector("source")?.src || "";
+    // Grok returned a hard error for this clip — no point waiting or downloading.
+    if (videoEl.error) {
+      throw new Error(
+        `Video element error: code=${videoEl.error.code} — ${videoEl.error.message}`,
+      );
+    }
+
+    const currentSrc =
+      videoEl.currentSrc || videoEl.src || videoEl.querySelector("source")?.src || "";
 
     if (currentSrc !== lastSrc) {
       lastSrc = currentSrc;
@@ -197,14 +215,20 @@ async function waitForVideoReady(
     if (msSrcStable >= 3000 && hasMetadata) {
       console.log(
         `[RF] Video ready — duration=${videoEl.duration.toFixed(1)}s, ` +
-          `readyState=${videoEl.readyState}`,
+          `readyState=${videoEl.readyState}, networkState=${videoEl.networkState}`,
       );
       return;
     }
   }
 
-  // Timed out — proceed anyway; the SW download has its own retry loop.
-  console.warn("[RF] waitForVideoReady timed out — proceeding to download");
+  // Timed out — log state and proceed; SW download has its own retry loop.
+  const src = videoEl.currentSrc || videoEl.src || "";
+  console.warn(
+    `[RF] waitForVideoReady timed out — proceeding anyway.`,
+    `src=${src.substring(0, 80)} duration=${videoEl.duration}`,
+    `readyState=${videoEl.readyState} networkState=${videoEl.networkState}`,
+    `error=${videoEl.error ? `${videoEl.error.code}/${videoEl.error.message}` : "none"}`,
+  );
 }
 
 // ── Video snapshot & new-video detection ─────────────────────────────────────
