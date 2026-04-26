@@ -12,7 +12,7 @@ export interface QuotaCheckResult {
  *
  * Rules (evaluated in order):
  *  1. Users on the free tier with no trial must pay $2 before creating any video.
- *  2. Trial users get exactly 1 video; if remaining = 0, redirect to billing.
+ *  2. Trial users get exactly 3 videos; if remaining = 0, redirect to billing.
  *  3. Paid users are subject to daily and monthly limits.
  *
  * This is a pure function — it does NOT mutate usage counters.
@@ -20,7 +20,15 @@ export interface QuotaCheckResult {
  * route handler AFTER this check passes (see routes/videos.ts).
  */
 export function checkQuota(user: UserRow): QuotaCheckResult {
-  const { plan, trialPaid, trialVideoRemaining, videosToday, videosThisMonth, dailyLimit, monthlyLimit } = user;
+  const {
+    plan,
+    trialPaid,
+    trialVideoRemaining,
+    videosToday,
+    videosThisMonth,
+    dailyLimit,
+    monthlyLimit,
+  } = user;
 
   // Free users who haven't paid the trial fee
   if (plan === "none" && !trialPaid) {
@@ -36,7 +44,8 @@ export function checkQuota(user: UserRow): QuotaCheckResult {
     if (trialVideoRemaining <= 0) {
       return {
         allowed: false,
-        reason: "Your trial video has been used. Upgrade to a plan to create more.",
+        reason:
+          "Your trial video has been used. Upgrade to a plan to create more.",
         redirect: "billing",
       };
     }

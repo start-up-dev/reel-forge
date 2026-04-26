@@ -70,7 +70,7 @@ export function TrialPaymentModal({
             <span className="text-sm text-[var(--text-muted)]">one time</span>
           </div>
           <p className="mt-1 text-sm text-[var(--text-secondary)]">
-            Unlocks 3 full video — script, voiceover, scenes, and final MP4.
+            Unlocks 3 full videos — script, voiceover, scenes, and final MP4.
           </p>
         </div>
 

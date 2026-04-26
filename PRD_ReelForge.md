@@ -1,18 +1,19 @@
 # Product Requirements Document
+
 ## ReelForge — AI-Powered Short-Form Video Generation Platform
 
 **Version:** 1.1 (MVP)  
 **Status:** Draft  
-**Date:** April 16, 2026  
+**Date:** April 16, 2026
 
 ---
 
 ## Changelog
 
-| Version | Date | Changes |
-|---------|------|---------|
-| 1.0 | Apr 16, 2026 | Initial draft |
-| 1.1 | Apr 16, 2026 | Next.js 16.1, PostgreSQL (Neon) + Drizzle ORM replacing Firestore, Resend email replacing FCM, $2 one-time trial charge |
+| Version | Date         | Changes                                                                                                                 |
+| ------- | ------------ | ----------------------------------------------------------------------------------------------------------------------- |
+| 1.0     | Apr 16, 2026 | Initial draft                                                                                                           |
+| 1.1     | Apr 16, 2026 | Next.js 16.1, PostgreSQL (Neon) + Drizzle ORM replacing Firestore, Resend email replacing FCM, $2 one-time trial charge |
 
 ---
 
@@ -56,13 +57,13 @@
 
 The platform orchestrates a multi-AI pipeline:
 
-| Stage | Tool |
-|-------|------|
-| Script generation | Claude Sonnet 4.6 |
-| Voiceover | ElevenLabs Multilingual v3 |
-| Base image per scene | xAI Grok Imagine Image API |
+| Stage                | Tool                                                |
+| -------------------- | --------------------------------------------------- |
+| Script generation    | Claude Sonnet 4.6                                   |
+| Voiceover            | ElevenLabs Multilingual v3                          |
+| Base image per scene | xAI Grok Imagine Image API                          |
 | Video clip per scene | Grok Imagine Video (via operator browser extension) |
-| Video assembly | FFmpeg on GCP Cloud Run |
+| Video assembly       | FFmpeg on GCP Cloud Run                             |
 
 ### The Core Cost Insight
 
@@ -87,13 +88,13 @@ Active effort per video: **under 10 minutes.**
 
 ### MVP Goals
 
-| Goal | Metric | Target |
-|------|--------|--------|
-| End-to-end pipeline works | Videos assembled successfully | 95%+ success rate in QA |
-| Fast user workflow | Active time per video | < 10 min |
-| Operator queue is efficient | Clips generated per hour via extension | 60–100 clips/hr |
-| Multi-tenant isolation | User A cannot see or access User B data | Zero cross-user data leakage |
-| Monetization works | Trial purchase + subscription flow | Functional at launch |
+| Goal                        | Metric                                  | Target                       |
+| --------------------------- | --------------------------------------- | ---------------------------- |
+| End-to-end pipeline works   | Videos assembled successfully           | 95%+ success rate in QA      |
+| Fast user workflow          | Active time per video                   | < 10 min                     |
+| Operator queue is efficient | Clips generated per hour via extension  | 60–100 clips/hr              |
+| Multi-tenant isolation      | User A cannot see or access User B data | Zero cross-user data leakage |
+| Monetization works          | Trial purchase + subscription flow      | Functional at launch         |
 
 ### Key Post-MVP Metrics to Track
 
@@ -187,26 +188,26 @@ Since PostgreSQL replaces Firestore, real-time video status on the processing sc
 
 ## 5. Tech Stack
 
-| Layer | Technology | Reason |
-|-------|-----------|--------|
-| Frontend | Next.js 16.1 (App Router) | Latest stable — Turbopack default, Cache Components, proxy.ts routing |
-| Styling | Tailwind CSS + shadcn/ui | Speed of development, consistent UI |
-| Auth | Clerk | Drop-in multi-tenant auth, social login, webhooks |
-| Backend API | Node.js + Fastify | Lightweight, fast, TypeScript-native |
-| Database | Neon PostgreSQL + Drizzle ORM | Serverless Postgres — relational model fits perfectly, Drizzle is TypeScript-native and lightweight |
-| File Storage | GCP Cloud Storage | Scalable blob storage for audio, images, clips, videos |
-| Job Queue | GCP Cloud Tasks | Reliable async task dispatch with retries |
-| Real-time updates | Server-Sent Events (SSE) | Lightweight real-time status push, no extra service |
-| Video Assembly | FFmpeg on GCP Cloud Run | Headless video editing, auto-scaling |
-| Script AI | Anthropic Claude Sonnet 4.6 | Best-in-class script generation |
-| Voiceover | ElevenLabs Multilingual v3 | High-quality multilingual TTS + word timestamps |
-| Base Images | xAI Grok Imagine Image API | Fast image generation, visually consistent with video clips |
-| Video Clips | Grok Imagine Video (browser) | Cost-free via SuperGrok subscription |
-| Browser Extension | Chrome Extension Manifest V3 | Tab automation, DOM interaction |
-| Email Notifications | Resend | Simple transactional email — one email when video is ready |
-| Monorepo | Turborepo + pnpm workspaces | Unified builds, shared packages, fast CI |
-| Deployment | GCP Cloud Run (all services) | Serverless containers, auto-scaling |
-| CI/CD | GitHub Actions | Automated test and deploy per workspace |
+| Layer               | Technology                    | Reason                                                                                              |
+| ------------------- | ----------------------------- | --------------------------------------------------------------------------------------------------- |
+| Frontend            | Next.js 16.1 (App Router)     | Latest stable — Turbopack default, Cache Components, proxy.ts routing                               |
+| Styling             | Tailwind CSS + shadcn/ui      | Speed of development, consistent UI                                                                 |
+| Auth                | Clerk                         | Drop-in multi-tenant auth, social login, webhooks                                                   |
+| Backend API         | Node.js + Fastify             | Lightweight, fast, TypeScript-native                                                                |
+| Database            | Neon PostgreSQL + Drizzle ORM | Serverless Postgres — relational model fits perfectly, Drizzle is TypeScript-native and lightweight |
+| File Storage        | GCP Cloud Storage             | Scalable blob storage for audio, images, clips, videos                                              |
+| Job Queue           | GCP Cloud Tasks               | Reliable async task dispatch with retries                                                           |
+| Real-time updates   | Server-Sent Events (SSE)      | Lightweight real-time status push, no extra service                                                 |
+| Video Assembly      | FFmpeg on GCP Cloud Run       | Headless video editing, auto-scaling                                                                |
+| Script AI           | Anthropic Claude Sonnet 4.6   | Best-in-class script generation                                                                     |
+| Voiceover           | ElevenLabs Multilingual v3    | High-quality multilingual TTS + word timestamps                                                     |
+| Base Images         | xAI Grok Imagine Image API    | Fast image generation, visually consistent with video clips                                         |
+| Video Clips         | Grok Imagine Video (browser)  | Cost-free via SuperGrok subscription                                                                |
+| Browser Extension   | Chrome Extension Manifest V3  | Tab automation, DOM interaction                                                                     |
+| Email Notifications | Resend                        | Simple transactional email — one email when video is ready                                          |
+| Monorepo            | Turborepo + pnpm workspaces   | Unified builds, shared packages, fast CI                                                            |
+| Deployment          | GCP Cloud Run (all services)  | Serverless containers, auto-scaling                                                                 |
+| CI/CD               | GitHub Actions                | Automated test and deploy per workspace                                                             |
 
 ### Why PostgreSQL over Firestore for this project
 
@@ -283,6 +284,7 @@ reelforge/
 **Provider:** Clerk
 
 **Auth flows:**
+
 - Email/password signup and login
 - Google OAuth
 - Clerk JWT passed as `Authorization: Bearer` to every API request
@@ -292,6 +294,7 @@ reelforge/
 **First-time user onboarding:**
 
 After signup, a 3-step modal guides the user:
+
 - Step 1: Create your first project
 - Step 2: Brief animated overview of the video creation workflow
 - Step 3: Purchase trial video to get started ($2 one-time)
@@ -299,6 +302,7 @@ After signup, a 3-step modal guides the user:
 Onboarding completion state tracked in the `users` table. Never shown again once completed.
 
 **Trial:**
+
 - User must complete a $2 Stripe payment before their first video is created
 - Payment is one-time — not a subscription
 - After trial video is complete, user is prompted to subscribe for ongoing access
@@ -312,20 +316,20 @@ A **Project** represents one channel or content category. Every video is created
 
 #### Project Creation Fields
 
-| Field | Type | Required | Description |
-|-------|------|----------|-------------|
-| `name` | string | Yes | e.g., "TikTok — Fitness Tips" |
-| `platform` | enum | Yes | TikTok, Instagram, YouTube Shorts, Facebook Reels |
-| `niche` | string | Yes | e.g., "Personal Finance", "Fitness", "Cooking" |
-| `language` | string | Yes | Dropdown: English, Bengali, Spanish, Hindi, etc. |
-| `target_audience` | string | Yes | Free text: e.g., "18–35 year old gym beginners" |
-| `video_style` | enum | Yes | Educational, Motivational, Storytelling, Listicle, Tutorial, POV |
-| `tone` | enum | Yes | Casual, Professional, Humorous, Inspirational, Dramatic |
-| `voice_id` | string | Yes | Selected from ElevenLabs voice picker with audio preview |
-| `default_subtitle_style` | enum | No | Bold Pop, Minimal, Cinematic, Word-by-Word Highlight |
-| `default_bgm_enabled` | bool | No | Whether BGM is on by default for new videos |
-| `default_bgm_asset_id` | string | No | Pre-selected BGM track ID |
-| `claude_system_prompt` | string | No | Optional extra instructions Claude follows for this project |
+| Field                    | Type   | Required | Description                                                      |
+| ------------------------ | ------ | -------- | ---------------------------------------------------------------- |
+| `name`                   | string | Yes      | e.g., "TikTok — Fitness Tips"                                    |
+| `platform`               | enum   | Yes      | TikTok, Instagram, YouTube Shorts, Facebook Reels                |
+| `niche`                  | string | Yes      | e.g., "Personal Finance", "Fitness", "Cooking"                   |
+| `language`               | string | Yes      | Dropdown: English, Bengali, Spanish, Hindi, etc.                 |
+| `target_audience`        | string | Yes      | Free text: e.g., "18–35 year old gym beginners"                  |
+| `video_style`            | enum   | Yes      | Educational, Motivational, Storytelling, Listicle, Tutorial, POV |
+| `tone`                   | enum   | Yes      | Casual, Professional, Humorous, Inspirational, Dramatic          |
+| `voice_id`               | string | Yes      | Selected from ElevenLabs voice picker with audio preview         |
+| `default_subtitle_style` | enum   | No       | Bold Pop, Minimal, Cinematic, Word-by-Word Highlight             |
+| `default_bgm_enabled`    | bool   | No       | Whether BGM is on by default for new videos                      |
+| `default_bgm_asset_id`   | string | No       | Pre-selected BGM track ID                                        |
+| `claude_system_prompt`   | string | No       | Optional extra instructions Claude follows for this project      |
 
 #### Project Dashboard
 
@@ -393,6 +397,7 @@ DRAFT
 #### Step 6 — Processing Screen
 
 Real-time status via SSE:
+
 - Script approved (done)
 - Voiceover ready (done)
 - Base images ready (done)
@@ -459,6 +464,7 @@ Claude returns a JSON array of 3 short ideas. Each rendered as a selectable card
 **Trigger:** User approves script in Step 2
 
 **API parameters:**
+
 - `voice_id`: from `projects.voice_id`
 - `text`: `videos.script`
 - `model_id`: `eleven_multilingual_v3`
@@ -466,12 +472,14 @@ Claude returns a JSON array of 3 short ideas. Each rendered as a selectable card
 - `with_timestamps`: `true` — returns word-level alignment data
 
 **Output stored in GCP Storage:**
+
 - `videos/{video_id}/audio.mp3`
 - `videos/{video_id}/word_timestamps.json` — array of `{ word, start_time, end_time }`
 
 Word timestamps are the source of truth for subtitle sync in the FFmpeg pipeline.
 
 **Voice picker in Project Settings:**
+
 - Lists available ElevenLabs voices with language tag
 - Inline "Preview" button plays a 5-second sample
 - Voice ID stored at project level — shared across all videos in the project
@@ -498,6 +506,7 @@ A Claude API call receives the approved script and returns a structured JSON arr
 ```
 
 Scene splitting rules given to Claude:
+
 - Produce 8–12 scenes total
 - Each scene maps to a distinct visual moment
 - Visual prompts must be specific, cinematic, and generation-safe
@@ -510,6 +519,7 @@ Scene splitting rules given to Claude:
 **Trigger:** Scene split complete — all image requests fired in parallel
 
 **Request body:**
+
 ```json
 {
   "model": "grok-2-image",
@@ -522,6 +532,7 @@ Scene splitting rules given to Claude:
 All base images generated in parallel — 8–12 images complete in approximately 10–15 seconds total.
 
 **User actions per scene card:**
+
 - **Regenerate** — new Grok Image API call, same prompt
 - **Edit Prompt + Regenerate** — editable prompt field, then new call
 - **Upload Image** — replaces base image with user-uploaded file
@@ -543,12 +554,12 @@ interface ClipRequest {
   user_id: string;
   scene_index: number;
   visual_prompt: string;
-  base_image_url: string;        // Short-lived signed GCS URL
-  status: 'queued' | 'processing' | 'done' | 'failed';
+  base_image_url: string; // Short-lived signed GCS URL
+  status: "queued" | "processing" | "done" | "failed";
   queued_at: Date;
-  claimed_at: Date | null;       // Set when extension claims it
+  claimed_at: Date | null; // Set when extension claims it
   processed_at: Date | null;
-  clip_url: string | null;       // GCS path once uploaded
+  clip_url: string | null; // GCS path once uploaded
   error: string | null;
 }
 ```
@@ -583,12 +594,12 @@ Full specification in Section 11.
 
 **Subtitle Styles:**
 
-| Style | Description |
-|-------|-------------|
-| Bold Pop | Large bold white text, black drop shadow, center screen, active word highlighted in yellow |
-| Minimal | Small white text, bottom third, sentence-by-sentence, no background |
-| Cinematic | White text on semi-transparent black bar, bottom third, sentence-level |
-| Word-by-Word Highlight | Each word scales in individually at exact timestamp, center screen |
+| Style                  | Description                                                                                |
+| ---------------------- | ------------------------------------------------------------------------------------------ |
+| Bold Pop               | Large bold white text, black drop shadow, center screen, active word highlighted in yellow |
+| Minimal                | Small white text, bottom third, sentence-by-sentence, no background                        |
+| Cinematic              | White text on semi-transparent black bar, bottom third, sentence-level                     |
+| Word-by-Word Highlight | Each word scales in individually at exact timestamp, center screen                         |
 
 Style selection stored in `videos.subtitle_style`. The FFmpeg worker uses this to choose the correct ASS style template during assembly.
 
@@ -613,6 +624,7 @@ One email is sent to the user when their video reaches `COMPLETE` or `FAILED` st
 #### Email Templates
 
 **Video Ready:**
+
 ```
 Subject: Your video is ready — ReelForge
 
@@ -626,6 +638,7 @@ The ReelForge Team
 ```
 
 **Video Failed:**
+
 ```
 Subject: There was a problem with your video — ReelForge
 
@@ -649,6 +662,7 @@ Email is sent from the FFmpeg worker via the Resend API at the end of the assemb
 Paginated grid of all completed videos across all projects.
 
 **Features:**
+
 - Filter by project, filter by date range
 - Each card: first-frame thumbnail, duration, project name, creation date
 - Click card to expand inline video player
@@ -663,6 +677,7 @@ Paginated grid of all completed videos across all projects.
 **MVP scope:** Curated library of 20–30 royalty-free tracks, categorized by mood (Energetic, Calm, Motivational, Cinematic, Upbeat).
 
 **Per-video BGM settings:**
+
 - Toggle on/off (inherits project default)
 - Track picker from library
 - Volume level 0–100%, default 30%
@@ -676,13 +691,13 @@ BGM tracks are stored in GCP Storage and managed by the operator. User-uploaded 
 
 ### Plan Structure
 
-| Plan | Price | Type | Daily Limit | Monthly Limit |
-|------|-------|------|-------------|---------------|
-| Trial | $2 one-time | One-time Stripe payment | 1 video (lifetime) | — |
-| Starter | $X/month | Subscription | 5 videos/day | 150 videos |
-| Pro | $Y/month | Subscription | 15 videos/day | 450 videos |
+| Plan    | Price       | Type                    | Daily Limit        | Monthly Limit |
+| ------- | ----------- | ----------------------- | ------------------ | ------------- |
+| Trial   | $5 one-time | One-time Stripe payment | 3 video (lifetime) | —             |
+| Starter | $49/month   | Subscription            | 5 videos/day       | 150 videos    |
+| Pro     | $99/month   | Subscription            | 15 videos/day      | 450 videos    |
 
-*Exact subscription pricing ($X, $Y) set by founder before launch.*
+_Exact subscription pricing ($X, $Y) set by founder before launch._
 
 ### Trial Flow
 
@@ -709,6 +724,7 @@ FROM users WHERE id = $1
 ```
 
 Logic:
+
 - If `plan = 'none'` and `trial_paid = false` → show $2 payment modal
 - If `plan = 'none'` and `trial_paid = true` and `trial_video_remaining = 0` → show subscription prompt
 - If `plan` is active and `videos_today >= daily_limit` → show quota exceeded modal
@@ -720,9 +736,9 @@ Logic:
 
 ```typescript
 {
-  plan: 'none' | 'starter' | 'pro';
+  plan: "none" | "starter" | "pro";
   trial_paid: boolean;
-  trial_video_remaining: number;         // 0 or 1
+  trial_video_remaining: number; // 0 or 1
   videos_today: number;
   videos_this_month: number;
   daily_limit: number;
@@ -740,105 +756,122 @@ Logic:
 ### PostgreSQL Schema (Drizzle ORM)
 
 #### users
+
 ```typescript
-export const users = pgTable('users', {
-  id: text('id').primaryKey(),                  // Clerk user ID
-  email: text('email').notNull(),
-  first_name: text('first_name'),
-  plan: text('plan').default('none'),
-  trial_paid: boolean('trial_paid').default(false),
-  trial_video_remaining: integer('trial_video_remaining').default(0),
-  videos_today: integer('videos_today').default(0),
-  videos_this_month: integer('videos_this_month').default(0),
-  daily_limit: integer('daily_limit').default(0),
-  monthly_limit: integer('monthly_limit').default(0),
-  last_reset_at: timestamp('last_reset_at').defaultNow(),
-  stripe_customer_id: text('stripe_customer_id'),
-  stripe_subscription_id: text('stripe_subscription_id'),
-  onboarding_complete: boolean('onboarding_complete').default(false),
-  created_at: timestamp('created_at').defaultNow(),
+export const users = pgTable("users", {
+  id: text("id").primaryKey(), // Clerk user ID
+  email: text("email").notNull(),
+  first_name: text("first_name"),
+  plan: text("plan").default("none"),
+  trial_paid: boolean("trial_paid").default(false),
+  trial_video_remaining: integer("trial_video_remaining").default(0),
+  videos_today: integer("videos_today").default(0),
+  videos_this_month: integer("videos_this_month").default(0),
+  daily_limit: integer("daily_limit").default(0),
+  monthly_limit: integer("monthly_limit").default(0),
+  last_reset_at: timestamp("last_reset_at").defaultNow(),
+  stripe_customer_id: text("stripe_customer_id"),
+  stripe_subscription_id: text("stripe_subscription_id"),
+  onboarding_complete: boolean("onboarding_complete").default(false),
+  created_at: timestamp("created_at").defaultNow(),
 });
 ```
 
 #### projects
+
 ```typescript
-export const projects = pgTable('projects', {
-  id: uuid('id').defaultRandom().primaryKey(),
-  user_id: text('user_id').notNull().references(() => users.id),
-  name: text('name').notNull(),
-  platform: text('platform').notNull(),
-  niche: text('niche').notNull(),
-  language: text('language').notNull(),
-  target_audience: text('target_audience').notNull(),
-  video_style: text('video_style').notNull(),
-  tone: text('tone').notNull(),
-  voice_id: text('voice_id').notNull(),
-  default_subtitle_style: text('default_subtitle_style'),
-  default_bgm_enabled: boolean('default_bgm_enabled').default(false),
-  default_bgm_asset_id: text('default_bgm_asset_id'),
-  claude_system_prompt: text('claude_system_prompt'),
-  deleted_at: timestamp('deleted_at'),
-  created_at: timestamp('created_at').defaultNow(),
-  updated_at: timestamp('updated_at').defaultNow(),
+export const projects = pgTable("projects", {
+  id: uuid("id").defaultRandom().primaryKey(),
+  user_id: text("user_id")
+    .notNull()
+    .references(() => users.id),
+  name: text("name").notNull(),
+  platform: text("platform").notNull(),
+  niche: text("niche").notNull(),
+  language: text("language").notNull(),
+  target_audience: text("target_audience").notNull(),
+  video_style: text("video_style").notNull(),
+  tone: text("tone").notNull(),
+  voice_id: text("voice_id").notNull(),
+  default_subtitle_style: text("default_subtitle_style"),
+  default_bgm_enabled: boolean("default_bgm_enabled").default(false),
+  default_bgm_asset_id: text("default_bgm_asset_id"),
+  claude_system_prompt: text("claude_system_prompt"),
+  deleted_at: timestamp("deleted_at"),
+  created_at: timestamp("created_at").defaultNow(),
+  updated_at: timestamp("updated_at").defaultNow(),
 });
 ```
 
 #### videos
+
 ```typescript
-export const videos = pgTable('videos', {
-  id: uuid('id').defaultRandom().primaryKey(),
-  user_id: text('user_id').notNull().references(() => users.id),
-  project_id: uuid('project_id').notNull().references(() => projects.id),
-  title: text('title').notNull(),
-  idea: text('idea').notNull(),
-  script: text('script'),
-  audio_url: text('audio_url'),
-  word_timestamps_url: text('word_timestamps_url'),  // GCS path to JSON file
-  subtitle_style: text('subtitle_style').notNull().default('bold_pop'),
-  bgm_enabled: boolean('bgm_enabled').default(false),
-  bgm_asset_id: text('bgm_asset_id'),
-  bgm_volume: integer('bgm_volume').default(30),
-  status: text('status').notNull().default('DRAFT'),
-  output_url: text('output_url'),
-  duration_seconds: integer('duration_seconds'),
-  error: text('error'),
-  deleted_at: timestamp('deleted_at'),
-  created_at: timestamp('created_at').defaultNow(),
-  updated_at: timestamp('updated_at').defaultNow(),
+export const videos = pgTable("videos", {
+  id: uuid("id").defaultRandom().primaryKey(),
+  user_id: text("user_id")
+    .notNull()
+    .references(() => users.id),
+  project_id: uuid("project_id")
+    .notNull()
+    .references(() => projects.id),
+  title: text("title").notNull(),
+  idea: text("idea").notNull(),
+  script: text("script"),
+  audio_url: text("audio_url"),
+  word_timestamps_url: text("word_timestamps_url"), // GCS path to JSON file
+  subtitle_style: text("subtitle_style").notNull().default("bold_pop"),
+  bgm_enabled: boolean("bgm_enabled").default(false),
+  bgm_asset_id: text("bgm_asset_id"),
+  bgm_volume: integer("bgm_volume").default(30),
+  status: text("status").notNull().default("DRAFT"),
+  output_url: text("output_url"),
+  duration_seconds: integer("duration_seconds"),
+  error: text("error"),
+  deleted_at: timestamp("deleted_at"),
+  created_at: timestamp("created_at").defaultNow(),
+  updated_at: timestamp("updated_at").defaultNow(),
 });
 ```
 
 #### scenes
+
 ```typescript
-export const scenes = pgTable('scenes', {
-  id: uuid('id').defaultRandom().primaryKey(),
-  video_id: uuid('video_id').notNull().references(() => videos.id),
-  scene_index: integer('scene_index').notNull(),
-  text_excerpt: text('text_excerpt').notNull(),
-  visual_prompt: text('visual_prompt').notNull(),
-  base_image_url: text('base_image_url'),
-  clip_url: text('clip_url'),
-  clip_request_id: uuid('clip_request_id'),
-  duration_hint_seconds: integer('duration_hint_seconds').notNull(),
-  approved: boolean('approved').default(false),
+export const scenes = pgTable("scenes", {
+  id: uuid("id").defaultRandom().primaryKey(),
+  video_id: uuid("video_id")
+    .notNull()
+    .references(() => videos.id),
+  scene_index: integer("scene_index").notNull(),
+  text_excerpt: text("text_excerpt").notNull(),
+  visual_prompt: text("visual_prompt").notNull(),
+  base_image_url: text("base_image_url"),
+  clip_url: text("clip_url"),
+  clip_request_id: uuid("clip_request_id"),
+  duration_hint_seconds: integer("duration_hint_seconds").notNull(),
+  approved: boolean("approved").default(false),
 });
 ```
 
 #### clip_requests
+
 ```typescript
-export const clip_requests = pgTable('clip_requests', {
-  id: uuid('id').defaultRandom().primaryKey(),
-  video_id: uuid('video_id').notNull().references(() => videos.id),
-  user_id: text('user_id').notNull().references(() => users.id),
-  scene_index: integer('scene_index').notNull(),
-  visual_prompt: text('visual_prompt').notNull(),
-  base_image_url: text('base_image_url').notNull(),
-  status: text('status').notNull().default('queued'),
-  queued_at: timestamp('queued_at').defaultNow(),
-  claimed_at: timestamp('claimed_at'),
-  processed_at: timestamp('processed_at'),
-  clip_url: text('clip_url'),
-  error: text('error'),
+export const clip_requests = pgTable("clip_requests", {
+  id: uuid("id").defaultRandom().primaryKey(),
+  video_id: uuid("video_id")
+    .notNull()
+    .references(() => videos.id),
+  user_id: text("user_id")
+    .notNull()
+    .references(() => users.id),
+  scene_index: integer("scene_index").notNull(),
+  visual_prompt: text("visual_prompt").notNull(),
+  base_image_url: text("base_image_url").notNull(),
+  status: text("status").notNull().default("queued"),
+  queued_at: timestamp("queued_at").defaultNow(),
+  claimed_at: timestamp("claimed_at"),
+  processed_at: timestamp("processed_at"),
+  clip_url: text("clip_url"),
+  error: text("error"),
 });
 ```
 
@@ -848,56 +881,56 @@ export const clip_requests = pgTable('clip_requests', {
 
 ### Projects
 
-| Method | Endpoint | Description |
-|--------|----------|-------------|
-| GET | `/api/projects` | List all projects for authenticated user |
-| POST | `/api/projects` | Create new project |
-| GET | `/api/projects/:id` | Get project by ID |
-| PUT | `/api/projects/:id` | Update project settings |
-| DELETE | `/api/projects/:id` | Soft delete project |
+| Method | Endpoint            | Description                              |
+| ------ | ------------------- | ---------------------------------------- |
+| GET    | `/api/projects`     | List all projects for authenticated user |
+| POST   | `/api/projects`     | Create new project                       |
+| GET    | `/api/projects/:id` | Get project by ID                        |
+| PUT    | `/api/projects/:id` | Update project settings                  |
+| DELETE | `/api/projects/:id` | Soft delete project                      |
 
 ### Videos
 
-| Method | Endpoint | Description |
-|--------|----------|-------------|
-| GET | `/api/projects/:id/videos` | List videos in project |
-| POST | `/api/projects/:id/videos` | Create new video |
-| GET | `/api/videos/:id` | Get video with scenes and status |
-| GET | `/api/videos/:id/status-stream` | SSE stream for real-time status updates |
-| POST | `/api/videos/:id/brainstorm` | Generate 3 idea options (Claude) |
-| POST | `/api/videos/:id/script` | Generate script (Claude) |
-| POST | `/api/videos/:id/voice` | Generate voiceover (ElevenLabs) |
-| POST | `/api/videos/:id/scenes` | Generate scene split + base images |
-| POST | `/api/videos/:id/scenes/:index/regenerate` | Regenerate one scene's base image |
-| POST | `/api/videos/:id/submit` | Submit to clip queue and begin pipeline |
-| DELETE | `/api/videos/:id` | Soft delete video |
+| Method | Endpoint                                   | Description                             |
+| ------ | ------------------------------------------ | --------------------------------------- |
+| GET    | `/api/projects/:id/videos`                 | List videos in project                  |
+| POST   | `/api/projects/:id/videos`                 | Create new video                        |
+| GET    | `/api/videos/:id`                          | Get video with scenes and status        |
+| GET    | `/api/videos/:id/status-stream`            | SSE stream for real-time status updates |
+| POST   | `/api/videos/:id/brainstorm`               | Generate 3 idea options (Claude)        |
+| POST   | `/api/videos/:id/script`                   | Generate script (Claude)                |
+| POST   | `/api/videos/:id/voice`                    | Generate voiceover (ElevenLabs)         |
+| POST   | `/api/videos/:id/scenes`                   | Generate scene split + base images      |
+| POST   | `/api/videos/:id/scenes/:index/regenerate` | Regenerate one scene's base image       |
+| POST   | `/api/videos/:id/submit`                   | Submit to clip queue and begin pipeline |
+| DELETE | `/api/videos/:id`                          | Soft delete video                       |
 
 ### Operator Queue (Extension Only)
 
 Authenticated with `X-Operator-Secret` header. Not accessible to regular users.
 
-| Method | Endpoint | Description |
-|--------|----------|-------------|
-| GET | `/api/operator/queue` | Atomically claim next N queued clip requests |
-| POST | `/api/operator/clips/:id/upload-url` | Get signed GCS upload URL for clip |
-| POST | `/api/operator/clips/:id/complete` | Mark clip done with GCS path |
-| POST | `/api/operator/clips/:id/fail` | Mark clip failed with error message |
+| Method | Endpoint                             | Description                                  |
+| ------ | ------------------------------------ | -------------------------------------------- |
+| GET    | `/api/operator/queue`                | Atomically claim next N queued clip requests |
+| POST   | `/api/operator/clips/:id/upload-url` | Get signed GCS upload URL for clip           |
+| POST   | `/api/operator/clips/:id/complete`   | Mark clip done with GCS path                 |
+| POST   | `/api/operator/clips/:id/fail`       | Mark clip failed with error message          |
 
 ### Assets
 
-| Method | Endpoint | Description |
-|--------|----------|-------------|
-| GET | `/api/assets/bgm` | List available BGM tracks |
-| GET | `/api/assets/voices` | List available ElevenLabs voices with preview URLs |
+| Method | Endpoint             | Description                                        |
+| ------ | -------------------- | -------------------------------------------------- |
+| GET    | `/api/assets/bgm`    | List available BGM tracks                          |
+| GET    | `/api/assets/voices` | List available ElevenLabs voices with preview URLs |
 
 ### Billing
 
-| Method | Endpoint | Description |
-|--------|----------|-------------|
-| POST | `/api/billing/trial-checkout` | Create Stripe $2 one-time checkout session |
-| POST | `/api/billing/subscribe` | Create Stripe subscription checkout session |
-| POST | `/api/billing/webhook` | Stripe webhook handler (plan updates) |
-| GET | `/api/billing/portal` | Stripe billing portal link |
+| Method | Endpoint                      | Description                                 |
+| ------ | ----------------------------- | ------------------------------------------- |
+| POST   | `/api/billing/trial-checkout` | Create Stripe $2 one-time checkout session  |
+| POST   | `/api/billing/subscribe`      | Create Stripe subscription checkout session |
+| POST   | `/api/billing/webhook`        | Stripe webhook handler (plan updates)       |
+| GET    | `/api/billing/portal`         | Stripe billing portal link                  |
 
 ---
 
@@ -966,11 +999,11 @@ A **Chrome/Edge Manifest V3 extension** installed only on the operator's machine
 
 ### Auto-Click Delay Modes
 
-| Mode | Delay Range | Notes |
-|------|-------------|-------|
-| Fast | 1–2 seconds random | Higher detection risk |
-| Normal (default) | 2–5 seconds random | Mimics natural human behavior |
-| Slow | 5–10 seconds random | Safest, lowest throughput |
+| Mode             | Delay Range         | Notes                         |
+| ---------------- | ------------------- | ----------------------------- |
+| Fast             | 1–2 seconds random  | Higher detection risk         |
+| Normal (default) | 2–5 seconds random  | Mimics natural human behavior |
+| Slow             | 5–10 seconds random | Safest, lowest throughput     |
 
 ### Resilience & Maintainability
 
@@ -1014,6 +1047,7 @@ ffmpeg -f concat -safe 0 -i clips_list.txt -c copy concatenated.mp4
 **Step 3 — Mix audio**
 
 With BGM:
+
 ```bash
 ffmpeg -i concatenated.mp4 -i audio.mp3 -i bgm.mp3 \
   -filter_complex \
@@ -1022,6 +1056,7 @@ ffmpeg -i concatenated.mp4 -i audio.mp3 -i bgm.mp3 \
 ```
 
 Without BGM:
+
 ```bash
 ffmpeg -i concatenated.mp4 -i audio.mp3 \
   -map 0:v -map 1:a -shortest with_audio.mp4
@@ -1054,14 +1089,14 @@ ffmpeg -i with_audio.mp4 \
 
 ### Output Specification
 
-| Property | Value |
-|----------|-------|
-| Resolution | 1080 x 1920 (9:16) |
-| Format | MP4 (H.264 + AAC) |
-| Framerate | 30fps |
-| Video bitrate | ~4 Mbps (CRF 23) |
-| Audio bitrate | 192 kbps |
-| Max duration | 65 seconds |
+| Property      | Value              |
+| ------------- | ------------------ |
+| Resolution    | 1080 x 1920 (9:16) |
+| Format        | MP4 (H.264 + AAC)  |
+| Framerate     | 30fps              |
+| Video bitrate | ~4 Mbps (CRF 23)   |
+| Audio bitrate | 192 kbps           |
+| Max duration  | 65 seconds         |
 
 ---
 
@@ -1069,14 +1104,14 @@ ffmpeg -i with_audio.mp4 \
 
 ### Performance Targets
 
-| Operation | Target |
-|-----------|--------|
-| Script generation | < 8 seconds |
-| Voiceover generation | < 15 seconds |
-| Base images (8–12 in parallel) | < 15 seconds total |
-| FFmpeg assembly (after all clips ready) | < 3 minutes |
-| Non-AI API endpoints | < 300ms p95 |
-| SSE status stream first event | < 1 second after status change |
+| Operation                               | Target                         |
+| --------------------------------------- | ------------------------------ |
+| Script generation                       | < 8 seconds                    |
+| Voiceover generation                    | < 15 seconds                   |
+| Base images (8–12 in parallel)          | < 15 seconds total             |
+| FFmpeg assembly (after all clips ready) | < 3 minutes                    |
+| Non-AI API endpoints                    | < 300ms p95                    |
+| SSE status stream first event           | < 1 second after status change |
 
 ### Scalability
 
@@ -1128,22 +1163,23 @@ ffmpeg -i with_audio.mp4 \
 
 ## 15. Risks & Mitigations
 
-| Risk | Likelihood | Impact | Mitigation |
-|------|-----------|--------|------------|
-| Grok Imagine UI update breaks extension selectors | Medium | High | DOM selectors stored as configurable strings in extension settings — operator updates in minutes with no redeployment |
-| xAI flags SuperGrok account for automation | Low | Critical | Randomized human-mimicking delays. Auto-click is a toggle — instantly switchable to manual mode. Use a dedicated account separate from personal use. |
-| ElevenLabs word timestamps unavailable for some languages | Low | Medium | Test all supported languages pre-launch. Fallback: sentence-level timing from punctuation chunking |
-| Grok video generation quality is inconsistent | Medium | Medium | Base image input anchors visual style. Post-MVP: allow users to flag and replace individual clips |
-| Neon PostgreSQL connection limits under high concurrency | Low | Medium | Use Neon's HTTP driver (serverless-compatible, no persistent connections). Monitor connection usage from day one. |
-| GCP Cloud Run cold start delays FFmpeg jobs | Low | Low | Set minimum instance count to 1 for the FFmpeg worker service |
-| Clip queue grows faster than one operator can process | Medium | Medium | Queue position shown to users. Post-MVP: run extension on multiple machines simultaneously |
-| $2 trial friction reduces signups | Low | Low | $2 is intentional friction to filter serious users. Monitor conversion rate and adjust if needed. |
+| Risk                                                      | Likelihood | Impact   | Mitigation                                                                                                                                           |
+| --------------------------------------------------------- | ---------- | -------- | ---------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Grok Imagine UI update breaks extension selectors         | Medium     | High     | DOM selectors stored as configurable strings in extension settings — operator updates in minutes with no redeployment                                |
+| xAI flags SuperGrok account for automation                | Low        | Critical | Randomized human-mimicking delays. Auto-click is a toggle — instantly switchable to manual mode. Use a dedicated account separate from personal use. |
+| ElevenLabs word timestamps unavailable for some languages | Low        | Medium   | Test all supported languages pre-launch. Fallback: sentence-level timing from punctuation chunking                                                   |
+| Grok video generation quality is inconsistent             | Medium     | Medium   | Base image input anchors visual style. Post-MVP: allow users to flag and replace individual clips                                                    |
+| Neon PostgreSQL connection limits under high concurrency  | Low        | Medium   | Use Neon's HTTP driver (serverless-compatible, no persistent connections). Monitor connection usage from day one.                                    |
+| GCP Cloud Run cold start delays FFmpeg jobs               | Low        | Low      | Set minimum instance count to 1 for the FFmpeg worker service                                                                                        |
+| Clip queue grows faster than one operator can process     | Medium     | Medium   | Queue position shown to users. Post-MVP: run extension on multiple machines simultaneously                                                           |
+| $2 trial friction reduces signups                         | Low        | Low      | $2 is intentional friction to filter serious users. Monitor conversion rate and adjust if needed.                                                    |
 
 ---
 
 ## 16. Milestones
 
 ### Phase 1 — Foundation (Weeks 1–3)
+
 - [ ] Monorepo scaffolded (Turborepo + pnpm workspaces)
 - [ ] Shared `packages/types` and `packages/utils` initialized
 - [ ] Neon PostgreSQL database provisioned
@@ -1154,6 +1190,7 @@ ffmpeg -i with_audio.mp4 \
 - [ ] Project CRUD fully working end-to-end (frontend + API + DB)
 
 ### Phase 2 — Core AI Pipeline (Weeks 4–7)
+
 - [ ] Video creation wizard UI (all 7 steps, mocked AI responses)
 - [ ] SSE status stream endpoint implemented and wired to frontend
 - [ ] Claude script generation integrated (brainstorm + direct modes)
@@ -1165,6 +1202,7 @@ ffmpeg -i with_audio.mp4 \
 - [ ] Operator queue API endpoints implemented with `FOR UPDATE SKIP LOCKED`
 
 ### Phase 3 — Browser Extension (Weeks 7–9)
+
 - [ ] Extension manifest and popup UI built (React)
 - [ ] Content script: image upload + prompt injection into Grok Imagine
 - [ ] Auto-click logic with randomized delay modes
@@ -1176,6 +1214,7 @@ ffmpeg -i with_audio.mp4 \
 - [ ] Failure handling, retry UI, and stale lock server cleanup task
 
 ### Phase 4 — Video Assembly (Weeks 9–11)
+
 - [ ] FFmpeg worker containerized (Dockerfile) and deployed to Cloud Run
 - [ ] Cloud Task trigger on all-clips-done condition
 - [ ] Clip normalization and concatenation pipeline
@@ -1185,6 +1224,7 @@ ffmpeg -i with_audio.mp4 \
 - [ ] Resend email integration (video ready + video failed templates)
 
 ### Phase 5 — Notifications, Library, Polish (Weeks 11–13)
+
 - [ ] Video library with project filter, date filter, inline player
 - [ ] Shareable private video links (7-day expiry)
 - [ ] BGM library (20–30 tracks) uploaded to GCS and wired to picker
@@ -1193,6 +1233,7 @@ ffmpeg -i with_audio.mp4 \
 - [ ] SSE connection cleanup and reconnect logic
 
 ### Phase 6 — Monetization & Launch (Weeks 13–15)
+
 - [ ] Stripe $2 one-time trial checkout integrated
 - [ ] Stripe subscription (Starter + Pro) integrated
 - [ ] Stripe webhook handler for plan activation / cancellation
@@ -1205,4 +1246,4 @@ ffmpeg -i with_audio.mp4 \
 
 ---
 
-*End of Document — ReelForge PRD v1.1*
+_End of Document — ReelForge PRD v1.1_
