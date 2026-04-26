@@ -4,6 +4,7 @@ import { useEffect, useRef, useState } from "react";
 import { CheckCircle2, Download, Link2, Plus } from "lucide-react";
 import { toast } from "sonner";
 import { formatDuration } from "@repo/utils";
+import type { PlanType } from "@repo/types";
 import { Button } from "@repo/ui/button";
 import type { VideoDetail } from "@/lib/api-client";
 import { cn } from "@repo/ui/utils";
@@ -11,10 +12,12 @@ import { cn } from "@repo/ui/utils";
 interface Step7DoneProps {
   video: VideoDetail;
   projectId: string;
+  userPlan: PlanType | null;
   onMakeAnother: () => void;
+  onShowSubscriptionPrompt: () => void;
 }
 
-export function Step7Done({ video, onMakeAnother }: Step7DoneProps) {
+export function Step7Done({ video, userPlan, onMakeAnother, onShowSubscriptionPrompt }: Step7DoneProps) {
   const videoRef = useRef<HTMLVideoElement>(null);
   const [confettiDone, setConfettiDone] = useState(false);
 
@@ -22,6 +25,13 @@ export function Step7Done({ video, onMakeAnother }: Step7DoneProps) {
     const t = setTimeout(() => setConfettiDone(true), 1500);
     return () => clearTimeout(t);
   }, []);
+
+  // Show subscription prompt after a short delay for trial users (plan === "none")
+  useEffect(() => {
+    if (userPlan !== "none") return;
+    const t = setTimeout(() => onShowSubscriptionPrompt(), 3000);
+    return () => clearTimeout(t);
+  }, [userPlan, onShowSubscriptionPrompt]);
 
   async function handleCopyLink() {
     try {

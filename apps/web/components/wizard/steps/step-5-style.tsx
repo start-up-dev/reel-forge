@@ -9,10 +9,12 @@ import { cn } from "@repo/ui/utils";
 
 interface Step5StyleProps {
   video: VideoDetail;
+  trialPaid: boolean;
   onVideoUpdate: (v: VideoDetail) => void;
   onScheduleSave: (data: Partial<{ subtitleStyle: SubtitleStyle }>) => void;
   onBack: () => void;
   onAdvance: () => void;
+  onRequestPayment: () => void;
 }
 
 const SUBTITLE_STYLES: { value: SubtitleStyle; label: string; desc: string }[] = [
@@ -40,10 +42,12 @@ const SUBTITLE_STYLES: { value: SubtitleStyle; label: string; desc: string }[] =
 
 export function Step5Style({
   video,
+  trialPaid,
   onVideoUpdate,
   onScheduleSave,
   onBack,
   onAdvance,
+  onRequestPayment,
 }: Step5StyleProps) {
   const api = useApiClient();
   const [subtitleStyle, setSubtitleStyle] = useState<SubtitleStyle>(
@@ -57,6 +61,11 @@ export function Step5Style({
   }
 
   async function handleGenerateVideo() {
+    if (!trialPaid) {
+      onRequestPayment();
+      return;
+    }
+
     setSubmitting(true);
     await withToast(
       () => api.videos.patch(video.id, { subtitleStyle }),
@@ -148,7 +157,7 @@ export function Step5Style({
             className="flex-1"
             size="lg"
           >
-            Generate Video
+            {trialPaid ? "Generate Video" : "Generate Video · $5"}
           </Button>
         </div>
         <p className="text-center text-xs text-[var(--text-muted)]">

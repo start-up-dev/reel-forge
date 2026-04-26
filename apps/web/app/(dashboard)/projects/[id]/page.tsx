@@ -25,7 +25,9 @@ import type { Video } from "@repo/types";
 import { VideoStatus } from "@repo/types";
 import { useProject } from "@/lib/hooks/use-projects";
 import { useVideos } from "@/lib/hooks/use-videos";
-import { useApiClient, withToast } from "@/lib/api-client";
+import { useApiClient, withToast, QuotaError } from "@/lib/api-client";
+import { QuotaExceededModal } from "@/components/billing/quota-exceeded-modal";
+import { TrialPaymentModal } from "@/components/billing/trial-payment-modal";
 import { formatRelativeDate } from "@repo/utils";
 
 /* ── Status badge helpers ──────────────────────────────────────────────── */
@@ -91,11 +93,13 @@ export default function ProjectDetailPage() {
   const [search, setSearch] = useState("");
   const [deleteVideo, setDeleteVideo] = useState<Video | null>(null);
   const [deleting, setDeleting] = useState(false);
+  const [quotaError, setQuotaError] = useState<QuotaError | null>(null);
 
   async function handleNewVideo() {
     const result = await withToast(
       () => api.videos.create(projectId),
-      "Failed to create video"
+      "Failed to create video",
+      (err) => setQuotaError(err)
     );
     if (result?.data) {
       router.push(`/videos/${result.data.id}`);
@@ -292,6 +296,24 @@ export default function ProjectDetailPage() {
         loading={deleting}
         onConfirm={handleDeleteVideo}
       />
+
+      {/* Quota / payment modals */}
+      {quotaError?.redirectTo === "trial_checkout" && (
+        <TrialPaymentModal onClose={() => setQuotaError(null)} videoId="" />
+      )}
+      {quotaError && quotaError.redirectTo === "billing" && (
+        <QuotaExceededModal
+          message={quotaError.message}
+          type={
+            quotaError.message.toLowerCase().includes("daily")
+              ? "daily"
+              : quotaError.message.toLowerCase().includes("monthly")
+              ? "monthly"
+              : "trial_exhausted"
+          }
+          onClose={() => setQuotaError(null)}
+        />
+      )}
     </div>
   );
 }

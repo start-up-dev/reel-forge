@@ -78,7 +78,34 @@ ReelForge uses **Secret Manager** to store sensitive environment variables. Add 
 **Create a new secret:**
 
 ```bash
-echo -n "YOUR_SECRET_VALUE" | gcloud secrets create stripe-trial-price-id --data-file=-
+echo -n "YOUR_SECRET_VALUE" | gcloud secrets create SECRET_NAME --data-file=-
+```
+
+**Update an existing secret (add a new version):**
+
+```bash
+echo -n "YOUR_NEW_VALUE" | gcloud secrets versions add SECRET_NAME --data-file=-
+```
+
+**Examples — update each Stripe key:**
+
+```bash
+echo -n "whsec_..." | gcloud secrets versions add stripe-webhook-secret --data-file=-
+echo -n "price_..." | gcloud secrets versions add stripe-starter-price-id --data-file=-
+echo -n "price_..." | gcloud secrets versions add stripe-pro-price-id --data-file=-
+echo -n "price_..." | gcloud secrets versions add stripe-trial-price-id --data-file=-
+```
+
+**Verify the latest version of a secret:**
+
+```bash
+gcloud secrets versions access latest --secret=SECRET_NAME
+```
+
+**List all versions of a secret:**
+
+```bash
+gcloud secrets versions list SECRET_NAME
 ```
 
 ---

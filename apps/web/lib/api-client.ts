@@ -36,6 +36,16 @@ class ApiError extends Error {
   }
 }
 
+export class QuotaError extends ApiError {
+  constructor(
+    message: string,
+    public redirectTo: "trial_checkout" | "billing"
+  ) {
+    super(402, message);
+    this.name = "QuotaError";
+  }
+}
+
 async function request<T>(
   path: string,
   options: RequestInit & { token?: string }
@@ -68,10 +78,8 @@ async function request<T>(
     try {
       const body = await res.json();
       message = body.message ?? body.error?.message ?? body.error ?? message;
-      // Quota errors send a redirect hint — send the user to billing instead of toasting.
       if (res.status === 402 && body.error?.redirect) {
-        window.location.href = "/billing";
-        throw new ApiError(402, message);
+        throw new QuotaError(message, body.error.redirect);
       }
     } catch (e) {
       if (e instanceof ApiError) throw e;
@@ -301,8 +309,11 @@ export function createApiClient(getToken: () => Promise<string | null>) {
 
     // ── Billing ───────────────────────────────────────────────────────────
     billing: {
-      trialCheckout(): Promise<ApiResponse<{ url: string }>> {
-        return authedRequest("/api/billing/trial-checkout", { method: "POST" });
+      trialCheckout(videoId?: string): Promise<ApiResponse<{ url: string }>> {
+        return authedRequest("/api/billing/trial-checkout", {
+          method: "POST",
+          body: JSON.stringify(videoId ? { videoId } : {}),
+        });
       },
       subscribe(plan: "starter" | "pro"): Promise<ApiResponse<{ url: string }>> {
         return authedRequest("/api/billing/subscribe", {
@@ -357,13 +368,22 @@ export function useApiClient() {
 
 export async function withToast<T>(
   fn: () => Promise<T>,
-  errorMessage = "Something went wrong"
+  errorMessage = "Something went wrong",
+  onQuotaError?: (err: QuotaError) => void
 ): Promise<T | null> {
   try {
     return await fn();
   } catch (err) {
-    const message =
-      err instanceof ApiError ? err.message : errorMessage;
+    if (err instanceof QuotaError) {
+      if (onQuotaError) {
+        onQuotaError(err);
+        return null;
+      }
+      // Fallback if no handler provided: hard redirect to billing
+      window.location.href = "/billing";
+      return null;
+    }
+    const message = err instanceof ApiError ? err.message : errorMessage;
     toast.error(message);
     return null;
   }

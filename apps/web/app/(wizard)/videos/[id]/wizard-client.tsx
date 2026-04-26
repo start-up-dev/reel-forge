@@ -4,6 +4,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { toast } from "sonner";
 import { VideoStatus } from "@repo/types";
+import type { User } from "@repo/types";
 import { useApiClient, withToast } from "@/lib/api-client";
 import type { VideoDetail } from "@/lib/api-client";
 import { useProject } from "@/lib/hooks/use-projects";
@@ -15,6 +16,8 @@ import { Step4Scenes } from "@/components/wizard/steps/step-4-scenes";
 import { Step5Style } from "@/components/wizard/steps/step-5-style";
 import { Step6Processing } from "@/components/wizard/steps/step-6-processing";
 import { Step7Done } from "@/components/wizard/steps/step-7-done";
+import { TrialPaymentModal } from "@/components/billing/trial-payment-modal";
+import { SubscriptionPromptModal } from "@/components/billing/subscription-prompt-modal";
 
 function statusToDefaultStep(status: VideoStatus): number {
   switch (status) {
@@ -81,28 +84,66 @@ export function WizardClient({ videoId }: { videoId: string }) {
   const [video, setVideo] = useState<VideoDetail | null>(null);
   const [loadingVideo, setLoadingVideo] = useState(true);
   const [saveState, setSaveState] = useState<SaveState>("idle");
+  const [currentUser, setCurrentUser] = useState<User | null>(null);
+  const [showTrialModal, setShowTrialModal] = useState(false);
+  const [showSubscriptionModal, setShowSubscriptionModal] = useState(false);
   const saveTimerRef = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
   const savedTimerRef = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
 
-  // Load video once
+  // Load video and user in parallel on mount
   useEffect(() => {
     let cancelled = false;
     async function load() {
       setLoadingVideo(true);
-      const result = await withToast(
-        () => api.videos.get(videoId),
-        "Failed to load video"
-      );
-      if (!cancelled && result?.data) {
-        setVideo(result.data);
+      const [videoResult, userResult] = await Promise.all([
+        withToast(() => api.videos.get(videoId), "Failed to load video"),
+        withToast(() => api.users.me(), "Failed to load user"),
+      ]);
+      if (!cancelled) {
+        if (videoResult?.data) setVideo(videoResult.data);
+        if (userResult?.data) setCurrentUser(userResult.data);
+        setLoadingVideo(false);
       }
-      if (!cancelled) setLoadingVideo(false);
     }
     void load();
     return () => {
       cancelled = true;
     };
   }, [api, videoId]);
+
+  // Handle return from Stripe trial checkout.
+  // Poll for trialPaid=true (webhook may lag a few seconds behind the redirect).
+  const trialSuccess = searchParams.get("trial_success") === "1";
+  const trialSuccessHandled = useRef(false);
+  useEffect(() => {
+    if (!trialSuccess || trialSuccessHandled.current || !video) return;
+    trialSuccessHandled.current = true;
+    toast.success("Payment received! Confirming…");
+
+    async function pollUntilTrialPaid() {
+      for (let attempt = 0; attempt < 10; attempt++) {
+        if (attempt > 0) await new Promise((r) => setTimeout(r, 1500));
+        try {
+          const res = await api.users.me();
+          if (res.data) {
+            setCurrentUser(res.data);
+            if (res.data.trialPaid) {
+              toast.success("Payment confirmed! Click Generate Video to continue.");
+              break;
+            }
+          }
+        } catch {
+          // ignore transient errors, keep polling
+        }
+      }
+      // Clean the URL param
+      const url = new URL(window.location.href);
+      url.searchParams.delete("trial_success");
+      window.history.replaceState(null, "", url.toString());
+    }
+
+    void pollUntilTrialPaid();
+  }, [trialSuccess, video, api]);
 
   const { project } = useProject(video?.projectId ?? "");
 
@@ -256,10 +297,12 @@ export function WizardClient({ videoId }: { videoId: string }) {
         {currentStep === 5 && (
           <Step5Style
             video={video}
+            trialPaid={currentUser?.trialPaid ?? true}
             onVideoUpdate={setVideo}
             onScheduleSave={scheduleSave}
             onBack={() => goToStep(4)}
             onAdvance={() => goToStep(6)}
+            onRequestPayment={() => setShowTrialModal(true)}
           />
         )}
         {currentStep === 6 && (
@@ -273,10 +316,22 @@ export function WizardClient({ videoId }: { videoId: string }) {
           <Step7Done
             video={video}
             projectId={video.projectId}
+            userPlan={currentUser?.plan ?? null}
             onMakeAnother={() => goToStep(1)}
+            onShowSubscriptionPrompt={() => setShowSubscriptionModal(true)}
           />
         )}
       </main>
+
+      {showTrialModal && (
+        <TrialPaymentModal
+          videoId={videoId}
+          onClose={() => setShowTrialModal(false)}
+        />
+      )}
+      {showSubscriptionModal && (
+        <SubscriptionPromptModal onClose={() => setShowSubscriptionModal(false)} />
+      )}
     </div>
   );
 }

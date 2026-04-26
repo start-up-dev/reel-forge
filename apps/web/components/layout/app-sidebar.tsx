@@ -8,7 +8,10 @@ import {
   Settings,
   CreditCard,
   Zap,
+  TrendingUp,
 } from "lucide-react";
+import { useUser } from "@/lib/hooks/use-user";
+import { cn } from "@repo/ui/utils";
 
 const navItems = [
   { href: "/dashboard", label: "Projects", icon: FolderOpen },
@@ -17,8 +20,21 @@ const navItems = [
   { href: "/billing", label: "Billing", icon: CreditCard },
 ];
 
+const PLAN_LABEL: Record<string, string> = {
+  none: "Free",
+  try_out: "Trial",
+  starter: "Starter",
+  pro: "Pro",
+};
+
 export function AppSidebar() {
   const pathname = usePathname();
+  const { user } = useUser();
+
+  const showUpgrade = !user || user.plan === "none" || user.plan === "try_out";
+  const showUsage = user && (user.plan === "starter" || user.plan === "pro") && user.dailyLimit > 0;
+  const usagePct = showUsage ? Math.min((user.videosToday / user.dailyLimit) * 100, 100) : 0;
+  const usageWarning = usagePct >= 80;
 
   return (
     <aside className="flex w-60 flex-col border-r border-[var(--bg-border)] bg-[var(--bg-surface)]">
@@ -56,6 +72,45 @@ export function AppSidebar() {
           })}
         </ul>
       </nav>
+
+      {/* Usage meter (paid plans) */}
+      {showUsage && (
+        <div className="px-4 pb-3">
+          <div className="rounded-lg border border-[var(--bg-border)] bg-[var(--bg-elevated)] p-3">
+            <div className="mb-1.5 flex items-center justify-between text-xs">
+              <span className="text-[var(--text-muted)]">Today</span>
+              <span className={usageWarning ? "text-[var(--accent-warning)]" : "text-[var(--text-secondary)]"}>
+                {user.videosToday}/{user.dailyLimit} videos
+              </span>
+            </div>
+            <div className="h-1.5 w-full overflow-hidden rounded-full bg-[var(--bg-base)]">
+              <div
+                className={cn(
+                  "h-full rounded-full transition-all",
+                  usageWarning ? "bg-[var(--accent-warning)]" : "bg-[var(--accent-primary)]"
+                )}
+                style={{ width: `${usagePct}%` }}
+              />
+            </div>
+            <p className="mt-1.5 text-[10px] text-[var(--text-muted)]">
+              {PLAN_LABEL[user.plan]} plan · resets midnight UTC
+            </p>
+          </div>
+        </div>
+      )}
+
+      {/* Upgrade CTA (free / trial plans) */}
+      {showUpgrade && (
+        <div className="px-4 pb-3">
+          <Link
+            href="/billing"
+            className="flex items-center gap-2 rounded-lg border border-[var(--accent-primary)]/30 bg-[var(--accent-primary)]/8 px-3 py-2.5 text-sm font-medium text-[var(--accent-primary)] transition-colors hover:bg-[var(--accent-primary)]/15"
+          >
+            <TrendingUp className="h-4 w-4 shrink-0" />
+            Upgrade to Pro
+          </Link>
+        </div>
+      )}
 
       {/* Branding footer */}
       <div className="p-4 border-t border-[var(--bg-border)]">

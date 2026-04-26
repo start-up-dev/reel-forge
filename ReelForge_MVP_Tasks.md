@@ -323,7 +323,7 @@ Tasks are ordered by dependency. Each phase can largely begin after the previous
 - [x] Build BGM toggle
 - [x] Build BGM track library (horizontal scroll row, preview playback)
 - [x] Build volume slider (0–100%)
-- [ ] Build "Generate Video" button — before calling submit, check `users.trial_paid`; if false, open Trial Payment Modal (Phase 11.2) instead of submitting
+- [x] Build "Generate Video" button — before calling submit, check `users.trial_paid`; if false, open Trial Payment Modal (Phase 11.2) instead of submitting
 - [x] Wire "Generate Video" (post-payment) → calls `POST /api/videos/:id/submit`
 
 ### 5.7 Step 6 — Processing Screen UI
@@ -435,14 +435,14 @@ Tasks are ordered by dependency. Each phase can largely begin after the previous
 - [x] Implemented as `POST /api/jobs/cleanup-stale-clips` in `apps/api/routes/jobs.ts`:
   - Finds all `clip_requests` with `status = 'processing'` and `claimed_at < NOW() - INTERVAL '10 minutes'`
   - Resets them to `status = 'queued'`, clears `claimed_at`
-- [ ] Set up GCP Cloud Scheduler to trigger this endpoint every 5 minutes
+- [x] Set up GCP Cloud Scheduler to trigger this endpoint every 5 minutes
 
 ### 7.3 Quota Reset Jobs
 
 - [x] Implemented as `POST /api/jobs/reset-daily-quota` — sets `videos_today = 0` for all users
 - [x] Implemented as `POST /api/jobs/reset-monthly-quota` — sets `videos_this_month = 0` for all users
-- [ ] Set up GCP Cloud Scheduler: daily reset at UTC midnight every day
-- [ ] Set up GCP Cloud Scheduler: monthly reset at UTC midnight on the 1st of each month
+- [x] Set up GCP Cloud Scheduler: daily reset at UTC midnight every day
+- [x] Set up GCP Cloud Scheduler: monthly reset at UTC midnight on the 1st of each month
 
 ---
 
@@ -601,13 +601,13 @@ Tasks are ordered by dependency. Each phase can largely begin after the previous
 
 - [x] Wire `/billing` page to real Stripe API — "Get Try Out" → trial checkout, "Upgrade to Starter/Pro" → subscription checkout, both redirect to Stripe
 - [x] Handle `?trial_success=1` and `?subscribed=1` redirect params on `/billing` — show success toast and refetch user
-- [ ] Implement Trial Payment Modal UI (triggered from Step 5 when `trial_paid = false`)
-- [ ] "Pay $5 and Continue" → calls `POST /api/billing/trial-checkout` → redirect to Stripe Checkout
-- [ ] Stripe success redirect lands back on the wizard at the correct step
-- [ ] Implement Subscription Prompt Modal (shown on Step 7 after trial video completes)
-- [ ] Implement Daily Quota Exceeded Modal
-- [ ] Implement Monthly Quota Exceeded Modal
-- [ ] Implement Upgrade button in header usage meter (links to `/billing`)
+- [x] Implement Trial Payment Modal UI (triggered from Step 5 when `trial_paid = false`)
+- [x] "Pay $5 and Continue" → calls `POST /api/billing/trial-checkout` → redirect to Stripe Checkout
+- [x] Stripe success redirect lands back on the wizard at the correct step
+- [x] Implement Subscription Prompt Modal (shown on Step 7 after trial video completes)
+- [x] Implement Daily Quota Exceeded Modal
+- [x] Implement Monthly Quota Exceeded Modal
+- [x] Implement Upgrade button in header usage meter (links to `/billing`)
 
 ---
 

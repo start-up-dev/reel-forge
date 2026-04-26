@@ -70,7 +70,7 @@ export async function billingRoutes(fastify: FastifyInstance): Promise<void> {
   );
 
   // ─── Authenticated: trial checkout ───────────────────────────────────────
-  fastify.post(
+  fastify.post<{ Body: { videoId?: string } }>(
     "/trial-checkout",
     { preHandler: requireAuth },
     async (request, reply) => {
@@ -82,14 +82,22 @@ export async function billingRoutes(fastify: FastifyInstance): Promise<void> {
         });
       }
 
+      const { videoId } = request.body ?? {};
+      const successUrl = videoId
+        ? `${env.NEXT_PUBLIC_APP_URL}/videos/${videoId}?step=5&trial_success=1`
+        : `${env.NEXT_PUBLIC_APP_URL}/billing?trial_success=1`;
+      const cancelUrl = videoId
+        ? `${env.NEXT_PUBLIC_APP_URL}/videos/${videoId}?step=5`
+        : `${env.NEXT_PUBLIC_APP_URL}/billing`;
+
       const session = await stripe.checkout.sessions.create({
         mode: "payment",
         payment_method_types: ["card"],
         line_items: [{ price: env.STRIPE_TRIAL_PRICE_ID, quantity: 1 }],
         customer_email: user.email,
         metadata: { userId: user.id },
-        success_url: `${env.NEXT_PUBLIC_APP_URL}/billing?trial_success=1`,
-        cancel_url: `${env.NEXT_PUBLIC_APP_URL}/billing`,
+        success_url: successUrl,
+        cancel_url: cancelUrl,
       });
 
       return reply.send({ data: { url: session.url } });

@@ -10,7 +10,9 @@ import { useProjects } from "@/lib/hooks/use-projects";
 import { ProjectCard } from "@/components/dashboard/project-card";
 import { CreateProjectModal } from "@/components/dashboard/create-project-modal";
 import { DeleteProjectDialog } from "@/components/dashboard/delete-project-dialog";
-import { useApiClient, withToast } from "@/lib/api-client";
+import { useApiClient, withToast, QuotaError } from "@/lib/api-client";
+import { QuotaExceededModal } from "@/components/billing/quota-exceeded-modal";
+import { TrialPaymentModal } from "@/components/billing/trial-payment-modal";
 
 export default function DashboardPage() {
   const api = useApiClient();
@@ -19,6 +21,7 @@ export default function DashboardPage() {
   const [createOpen, setCreateOpen] = useState(false);
   const [editProject, setEditProject] = useState<Project | null>(null);
   const [deleteProject, setDeleteProject] = useState<Project | null>(null);
+  const [quotaError, setQuotaError] = useState<QuotaError | null>(null);
 
   function handleProjectCreated(project: Project) {
     refetch();
@@ -46,7 +49,8 @@ export default function DashboardPage() {
   async function handleNewVideo(projectId: string) {
     const result = await withToast(
       () => api.videos.create(projectId),
-      "Failed to create video"
+      "Failed to create video",
+      (err) => setQuotaError(err)
     );
     if (result?.data) {
       router.push(`/videos/${result.data.id}`);
@@ -156,6 +160,23 @@ export default function DashboardPage() {
         onOpenChange={(open) => !open && setDeleteProject(null)}
         onConfirm={handleDeleteConfirm}
       />
+
+      {quotaError?.redirectTo === "trial_checkout" && (
+        <TrialPaymentModal onClose={() => setQuotaError(null)} videoId="" />
+      )}
+      {quotaError?.redirectTo === "billing" && (
+        <QuotaExceededModal
+          message={quotaError.message}
+          type={
+            quotaError.message.toLowerCase().includes("daily")
+              ? "daily"
+              : quotaError.message.toLowerCase().includes("monthly")
+              ? "monthly"
+              : "trial_exhausted"
+          }
+          onClose={() => setQuotaError(null)}
+        />
+      )}
     </div>
   );
 }
