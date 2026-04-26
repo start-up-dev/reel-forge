@@ -2,227 +2,489 @@ import { auth } from "@clerk/nextjs/server";
 import { redirect } from "next/navigation";
 import Link from "next/link";
 import {
-  Zap,
-  CheckCircle,
-  ChevronDown,
   ArrowRight,
+  ChevronDown,
+  Clock,
+  TrendingDown,
+  Flame,
+  Film,
+  Smile,
+  Star,
+  Layers,
+  Zap,
+  PenLine,
+  Video,
+  CheckCircle,
+  XCircle,
   Play,
-  Sparkles,
-  Mic,
-  Image,
-  Download,
 } from "lucide-react";
+import { StickyNav } from "@/components/landing/sticky-nav";
+import {
+  HERO,
+  SHOWCASE,
+  PROOF_STATS,
+  PROBLEM,
+  SOLUTION,
+  PIPELINE,
+  STYLES,
+  COMPARISON,
+  PRICING,
+  FAQ,
+  FINAL_CTA,
+  FOOTER,
+  SITE,
+} from "@/lib/content";
+
+// ─── rgba shorthand for the new orange primary ─────────────────────────────
+// #f55c2a = rgb(245, 92, 42)
+const O = (a: number) => `rgba(245,92,42,${a})`;
 
 export default async function RootPage() {
   const { userId } = await auth();
   if (userId) redirect("/dashboard");
 
   return (
-    <div className="min-h-screen bg-[var(--bg-base)] text-[var(--text-primary)]">
-      <Navbar />
-      <Hero />
-      <HowItWorks />
-      <FeatureHighlights />
-      <PlatformSupport />
-      <Pricing />
-      <FAQ />
-      <FinalCTA />
-      <Footer />
+    <div className="min-h-screen overflow-x-hidden bg-[var(--bg-base)] text-[var(--text-primary)]">
+      <StickyNav />
+      <HeroSection />
+      <ShowcaseSection />
+      <ProofStrip />
+      <ProblemSection />
+      <SolutionReveal />
+      <PipelineSection />
+      <StylesSection />
+      <BeforeAfterSection />
+      <PricingSection />
+      <FAQSection />
+      <FinalCTASection />
+      <FooterSection />
     </div>
   );
 }
 
-/* ── Navbar ─────────────────────────────────────────────────────────────── */
+/* ─── Shared primitives ───────────────────────────────────────────────────── */
 
-function Navbar() {
+function SectionLabel({
+  children,
+  variant = "muted",
+}: {
+  children: React.ReactNode;
+  variant?: "muted" | "accent" | "warning";
+}) {
+  const color =
+    variant === "accent"
+      ? "text-[var(--accent-primary)]"
+      : variant === "warning"
+        ? "text-[var(--accent-warning)]"
+        : "text-[var(--text-muted)]";
   return (
-    <nav className="fixed top-0 z-50 w-full border-b border-[var(--bg-border)]/50 bg-[var(--bg-base)]/80 backdrop-blur-md">
-      <div className="mx-auto flex h-16 max-w-6xl items-center justify-between px-6">
-        <Link href="/" className="flex items-center gap-2">
-          <Zap className="h-5 w-5 text-[var(--accent-primary)]" />
-          <span className="text-base font-semibold">ReelForge</span>
-        </Link>
-        <div className="flex items-center gap-3">
-          <Link
-            href="/sign-in"
-            className="rounded-lg px-4 py-2 text-sm text-[var(--text-secondary)] transition-colors hover:text-[var(--text-primary)]"
-          >
-            Sign In
-          </Link>
-          <Link
-            href="/sign-up"
-            className="rounded-lg bg-[var(--accent-primary)] px-4 py-2 text-sm font-medium text-white transition-opacity hover:opacity-90"
-          >
-            Get Started
-          </Link>
-        </div>
-      </div>
-    </nav>
+    <div className="mb-5 flex flex-col items-center gap-3">
+      <p className={`text-[11px] font-semibold uppercase tracking-[0.16em] ${color}`}>
+        {children}
+      </p>
+      <div className="h-px w-8 bg-[var(--accent-primary)]" />
+    </div>
   );
 }
 
-/* ── Hero ───────────────────────────────────────────────────────────────── */
-
-function Hero() {
+function PrimaryButton({
+  href,
+  children,
+  size = "md",
+  className = "",
+}: {
+  href: string;
+  children: React.ReactNode;
+  size?: "sm" | "md" | "lg";
+  className?: string;
+}) {
+  const sz = { sm: "px-5 py-2.5 text-sm", md: "px-7 py-3.5 text-sm", lg: "px-9 py-4 text-[15px]" };
   return (
-    <section className="relative flex min-h-screen items-center justify-center overflow-hidden pt-16">
-      {/* Background orb */}
+    <Link
+      href={href}
+      className={`group inline-flex items-center gap-2 rounded-full bg-[var(--accent-primary)] font-bold text-white transition-all hover:opacity-90 hover:shadow-[0_0_36px_${O(0.45)}] ${sz[size]} ${className}`}
+    >
+      {children}
+      <ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-1" />
+    </Link>
+  );
+}
+
+/* ─── Hero ────────────────────────────────────────────────────────────────── */
+
+function HeroSection() {
+  return (
+    <section className="relative flex min-h-screen flex-col items-center justify-start overflow-hidden pt-36 pb-20">
+      {/* Ambient glow — warm, not neon */}
       <div
         aria-hidden
-        className="pointer-events-none absolute right-0 top-0 h-[600px] w-[600px] -translate-y-1/4 translate-x-1/4 rounded-full bg-[var(--accent-primary)]/10 blur-3xl"
+        className="pointer-events-none absolute inset-0"
+        style={{
+          background: `radial-gradient(ellipse 700px 420px at 50% 30%, ${O(0.08)}, transparent)`,
+        }}
       />
+      {/* Subtle grain overlay for texture */}
       <div
         aria-hidden
-        className="pointer-events-none absolute left-0 bottom-0 h-[400px] w-[400px] translate-y-1/4 -translate-x-1/4 rounded-full bg-[var(--accent-secondary)]/8 blur-3xl"
+        className="pointer-events-none absolute inset-0 opacity-[0.025]"
+        style={{
+          backgroundImage:
+            "url(\"data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)'/%3E%3C/svg%3E\")",
+          backgroundSize: "200px 200px",
+        }}
       />
 
-      <div className="relative mx-auto max-w-3xl px-6 text-center">
+      <div className="relative mx-auto max-w-4xl px-6 text-center">
         {/* Eyebrow */}
-        <div className="mb-6 inline-flex items-center gap-2 rounded-full border border-[var(--accent-primary)]/30 bg-[var(--accent-primary)]/10 px-4 py-1.5 text-xs font-medium tracking-widest text-[var(--accent-primary)] uppercase">
-          <Sparkles className="h-3 w-3" />
-          AI-Powered Video Creation
+        <div className="mb-8 inline-flex items-center gap-2.5 rounded-full border border-[var(--accent-primary)]/20 bg-[var(--accent-primary)]/[0.07] px-4 py-1.5">
+          <span className="h-1.5 w-1.5 rounded-full bg-[var(--accent-primary)]" />
+          <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-[var(--accent-primary)]">
+            {HERO.eyebrow}
+          </p>
         </div>
 
         {/* Headline */}
-        <h1 className="mb-6 text-5xl font-bold leading-tight tracking-tight md:text-6xl">
-          5 Videos a Day,{" "}
-          <span className="bg-gradient-to-r from-[var(--accent-primary)] to-[var(--accent-secondary)] bg-clip-text text-transparent">
-            Under 10 Minutes
-          </span>{" "}
-          Each.
+        <h1 className="mb-7 text-[62px] font-black leading-[0.93] tracking-[-0.03em] text-[var(--text-primary)] md:text-[90px]">
+          {HERO.headlineLine1}
+          <br />
+          <span className="relative inline-block">
+            {HERO.headlineLine2}
+            <svg
+              aria-hidden
+              className="absolute -bottom-2 left-0 w-full"
+              height="6"
+              viewBox="0 0 400 6"
+              preserveAspectRatio="none"
+              fill="none"
+            >
+              <path
+                d="M0 4 C80 1, 160 5.5, 240 3 C320 0.5, 370 5, 400 3"
+                stroke="var(--accent-primary)"
+                strokeWidth="2"
+                strokeLinecap="round"
+                opacity="0.7"
+              />
+            </svg>
+          </span>
         </h1>
 
-        <p className="mb-10 text-lg text-[var(--text-secondary)] md:text-xl">
-          ReelForge turns your idea into a fully produced short-form video —
-          script, voiceover, visuals, subtitles — ready to post.
+        {/* Sub */}
+        <p className="mx-auto mb-10 max-w-[520px] text-[17px] leading-[1.65] text-[var(--text-secondary)] md:text-[19px]">
+          {HERO.subheadline}
         </p>
 
         {/* CTAs */}
         <div className="flex flex-col items-center gap-4 sm:flex-row sm:justify-center">
-          <Link
-            href="/sign-up"
-            className="group flex items-center gap-2 rounded-xl bg-[var(--accent-primary)] px-8 py-4 text-base font-semibold text-white shadow-[var(--shadow-glow-accent)] transition-all hover:opacity-90 hover:shadow-[0_0_32px_rgba(124,92,252,0.4)]"
-          >
-            Start Free Trial — $2
-            <ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-1" />
-          </Link>
-          <a
-            href="#how-it-works"
-            className="flex items-center gap-2 rounded-xl px-8 py-4 text-base text-[var(--text-secondary)] transition-colors hover:text-[var(--text-primary)]"
-          >
-            <Play className="h-4 w-4" />
-            See how it works
-          </a>
+          <div className="flex flex-col items-center gap-2.5">
+            <PrimaryButton href={HERO.primaryCta.href} size="lg">
+              {HERO.primaryCta.label}
+            </PrimaryButton>
+            <p className="text-[11px] text-[var(--text-muted)]">{HERO.primaryCta.subtext}</p>
+          </div>
+          <button className="flex items-center gap-2 rounded-full border border-white/[0.08] px-6 py-4 text-[14px] text-[var(--text-secondary)] transition-all hover:border-white/20 hover:text-[var(--text-primary)]">
+            <Play className="h-3.5 w-3.5 fill-[var(--accent-primary)] text-[var(--accent-primary)]" />
+            {HERO.secondaryCta.label}
+          </button>
         </div>
 
         {/* Social proof */}
-        <div className="mt-12 flex items-center justify-center gap-3">
-          <div className="flex -space-x-2">
-            {["#7C5CFC", "#5B8DEF", "#34D399", "#FBBF24", "#F87171"].map(
-              (color, i) => (
+        <div className="mt-12 flex flex-col items-center gap-2.5">
+          <div className="flex items-center gap-3">
+            <div className="flex -space-x-2">
+              {["#f55c2a", "#4a90e2", "#34d399", "#fbbf24", "#f87171"].map((c, i) => (
                 <div
                   key={i}
-                  className="h-8 w-8 rounded-full border-2 border-[var(--bg-base)]"
-                  style={{ backgroundColor: color }}
+                  className="h-7 w-7 rounded-full border-2 border-[var(--bg-base)]"
+                  style={{ backgroundColor: c }}
                 />
-              )
-            )}
+              ))}
+            </div>
+            <div>
+              <div className="text-[11px] text-[var(--accent-warning)]">★★★★★</div>
+              <p className="text-[11px] text-[var(--text-muted)]">{HERO.proof.rating}</p>
+            </div>
           </div>
-          <span className="text-sm text-[var(--text-secondary)]">
-            Trusted by{" "}
-            <span className="font-medium text-[var(--text-primary)]">
-              1,200+
-            </span>{" "}
-            creators
-          </span>
+          <p className="text-[12px] text-[var(--text-muted)]">{HERO.proof.text}</p>
+        </div>
+      </div>
+
+      {/* Scene review mockup */}
+      <div className="relative mx-auto mt-16 w-full max-w-5xl px-6">
+        <div
+          aria-hidden
+          className="pointer-events-none absolute -left-24 top-1/2 h-72 w-72 -translate-y-1/2 rounded-full blur-3xl"
+          style={{ background: O(0.06) }}
+        />
+        <div
+          aria-hidden
+          className="pointer-events-none absolute -right-24 top-1/2 h-72 w-72 -translate-y-1/2 rounded-full blur-3xl"
+          style={{ background: "rgba(74,144,226,0.06)" }}
+        />
+        <div
+          className="relative overflow-hidden rounded-2xl border border-white/[0.05] shadow-[0_32px_80px_rgba(0,0,0,0.7)]"
+          style={{ transform: "perspective(1200px) rotateX(1.5deg)" }}
+        >
+          <SceneReviewMockup />
+        </div>
+      </div>
+
+      <a
+        href="#showcase"
+        className="mt-14 flex animate-bounce flex-col items-center text-[var(--text-muted)] transition-colors hover:text-[var(--text-secondary)]"
+      >
+        <ChevronDown className="h-5 w-5" />
+      </a>
+    </section>
+  );
+}
+
+function SceneReviewMockup() {
+  const scenes = [
+    { label: "Hook opening", g: "from-slate-900 to-blue-950" },
+    { label: "Problem reveal", g: "from-stone-900 to-orange-950" },
+    { label: "Data point", g: "from-zinc-900 to-indigo-950" },
+    { label: "Solution intro", g: "from-neutral-900 to-teal-950" },
+    { label: "Feature beat", g: "from-gray-900 to-violet-950" },
+    { label: "Social proof", g: "from-slate-900 to-emerald-950" },
+    { label: "CTA lead-in", g: "from-stone-900 to-amber-950" },
+    { label: "Closing frame", g: "from-zinc-900 to-cyan-950" },
+  ];
+  return (
+    <div className="bg-[var(--bg-surface)] p-5">
+      {/* Chrome bar */}
+      <div className="mb-4 flex items-center justify-between">
+        <div className="flex items-center gap-1.5">
+          <div className="h-2.5 w-2.5 rounded-full bg-[var(--accent-danger)] opacity-50" />
+          <div className="h-2.5 w-2.5 rounded-full bg-[var(--accent-warning)] opacity-50" />
+          <div className="h-2.5 w-2.5 rounded-full bg-[var(--accent-success)] opacity-50" />
+        </div>
+        <div className="flex items-center gap-1">
+          {["Idea", "Script", "Voice", "Scenes", "Style", "Submit"].map((s, i) => (
+            <div
+              key={s}
+              className={`flex h-5 items-center rounded px-2 text-[9px] font-semibold ${
+                i === 3
+                  ? "bg-[var(--accent-primary)] text-white"
+                  : i < 3
+                    ? "bg-[var(--accent-success)]/15 text-[var(--accent-success)]"
+                    : "bg-[var(--bg-elevated)] text-[var(--text-muted)]"
+              }`}
+            >
+              {i < 3 ? "✓" : s}
+            </div>
+          ))}
+        </div>
+        <div
+          className="rounded-full px-3 py-1 text-[10px] font-bold text-white"
+          style={{ background: "var(--accent-primary)" }}
+        >
+          Approve All
+        </div>
+      </div>
+      {/* Scene grid */}
+      <div className="grid grid-cols-4 gap-2.5 sm:grid-cols-8">
+        {scenes.map((s, i) => (
+          <div
+            key={i}
+            className={`group relative aspect-[9/16] overflow-hidden rounded-lg bg-gradient-to-br ${s.g} ring-1 ring-white/[0.04] transition-all hover:ring-[var(--accent-primary)]/50`}
+          >
+            <div className="absolute left-1.5 top-1.5 rounded bg-black/40 px-1 py-0.5 text-[8px] font-bold text-white">
+              {String(i + 1).padStart(2, "0")}
+            </div>
+            <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/80 p-1.5">
+              <p className="text-[7px] text-white/70 leading-tight">{s.label}</p>
+            </div>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+/* ─── Video Showcase ──────────────────────────────────────────────────────── */
+
+function ShowcaseSection() {
+  return (
+    <section id="showcase" className="py-24 md:py-32">
+      <div className="mx-auto max-w-6xl px-6">
+        <div className="mb-14 text-center">
+          <SectionLabel variant="accent">{SHOWCASE.label}</SectionLabel>
+          <h2 className="mb-4 whitespace-pre-line text-[36px] font-extrabold leading-tight tracking-tight text-[var(--text-primary)] md:text-[52px]">
+            {SHOWCASE.headline}
+          </h2>
+          <p className="mx-auto max-w-md text-[16px] text-[var(--text-secondary)]">
+            {SHOWCASE.subheadline}
+          </p>
         </div>
 
-        {/* Scroll hint */}
-        <div className="mt-16 flex justify-center">
-          <a
-            href="#how-it-works"
-            className="flex flex-col items-center gap-2 text-xs text-[var(--text-muted)] transition-colors hover:text-[var(--text-secondary)]"
-          >
-            <span>See the workflow</span>
-            <ChevronDown className="h-4 w-4 animate-bounce" />
-          </a>
+        {/* Staggered phone grid */}
+        <div className="flex items-end justify-center gap-4 overflow-x-auto pb-4 md:overflow-visible">
+          {SHOWCASE.videos.map((v, i) => {
+            const offsets = [0, -28, -12, -36, -8, -24];
+            return (
+              <div
+                key={i}
+                className="shrink-0"
+                style={{ marginBottom: `${Math.abs(offsets[i] ?? 0)}px` }}
+              >
+                <PhoneFrame video={v} />
+              </div>
+            );
+          })}
         </div>
+
+        {/* Disclaimer */}
+        <p className="mt-10 text-center text-[12px] text-[var(--text-muted)]">
+          Illustrative examples of content types ReelForge can produce across different niches and visual styles.
+        </p>
       </div>
     </section>
   );
 }
 
-/* ── How It Works ───────────────────────────────────────────────────────── */
+function PhoneFrame({ video }: { video: (typeof SHOWCASE.videos)[number] }) {
+  const platformColor: Record<string, string> = {
+    TikTok: "#010101",
+    Instagram: "#e1306c",
+    "YouTube Shorts": "#ff0000",
+  };
+  const dotColor = platformColor[video.platform] ?? "#888";
 
-const steps = [
-  {
-    icon: Sparkles,
-    title: "Write your idea",
-    desc: "Type a topic or let AI brainstorm 3 ideas for you.",
-    num: "01",
-  },
-  {
-    icon: CheckCircle,
-    title: "Approve script",
-    desc: "Review and edit the AI-generated script before recording.",
-    num: "02",
-  },
-  {
-    icon: Mic,
-    title: "Choose voice",
-    desc: "Pick from 20+ multilingual AI voices with preview.",
-    num: "03",
-  },
-  {
-    icon: Image,
-    title: "Review scenes",
-    desc: "Approve or tweak the AI-generated visuals per scene.",
-    num: "04",
-  },
-  {
-    icon: Download,
-    title: "Download video",
-    desc: "Get your finished 1080×1920 MP4 ready to post.",
-    num: "05",
-  },
-];
-
-function HowItWorks() {
   return (
-    <section
-      id="how-it-works"
-      className="mx-auto max-w-6xl px-6 py-24"
-    >
-      <div className="mb-16 text-center">
-        <h2 className="text-3xl font-bold md:text-4xl">How It Works</h2>
-        <p className="mt-3 text-[var(--text-secondary)]">
-          From idea to finished video in five steps.
-        </p>
+    <div className="group relative w-[130px] md:w-[148px]">
+      {/* Phone body */}
+      <div className="relative overflow-hidden rounded-[22px] border-[3px] border-[var(--bg-border)] bg-[var(--bg-base)] shadow-[0_24px_48px_rgba(0,0,0,0.6)] transition-all duration-300 group-hover:-translate-y-2 group-hover:shadow-[0_32px_64px_rgba(0,0,0,0.7)]">
+        {/* Notch */}
+        <div className="relative z-10 flex justify-center pt-2 pb-1">
+          <div className="h-2 w-12 rounded-full bg-[var(--bg-border)]" />
+        </div>
+
+        {/* Screen */}
+        <div
+          className="relative mx-1 mb-1 overflow-hidden rounded-[16px]"
+          style={{
+            aspectRatio: "9/16",
+            background: `linear-gradient(160deg, ${video.gradientFrom}, ${video.gradientTo})`,
+          }}
+        >
+          {/* Style badge */}
+          <div
+            className="absolute left-2 top-2 rounded-full px-2 py-0.5 text-[8px] font-bold text-white"
+            style={{ background: video.accentColor }}
+          >
+            {video.style}
+          </div>
+
+          {/* Platform dot */}
+          <div
+            className="absolute right-2 top-2 flex h-4 w-4 items-center justify-center rounded-full"
+            style={{ background: dotColor }}
+          >
+            <Play className="h-2 w-2 fill-white text-white" />
+          </div>
+
+          {/* Content area */}
+          <div className="absolute inset-0 flex flex-col items-center justify-center px-3">
+            <p className="text-center text-[10px] font-black leading-tight text-white">
+              {video.hook}
+            </p>
+          </div>
+
+          {/* Subtitle bar */}
+          <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/90 px-2 pb-3 pt-6">
+            <div className="text-center text-[8px] font-bold text-white">
+              <span
+                className="rounded-sm px-1 py-0.5"
+                style={{ background: video.accentColor + "33" }}
+              >
+                {video.niche}
+              </span>
+            </div>
+            <p className="mt-1 text-center text-[8px] font-semibold text-white/90">
+              {video.views}
+            </p>
+          </div>
+        </div>
       </div>
 
-      <div className="grid grid-cols-1 gap-6 md:grid-cols-5">
-        {steps.map((step, i) => {
-          const Icon = step.icon;
-          return (
-            <div key={i} className="relative flex flex-col items-center text-center">
-              {/* Connector line */}
-              {i < steps.length - 1 && (
-                <div
-                  aria-hidden
-                  className="absolute left-1/2 top-6 hidden h-px w-full -translate-y-1/2 border-t border-dashed border-[var(--bg-border)] md:block"
-                  style={{ left: "50%", width: "100%" }}
-                />
+      {/* Label below frame */}
+      <p className="mt-3 text-center text-[11px] text-[var(--text-muted)]">
+        {video.style}
+      </p>
+    </div>
+  );
+}
+
+/* ─── Proof Strip ─────────────────────────────────────────────────────────── */
+
+function ProofStrip() {
+  return (
+    <div className="border-y border-[var(--bg-border)] bg-[var(--bg-surface)] py-6">
+      <div className="mx-auto max-w-5xl px-6">
+        <div className="flex flex-wrap items-center justify-center gap-x-14 gap-y-6">
+          {PROOF_STATS.map((s, i) => (
+            <div key={i} className="flex flex-col items-center gap-1">
+              <span className="text-[36px] font-black text-[var(--text-primary)]">{s.value}</span>
+              <span className="whitespace-pre-line text-center text-[10px] uppercase tracking-[0.07em] text-[var(--text-muted)]">
+                {s.label}
+              </span>
+            </div>
+          ))}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+/* ─── Problem ─────────────────────────────────────────────────────────────── */
+
+function ProblemSection() {
+  const icons = { clock: Clock, "trending-down": TrendingDown, flame: Flame } as const;
+  const colors = {
+    clock: "var(--accent-danger)",
+    "trending-down": "var(--accent-warning)",
+    flame: "var(--accent-primary)",
+  } as const;
+
+  return (
+    <section className="mx-auto max-w-6xl px-6 py-28 md:py-40">
+      <div className="text-center">
+        <SectionLabel>{PROBLEM.label}</SectionLabel>
+        <h2 className="mb-10 text-[38px] font-extrabold leading-tight tracking-[-0.02em] text-[var(--text-primary)] md:text-[58px]">
+          {PROBLEM.headlineLine1}
+          <br />
+          {PROBLEM.headlineLine2}{" "}
+          <span className="text-[var(--accent-danger)]">{PROBLEM.headlineAccent}</span>
+        </h2>
+        <div className="mx-auto max-w-[540px] space-y-5">
+          {PROBLEM.body.map((p, i) => (
+            <p key={i} className="text-[17px] leading-relaxed text-[var(--text-secondary)]">
+              {p.split(/(2–4 hours|5 videos a day|10–20 hours)/).map((part, j) =>
+                ["2–4 hours", "5 videos a day", "10–20 hours"].includes(part) ? (
+                  <span key={j} className="font-semibold text-[var(--text-primary)]">
+                    {part}
+                  </span>
+                ) : (
+                  part
+                )
               )}
-              <div className="relative z-10 mb-4 flex h-12 w-12 items-center justify-center rounded-xl bg-[var(--bg-elevated)] ring-1 ring-[var(--bg-border)]">
-                <Icon className="h-5 w-5 text-[var(--accent-primary)]" />
-                <span className="absolute -top-2 -right-2 flex h-5 w-5 items-center justify-center rounded-full bg-[var(--accent-primary)] text-[10px] font-bold text-white">
-                  {i + 1}
-                </span>
-              </div>
-              <h3 className="mb-1.5 text-sm font-semibold">{step.title}</h3>
-              <p className="text-xs leading-relaxed text-[var(--text-secondary)]">
-                {step.desc}
-              </p>
+            </p>
+          ))}
+        </div>
+      </div>
+
+      <div className="mt-14 grid gap-4 md:grid-cols-3">
+        {PROBLEM.cards.map((card) => {
+          const k = card.iconKey as keyof typeof icons;
+          const Icon = icons[k];
+          return (
+            <div
+              key={card.title}
+              className="rounded-2xl border border-[var(--bg-border)] bg-[var(--bg-surface)] p-7"
+            >
+              <Icon className="mb-4 h-5 w-5" style={{ color: colors[k] }} />
+              <h3 className="mb-2 text-[16px] font-bold text-[var(--text-primary)]">{card.title}</h3>
+              <p className="text-[14px] leading-relaxed text-[var(--text-secondary)]">{card.body}</p>
             </div>
           );
         })}
@@ -231,189 +493,478 @@ function HowItWorks() {
   );
 }
 
-/* ── Feature Highlights ─────────────────────────────────────────────────── */
+/* ─── Solution Reveal ─────────────────────────────────────────────────────── */
 
-const features = [
-  {
-    tag: "Full Pipeline",
-    title: "Every step of production, automated",
-    desc: "ReelForge handles scripting, voiceover, scene generation, and final assembly — no editing software needed.",
-    bullets: [
-      "Claude AI writes platform-native scripts",
-      "ElevenLabs multilingual voiceovers",
-      "Grok Imagine generates stunning visuals",
-      "FFmpeg assembles and burns subtitles",
-    ],
-    mockup: "wizard",
-  },
-  {
-    tag: "Creator-First",
-    title: "Built for creators who post every day",
-    desc: "Manage multiple channels and niches from one dashboard. Queue up to 15 videos per day on Pro.",
-    bullets: [
-      "Unlimited projects per channel/niche",
-      "Up to 15 videos per day on Pro",
-      "Cross-project video library",
-      "Email alerts when videos are ready",
-    ],
-    mockup: "library",
-  },
-  {
-    tag: "Quality",
-    title: "Cinematic quality, at scale",
-    desc: "Four subtitle styles, BGM mixing, and 1080×1920 output. Every video is ready to post without re-editing.",
-    bullets: [
-      "1080×1920 portrait format",
-      "4 subtitle styles (Bold Pop, Minimal, Cinematic, Highlight)",
-      "Background music with volume control",
-      "H.264 + AAC — universal compatibility",
-    ],
-    mockup: "quality",
-  },
-];
-
-function FeatureHighlights() {
+function SolutionReveal() {
   return (
-    <section className="mx-auto max-w-6xl px-6 py-16 space-y-24">
-      {features.map((feature, i) => (
-        <div
-          key={i}
-          className={`flex flex-col gap-12 md:flex-row md:items-center ${i % 2 === 1 ? "md:flex-row-reverse" : ""}`}
-        >
-          {/* Mockup */}
-          <div className="flex-1">
-            <div className="relative rounded-2xl border border-[var(--bg-border)] bg-[var(--bg-surface)] p-6 shadow-[var(--shadow-card)]">
-              <FeatureMockup type={feature.mockup} />
-            </div>
-          </div>
-
-          {/* Text */}
-          <div className="flex-1">
-            <div className="mb-4 inline-flex items-center rounded-full border border-[var(--accent-primary)]/30 bg-[var(--accent-primary)]/10 px-3 py-1 text-xs font-medium text-[var(--accent-primary)]">
-              {feature.tag}
-            </div>
-            <h2 className="mb-4 text-2xl font-bold md:text-3xl">
-              {feature.title}
-            </h2>
-            <p className="mb-6 text-[var(--text-secondary)]">{feature.desc}</p>
-            <ul className="space-y-2.5">
-              {feature.bullets.map((b, j) => (
-                <li key={j} className="flex items-start gap-2.5">
-                  <CheckCircle className="mt-0.5 h-4 w-4 shrink-0 text-[var(--accent-success)]" />
-                  <span className="text-sm text-[var(--text-secondary)]">{b}</span>
-                </li>
-              ))}
-            </ul>
-          </div>
+    <section className="relative overflow-hidden bg-[var(--bg-surface)] py-28 md:py-40">
+      <div
+        aria-hidden
+        className="pointer-events-none absolute inset-0"
+        style={{
+          background: `radial-gradient(ellipse 800px 440px at 50% 50%, ${O(0.07)}, transparent)`,
+        }}
+      />
+      <div className="relative mx-auto max-w-2xl px-6 text-center">
+        <h2 className="mb-8 text-[38px] font-extrabold leading-tight tracking-[-0.02em] text-[var(--text-primary)] md:text-[64px]">
+          {SOLUTION.headlineLine1}
+          <br />
+          <span className="text-[var(--accent-primary)]">{SOLUTION.headlineLine2}</span>
+        </h2>
+        <div className="mx-auto mb-10 max-w-md space-y-5">
+          {SOLUTION.body.map((p, i) => (
+            <p key={i} className="text-[17px] leading-relaxed text-[var(--text-secondary)]">
+              {p}
+            </p>
+          ))}
+          <p className="text-[18px] font-bold text-[var(--text-primary)]">{SOLUTION.closer}</p>
         </div>
-      ))}
+
+        {/* Pipeline nodes */}
+        <div className="mb-10 flex flex-col items-center gap-2 sm:flex-row sm:justify-center sm:gap-0">
+          {SOLUTION.pipelineNodes.map((node, i) => (
+            <div key={node} className="flex items-center">
+              <div className="rounded-full border border-[var(--bg-border)] bg-[var(--bg-elevated)] px-4 py-2 text-[13px] font-semibold">
+                {node === "Finished Video" ? (
+                  <span className="text-[var(--accent-success)]">{node}</span>
+                ) : (
+                  <span className="text-[var(--text-secondary)]">{node}</span>
+                )}
+              </div>
+              {i < SOLUTION.pipelineNodes.length - 1 && (
+                <div className="hidden items-center sm:flex">
+                  <div className="h-px w-5 bg-[var(--bg-border)]" />
+                  <div className="h-1.5 w-1.5 rounded-full bg-[var(--accent-primary)] opacity-70" />
+                  <div className="h-px w-5 bg-[var(--bg-border)]" />
+                </div>
+              )}
+            </div>
+          ))}
+        </div>
+
+        <a
+          href={SOLUTION.inlineCta.href}
+          className="group inline-flex items-center gap-1.5 text-[14px] font-semibold text-[var(--accent-primary)] transition-all hover:gap-3"
+        >
+          {SOLUTION.inlineCta.label}
+          <ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-1" />
+        </a>
+      </div>
     </section>
   );
 }
 
-function FeatureMockup({ type }: { type: string }) {
-  if (type === "wizard") {
-    return (
-      <div className="space-y-3">
-        <div className="flex gap-2">
-          {["Idea", "Script", "Voice", "Scenes", "Style"].map((s, i) => (
-            <div
-              key={s}
-              className={`flex-1 rounded py-1 text-center text-[10px] font-medium ${i === 0 ? "bg-[var(--accent-primary)] text-white" : "bg-[var(--bg-elevated)] text-[var(--text-muted)]"}`}
-            >
-              {s}
-            </div>
-          ))}
-        </div>
-        <div className="rounded-xl bg-[var(--bg-elevated)] p-4">
-          <div className="mb-2 text-xs font-medium text-[var(--text-muted)]">Your idea</div>
-          <div className="h-16 rounded-lg bg-[var(--bg-base)] p-3 text-xs text-[var(--text-secondary)]">
-            &ldquo;5 morning habits that changed my life…&rdquo;
-          </div>
-          <div className="mt-3 flex gap-2">
-            {["AI Idea 1", "AI Idea 2", "AI Idea 3"].map((idea) => (
+/* ─── Pipeline ────────────────────────────────────────────────────────────── */
+
+function PipelineSection() {
+  return (
+    <section id="pipeline" className="mx-auto max-w-6xl px-6 py-28 md:py-40">
+      <div className="mb-16 text-center">
+        <SectionLabel variant="accent">{PIPELINE.label}</SectionLabel>
+        <h2 className="mb-4 text-[38px] font-extrabold leading-tight tracking-[-0.02em] text-[var(--text-primary)] md:text-[58px]">
+          {PIPELINE.headlineLine1}
+          <br />
+          <span className="text-[var(--accent-primary)]">{PIPELINE.headlineLine2}</span>
+        </h2>
+        <p className="text-[17px] text-[var(--text-secondary)]">{PIPELINE.subheadline}</p>
+      </div>
+
+      <div className="relative">
+        {/* Center line */}
+        <div
+          aria-hidden
+          className="absolute inset-y-4 left-1/2 hidden w-px -translate-x-1/2 md:block"
+          style={{
+            background: `linear-gradient(to bottom, transparent, ${O(0.2)} 15%, ${O(0.2)} 85%, transparent)`,
+          }}
+        />
+
+        <div className="space-y-6">
+          {PIPELINE.steps.map((step, i) => {
+            const even = i % 2 === 1;
+            return (
               <div
-                key={idea}
-                className="flex-1 rounded-lg border border-[var(--bg-border)] bg-[var(--bg-base)] p-2 text-[10px] text-[var(--text-muted)]"
+                key={step.num}
+                className={`flex items-start gap-4 md:gap-0 ${even ? "md:flex-row-reverse" : ""}`}
               >
-                {idea}
+                {/* Card */}
+                <div className={`flex-1 md:max-w-[calc(50%-44px)] ${even ? "md:pl-10" : "md:pr-10"}`}>
+                  <div className="rounded-2xl border border-[var(--bg-border)] bg-[var(--bg-surface)] p-7 transition-all hover:border-[var(--accent-primary)]/20">
+                    <p
+                      className={`mb-2 text-[10px] font-bold uppercase tracking-[0.12em] ${step.labelVariant === "accent" ? "text-[var(--accent-primary)]" : "text-[var(--text-muted)]"}`}
+                    >
+                      {step.label}
+                    </p>
+                    <h3 className="mb-3 text-[17px] font-bold leading-snug text-[var(--text-primary)]">
+                      {step.title}
+                    </h3>
+                    <p className="mb-4 text-[14px] leading-relaxed text-[var(--text-secondary)]">
+                      {step.body}
+                    </p>
+                    {step.pill && (
+                      <span
+                        className={`inline-flex items-center rounded-full px-3 py-1 text-[10px] font-bold ${
+                          step.pillVariant === "success"
+                            ? "border border-[var(--accent-success)]/25 bg-[var(--accent-success)]/10 text-[var(--accent-success)]"
+                            : `border bg-[var(--accent-primary)]/10 text-[var(--accent-primary)]`
+                        }`}
+                        style={
+                          step.pillVariant !== "success"
+                            ? { borderColor: O(0.25) }
+                            : undefined
+                        }
+                      >
+                        {step.pill}
+                      </span>
+                    )}
+                  </div>
+                </div>
+
+                {/* Circle — desktop */}
+                <div className="hidden shrink-0 items-start justify-center pt-7 md:flex md:w-[88px]">
+                  <div
+                    className="relative z-10 flex h-10 w-10 items-center justify-center rounded-full border-2 bg-[var(--bg-base)] text-[13px] font-bold text-[var(--accent-primary)]"
+                    style={{ borderColor: "var(--accent-primary)" }}
+                  >
+                    {i + 1}
+                  </div>
+                </div>
+
+                {/* Empty spacer — desktop */}
+                <div className="hidden md:block md:flex-1" />
+
+                {/* Circle — mobile */}
+                <div
+                  className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full border bg-[var(--bg-base)] text-[11px] font-bold text-[var(--accent-primary)] md:hidden"
+                  style={{ borderColor: "var(--accent-primary)" }}
+                >
+                  {i + 1}
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      </div>
+    </section>
+  );
+}
+
+/* ─── Styles ──────────────────────────────────────────────────────────────── */
+
+const STYLE_ICONS = {
+  film: Film,
+  smile: Smile,
+  star: Star,
+  shapes: Layers,
+  zap: Zap,
+  "pen-line": PenLine,
+  video: Video,
+} as const;
+
+const BADGE_CLS = {
+  warning: "border-[var(--accent-warning)]/25 bg-[var(--accent-warning)]/10 text-[var(--accent-warning)]",
+  primary: `text-[var(--accent-primary)]`,
+  muted: "border-white/10 bg-white/5 text-[var(--text-muted)]",
+  secondary: "border-[var(--accent-secondary)]/25 bg-[var(--accent-secondary)]/10 text-[var(--accent-secondary)]",
+} as const;
+
+function StyleCard({ style }: { style: (typeof STYLES.visualStyles)[number] }) {
+  const Icon = STYLE_ICONS[style.iconKey as keyof typeof STYLE_ICONS];
+  return (
+    <div className="rounded-2xl border border-[var(--bg-border)] bg-[var(--bg-surface)] p-6 transition-all duration-200 hover:-translate-y-1 hover:border-[var(--accent-primary)]/30">
+      <div
+        className="mb-4 flex h-10 w-10 items-center justify-center rounded-xl"
+        style={{ background: style.iconBg }}
+      >
+        <Icon className="h-5 w-5" style={{ color: style.iconColor }} />
+      </div>
+      <h3 className="mb-1 text-[15px] font-bold text-[var(--text-primary)]">{style.name}</h3>
+      <p className="mb-2.5 text-[11px] italic text-[var(--text-muted)]">{style.mood}</p>
+      <p className="text-[13px] leading-relaxed text-[var(--text-secondary)]">{style.description}</p>
+    </div>
+  );
+}
+
+function StylesSection() {
+  return (
+    <section id="styles" className="bg-[var(--bg-surface)] py-28 md:py-40">
+      <div className="mx-auto max-w-6xl px-6">
+        <div className="mb-14 text-center">
+          <SectionLabel>{STYLES.label}</SectionLabel>
+          <h2 className="text-[38px] font-extrabold leading-tight tracking-[-0.02em] text-[var(--text-primary)] md:text-[54px]">
+            {STYLES.headlineLine1}
+            <br />
+            {STYLES.headlineLine2}
+            <br />
+            <span className="text-[var(--accent-primary)]">{STYLES.headlineAccent}</span>
+          </h2>
+          <p className="mx-auto mt-4 max-w-lg text-[16px] text-[var(--text-secondary)]">
+            {STYLES.subheadline}
+          </p>
+        </div>
+
+        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+          {STYLES.visualStyles.slice(0, 4).map((s) => <StyleCard key={s.name} style={s} />)}
+        </div>
+        <div className="mt-4 grid gap-4 sm:grid-cols-3">
+          {STYLES.visualStyles.slice(4).map((s) => <StyleCard key={s.name} style={s} />)}
+        </div>
+
+        {/* Subtitle styles */}
+        <div className="mt-20 border-t border-[var(--bg-border)] pt-16">
+          <div className="mb-10 text-center">
+            <h3 className="mb-3 text-[28px] font-bold text-[var(--text-primary)] md:text-[36px]">
+              Then choose how your words land.
+            </h3>
+            <p className="mx-auto max-w-md text-[15px] text-[var(--text-secondary)]">
+              85% of short-form video is watched on mute. Subtitles aren&apos;t decoration — they&apos;re your voice.
+            </p>
+          </div>
+          <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+            {STYLES.subtitleStyles.map((s) => (
+              <div key={s.name} className="overflow-hidden rounded-2xl border border-[var(--bg-border)] bg-[var(--bg-elevated)]">
+                <SubtitlePreview name={s.name} />
+                <div className="p-5">
+                  <div className="mb-2 flex items-center gap-2">
+                    <h4 className="text-[14px] font-bold text-[var(--text-primary)]">{s.name}</h4>
+                    <span
+                      className={`rounded-full border px-2 py-0.5 text-[9px] font-bold ${BADGE_CLS[s.badgeVariant]}`}
+                      style={
+                        s.badgeVariant === "primary"
+                          ? { borderColor: O(0.25), background: O(0.08) }
+                          : undefined
+                      }
+                    >
+                      {s.badge}
+                    </span>
+                  </div>
+                  <p className="text-[12px] leading-relaxed text-[var(--text-secondary)]">{s.description}</p>
+                </div>
               </div>
             ))}
           </div>
         </div>
       </div>
-    );
-  }
-  if (type === "library") {
-    return (
-      <div className="grid grid-cols-3 gap-2">
-        {Array.from({ length: 6 }).map((_, i) => (
-          <div
-            key={i}
-            className="aspect-[9/16] rounded-lg"
-            style={{
-              background: `linear-gradient(135deg, hsl(${220 + i * 20}deg 60% 25%), hsl(${240 + i * 20}deg 50% 15%))`,
-            }}
-          />
-        ))}
-      </div>
-    );
-  }
-  // quality
-  return (
-    <div className="space-y-3">
-      <div className="flex items-center gap-3 rounded-xl bg-[var(--bg-elevated)] p-3">
-        <div className="h-16 w-10 rounded bg-gradient-to-b from-[var(--accent-primary)]/40 to-[var(--accent-secondary)]/20" />
-        <div className="flex-1 space-y-1.5">
-          <div className="h-2 w-3/4 rounded bg-[var(--bg-border)]" />
-          <div className="h-2 w-1/2 rounded bg-[var(--bg-border)]" />
-          <div className="mt-2 inline-flex items-center rounded bg-[var(--accent-primary)] px-2 py-0.5 text-[9px] font-bold text-white">
-            BOLD POP
-          </div>
-        </div>
-      </div>
-      <div className="grid grid-cols-4 gap-1.5">
-        {["Bold Pop", "Minimal", "Cinematic", "Highlight"].map((s) => (
-          <div
-            key={s}
-            className="rounded bg-[var(--bg-elevated)] p-1.5 text-center text-[9px] text-[var(--text-muted)]"
-          >
-            {s}
-          </div>
-        ))}
-      </div>
-    </div>
+    </section>
   );
 }
 
-/* ── Platform Support ───────────────────────────────────────────────────── */
-
-const platforms = [
-  { name: "TikTok", color: "#010101" },
-  { name: "Instagram", color: "#E1306C" },
-  { name: "YouTube Shorts", color: "#FF0000" },
-  { name: "Facebook Reels", color: "#1877F2" },
-];
-
-function PlatformSupport() {
-  return (
-    <section className="border-y border-[var(--bg-border)] bg-[var(--bg-surface)] py-10">
-      <div className="mx-auto max-w-6xl px-6">
-        <p className="mb-8 text-center text-sm text-[var(--text-muted)]">
-          Optimized for every platform
+function SubtitlePreview({ name }: { name: string }) {
+  const map: Record<string, React.ReactNode> = {
+    "Bold Pop": (
+      <div className="flex h-32 items-center justify-center bg-[var(--bg-base)] px-3">
+        <p className="text-[17px] font-black text-white drop-shadow-[0_2px_6px_rgba(0,0,0,0.9)]">
+          SAVE{" "}
+          <span className="rounded-sm bg-[var(--accent-warning)] px-1 text-black">YOUR</span>{" "}
+          MONEY
         </p>
-        <div className="flex flex-wrap items-center justify-center gap-8">
-          {platforms.map((p) => (
-            <div
-              key={p.name}
-              className="flex items-center gap-2 text-base font-semibold text-[var(--text-secondary)]"
-            >
-              <div
-                className="h-2 w-2 rounded-full"
-                style={{ backgroundColor: p.color }}
-              />
-              {p.name}
+      </div>
+    ),
+    "Word Highlight": (
+      <div className="flex h-32 items-center justify-center gap-2 bg-[var(--bg-base)]">
+        <span className="text-sm font-bold text-white/30">Your</span>
+        <span className="text-base font-bold text-white/60">Future</span>
+        <span className="text-xl font-black text-white">Starts</span>
+      </div>
+    ),
+    Minimal: (
+      <div className="relative flex h-32 items-end bg-[var(--bg-base)] pb-3">
+        <p className="w-full text-center text-[12px] text-white/80">Start saving now.</p>
+      </div>
+    ),
+    Cinematic: (
+      <div className="relative flex h-32 items-end bg-[var(--bg-base)]">
+        <div className="w-full bg-black/65 py-2.5 px-3 backdrop-blur-sm">
+          <p className="text-center text-[12px] tracking-wide text-white">
+            The moment everything changed.
+          </p>
+        </div>
+      </div>
+    ),
+  };
+  return <div className="overflow-hidden rounded-t-2xl">{map[name] ?? null}</div>;
+}
+
+/* ─── Before / After ─────────────────────────────────────────────────────── */
+
+function BeforeAfterSection() {
+  return (
+    <section className="mx-auto max-w-6xl px-6 py-28 md:py-40">
+      <div className="overflow-hidden rounded-3xl border border-[var(--bg-border)] bg-[var(--bg-surface)]">
+        <div className="grid md:grid-cols-2">
+          {/* Without */}
+          <div className="border-b border-[var(--bg-border)] p-8 md:border-b-0 md:border-r md:p-12">
+            <p className="mb-6 text-[11px] font-bold uppercase tracking-[0.14em] text-[var(--accent-danger)]">
+              {COMPARISON.withoutLabel}
+            </p>
+            <div className="space-y-4">
+              {COMPARISON.without.map((item) => (
+                <div key={item} className="flex items-start gap-3">
+                  <XCircle className="mt-0.5 h-4 w-4 shrink-0 text-[var(--accent-danger)] opacity-50" />
+                  <span className="text-[14px] text-[var(--text-secondary)]">{item}</span>
+                </div>
+              ))}
             </div>
+          </div>
+
+          {/* With */}
+          <div className="relative p-8 md:p-12">
+            <div
+              aria-hidden
+              className="pointer-events-none absolute inset-0"
+              style={{ background: `radial-gradient(ellipse 360px 360px at 80% 50%, ${O(0.05)}, transparent)` }}
+            />
+            <p className="mb-6 text-[11px] font-bold uppercase tracking-[0.14em] text-[var(--accent-success)]">
+              {COMPARISON.withLabel}
+            </p>
+            <div className="space-y-4">
+              {COMPARISON.with.map((item) => (
+                <div key={item} className="flex items-start gap-3">
+                  <CheckCircle className="mt-0.5 h-4 w-4 shrink-0 text-[var(--accent-success)]" />
+                  <span className="text-[14px] font-medium text-[var(--text-primary)]">{item}</span>
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div className="mt-12 flex flex-col items-center gap-3 text-center">
+        <h3 className="text-[30px] font-extrabold text-[var(--text-primary)] md:text-[38px]">
+          {COMPARISON.cta.headline}
+        </h3>
+        <PrimaryButton href={COMPARISON.cta.href} size="md" className="mt-2">
+          {COMPARISON.cta.label}
+        </PrimaryButton>
+        <p className="text-[11px] text-[var(--text-muted)]">{COMPARISON.cta.subtext}</p>
+      </div>
+    </section>
+  );
+}
+
+/* ─── Pricing ─────────────────────────────────────────────────────────────── */
+
+function PricingSection() {
+  return (
+    <section id="pricing" className="bg-[var(--bg-surface)] py-28 md:py-40">
+      <div className="mx-auto max-w-5xl px-6">
+        <div className="mb-12 text-center">
+          <SectionLabel variant="warning">{PRICING.label}</SectionLabel>
+          <h2 className="mb-4 text-[38px] font-extrabold leading-tight tracking-[-0.02em] text-[var(--text-primary)] md:text-[58px]">
+            <span className="text-[var(--accent-primary)]">{PRICING.headlineLine1}</span>
+            <br />
+            {PRICING.headlineLine2}
+          </h2>
+          <p className="text-[17px] text-[var(--text-secondary)]">{PRICING.subheadline}</p>
+        </div>
+
+        {/* Urgency banner */}
+        <div className="mx-auto mb-8 max-w-xl rounded-xl border border-[var(--accent-warning)]/20 bg-[var(--accent-warning)]/[0.06] px-5 py-4">
+          <div className="flex items-start gap-3">
+            <Zap className="mt-0.5 h-4 w-4 shrink-0 text-[var(--accent-warning)]" />
+            <div>
+              <p className="text-[13px] font-semibold text-[var(--text-primary)]">{PRICING.urgencyBanner}</p>
+              <p className="mt-0.5 text-[11px] text-[var(--text-muted)]">{PRICING.urgencyNote}</p>
+            </div>
+          </div>
+        </div>
+
+        <p className="mb-8 text-center text-[12px] text-[var(--text-muted)]">{PRICING.monthlyNote}</p>
+
+        <div className="grid gap-5 md:grid-cols-3">
+          {PRICING.plans.map((plan) => (
+            <div
+              key={plan.name}
+              className={`relative flex flex-col rounded-3xl p-7 ${
+                plan.highlighted
+                  ? "border-2 bg-[var(--bg-elevated)]"
+                  : "border border-[var(--bg-border)] bg-[var(--bg-base)]"
+              }`}
+              style={
+                plan.highlighted
+                  ? {
+                      borderColor: "var(--accent-primary)",
+                      boxShadow: `0 0 48px ${O(0.12)}`,
+                    }
+                  : undefined
+              }
+            >
+              {plan.badge && (
+                <div
+                  className="absolute -top-4 left-1/2 -translate-x-1/2 rounded-full px-4 py-1 text-[10px] font-bold text-white"
+                  style={{ background: "var(--accent-primary)" }}
+                >
+                  {plan.badge}
+                </div>
+              )}
+
+              <p
+                className={`mb-3 text-[11px] font-bold uppercase tracking-[0.12em] ${plan.nameStyle === "accent" ? "text-[var(--accent-primary)]" : "text-[var(--text-muted)]"}`}
+              >
+                {plan.name}
+              </p>
+
+              <div className="mb-1 flex items-end gap-1.5">
+                <span className="text-[46px] font-black leading-none text-[var(--text-primary)]">
+                  {plan.price}
+                </span>
+                <span className="mb-1.5 text-[13px] text-[var(--text-muted)]">{plan.period}</span>
+              </div>
+              <p className="mb-6 text-[12px] text-[var(--text-muted)]">{plan.subPrice}</p>
+
+              <div className="mb-7 h-px bg-[var(--bg-border)]" />
+
+              <ul className="mb-7 flex-1 space-y-3">
+                {plan.features.map((f) => (
+                  <li key={f} className="flex items-start gap-2.5">
+                    <CheckCircle className="mt-0.5 h-3.5 w-3.5 shrink-0 text-[var(--accent-success)]" />
+                    <span className="text-[13px] text-[var(--text-secondary)]">{f}</span>
+                  </li>
+                ))}
+              </ul>
+
+              <Link
+                href={plan.href}
+                className="block rounded-full py-3 text-center text-[13px] font-bold transition-all"
+                style={
+                  plan.highlighted
+                    ? { background: "var(--accent-primary)", color: "white" }
+                    : { border: "1px solid var(--bg-border)", background: "var(--bg-elevated)", color: "var(--text-primary)" }
+                }
+              >
+                {plan.cta}
+              </Link>
+            </div>
+          ))}
+        </div>
+
+        <p className="mt-7 text-center text-[12px] text-[var(--text-muted)]">{PRICING.footerNote}</p>
+      </div>
+    </section>
+  );
+}
+
+/* ─── FAQ ─────────────────────────────────────────────────────────────────── */
+
+function FAQSection() {
+  return (
+    <section id="faq" className="py-28 md:py-40">
+      <div className="mx-auto max-w-2xl px-6">
+        <div className="mb-12">
+          <SectionLabel>{FAQ.label}</SectionLabel>
+          <h2 className="text-[38px] font-extrabold tracking-[-0.02em] text-[var(--text-primary)] md:text-[50px]">
+            {FAQ.headline}
+          </h2>
+        </div>
+        <div className="divide-y divide-[var(--bg-border)]">
+          {FAQ.items.map((item, i) => (
+            <details key={i} className="group py-6">
+              <summary className="flex cursor-pointer list-none items-start justify-between gap-4">
+                <span className="text-[15px] font-semibold text-[var(--text-primary)]">{item.question}</span>
+                <ChevronDown className="mt-0.5 h-4 w-4 shrink-0 text-[var(--text-muted)] transition-transform duration-200 group-open:rotate-180" />
+              </summary>
+              <p className="mt-4 text-[14px] leading-relaxed text-[var(--text-secondary)]">{item.answer}</p>
+            </details>
           ))}
         </div>
       </div>
@@ -421,271 +972,80 @@ function PlatformSupport() {
   );
 }
 
-/* ── Pricing ────────────────────────────────────────────────────────────── */
+/* ─── Final CTA ───────────────────────────────────────────────────────────── */
 
-const plans = [
-  {
-    name: "Trial",
-    price: "$2",
-    period: "one time",
-    desc: "Try the full pipeline with one video.",
-    features: [
-      "1 video credit",
-      "All 4 subtitle styles",
-      "20+ AI voices",
-      "1080×1920 MP4 output",
-    ],
-    cta: "Start Trial",
-    href: "/sign-up",
-    highlight: false,
-  },
-  {
-    name: "Starter",
-    price: "$29",
-    period: "/ month",
-    desc: "For consistent creators posting daily.",
-    features: [
-      "5 videos per day",
-      "150 videos per month",
-      "All platforms",
-      "BGM library",
-      "Email notifications",
-    ],
-    cta: "Get Starter",
-    href: "/sign-up",
-    highlight: false,
-  },
-  {
-    name: "Pro",
-    price: "$79",
-    period: "/ month",
-    desc: "For power creators and agencies.",
-    features: [
-      "15 videos per day",
-      "450 videos per month",
-      "All Starter features",
-      "Priority queue",
-      "Custom voice prompts",
-    ],
-    cta: "Get Pro",
-    href: "/sign-up",
-    highlight: true,
-    badge: "Most Popular",
-  },
-];
-
-function Pricing() {
+function FinalCTASection() {
   return (
-    <section id="pricing" className="mx-auto max-w-6xl px-6 py-24">
-      <div className="mb-16 text-center">
-        <h2 className="text-3xl font-bold md:text-4xl">Simple Pricing</h2>
-        <p className="mt-3 text-[var(--text-secondary)]">
-          Start with a $2 trial. No commitment.
-        </p>
-      </div>
-
-      <div className="grid grid-cols-1 gap-6 md:grid-cols-3">
-        {plans.map((plan) => (
-          <div
-            key={plan.name}
-            className={`relative flex flex-col rounded-2xl p-6 ${
-              plan.highlight
-                ? "border border-[var(--accent-primary)] bg-[var(--bg-surface)] shadow-[var(--shadow-glow-accent)]"
-                : "border border-[var(--bg-border)] bg-[var(--bg-surface)]"
-            }`}
-          >
-            {plan.badge && (
-              <div className="absolute -top-3 left-1/2 -translate-x-1/2 rounded-full bg-[var(--accent-primary)] px-4 py-1 text-xs font-semibold text-white">
-                {plan.badge}
-              </div>
-            )}
-            <div className="mb-6">
-              <h3 className="text-base font-semibold text-[var(--text-secondary)]">
-                {plan.name}
-              </h3>
-              <div className="mt-2 flex items-end gap-1">
-                <span className="text-4xl font-bold">{plan.price}</span>
-                <span className="mb-1 text-sm text-[var(--text-muted)]">
-                  {plan.period}
-                </span>
-              </div>
-              <p className="mt-2 text-sm text-[var(--text-secondary)]">
-                {plan.desc}
-              </p>
-            </div>
-
-            <ul className="mb-8 flex-1 space-y-3">
-              {plan.features.map((f) => (
-                <li key={f} className="flex items-center gap-2.5">
-                  <CheckCircle className="h-4 w-4 shrink-0 text-[var(--accent-success)]" />
-                  <span className="text-sm text-[var(--text-secondary)]">{f}</span>
-                </li>
-              ))}
-            </ul>
-
-            <Link
-              href={plan.href}
-              className={`block rounded-xl px-6 py-3 text-center text-sm font-semibold transition-opacity hover:opacity-90 ${
-                plan.highlight
-                  ? "bg-[var(--accent-primary)] text-white"
-                  : "border border-[var(--bg-border)] bg-[var(--bg-elevated)] text-[var(--text-primary)]"
-              }`}
-            >
-              {plan.cta}
-            </Link>
-          </div>
-        ))}
-      </div>
-
-      <p className="mt-8 text-center text-sm text-[var(--text-muted)]">
-        No hidden fees. Cancel anytime. All plans include unlimited projects.
-      </p>
-    </section>
-  );
-}
-
-/* ── FAQ ────────────────────────────────────────────────────────────────── */
-
-const faqs = [
-  {
-    q: "How does the $2 trial work?",
-    a: "Pay once, generate one full video end-to-end. No subscription required. If you love it, upgrade to Starter or Pro.",
-  },
-  {
-    q: "How are videos generated?",
-    a: "ReelForge uses Claude for scripting, ElevenLabs for voiceover, and Grok Imagine for visuals. Our browser extension drives the image AI, then FFmpeg assembles everything into a polished MP4.",
-  },
-  {
-    q: "How long does it take to make a video?",
-    a: "Script and voiceover generate in under 30 seconds. Scene images take 1–3 minutes depending on queue. The final assembly adds another 1–2 minutes.",
-  },
-  {
-    q: "What formats and platforms are supported?",
-    a: "All videos output at 1080×1920 (9:16 portrait) — the native format for TikTok, Instagram Reels, YouTube Shorts, and Facebook Reels.",
-  },
-  {
-    q: "Can I use my own images or audio?",
-    a: "Yes — on the scene review step you can upload your own images per scene. Custom audio is a Pro feature on the roadmap.",
-  },
-  {
-    q: "Can I cancel my subscription?",
-    a: "Yes, cancel anytime from your billing page. You keep access until the end of the billing period.",
-  },
-];
-
-function FAQ() {
-  return (
-    <section id="faq" className="mx-auto max-w-2xl px-6 py-24">
-      <div className="mb-12 text-center">
-        <h2 className="text-3xl font-bold">Frequently Asked Questions</h2>
-      </div>
-
-      <div className="divide-y divide-[var(--bg-border)]">
-        {faqs.map((faq, i) => (
-          <FAQItem key={i} question={faq.q} answer={faq.a} />
-        ))}
-      </div>
-    </section>
-  );
-}
-
-function FAQItem({ question, answer }: { question: string; answer: string }) {
-  return (
-    <details className="group py-5">
-      <summary className="flex cursor-pointer list-none items-center justify-between gap-4 text-sm font-medium text-[var(--text-primary)]">
-        {question}
-        <ChevronDown className="h-4 w-4 shrink-0 text-[var(--text-muted)] transition-transform duration-200 group-open:rotate-180" />
-      </summary>
-      <p className="mt-3 text-sm leading-relaxed text-[var(--text-secondary)]">
-        {answer}
-      </p>
-    </details>
-  );
-}
-
-/* ── Final CTA ──────────────────────────────────────────────────────────── */
-
-function FinalCTA() {
-  return (
-    <section className="mx-auto max-w-6xl px-6 py-16">
-      <div className="relative overflow-hidden rounded-2xl bg-gradient-to-br from-[var(--accent-primary)]/20 via-[var(--bg-surface)] to-[var(--accent-secondary)]/10 p-12 text-center ring-1 ring-[var(--accent-primary)]/30">
-        <div
-          aria-hidden
-          className="pointer-events-none absolute inset-0 rounded-2xl bg-[var(--accent-primary)]/5"
-        />
-        <h2 className="mb-4 text-3xl font-bold md:text-4xl">
-          Start making videos today
+    <section className="relative overflow-hidden bg-[var(--bg-surface)] py-40 md:py-52">
+      <div
+        aria-hidden
+        className="pointer-events-none absolute inset-0"
+        style={{ background: `radial-gradient(ellipse 900px 540px at 50% 50%, ${O(0.09)}, transparent)` }}
+      />
+      <div className="relative mx-auto max-w-3xl px-6 text-center">
+        <h2 className="mb-8 text-[42px] font-black leading-[0.93] tracking-[-0.03em] text-[var(--text-primary)] md:text-[72px]">
+          {FINAL_CTA.headlineLine1}
+          <br />
+          {FINAL_CTA.headlineLine2}
+          <br />
+          <span className="text-[var(--accent-primary)]">{FINAL_CTA.headlineAccent}</span>
+          <br />
+          {FINAL_CTA.headlineLine3}
         </h2>
-        <p className="mb-8 text-[var(--text-secondary)]">
-          One video for $2. Upgrade whenever you&apos;re ready.
-        </p>
-        <Link
-          href="/sign-up"
-          className="inline-flex items-center gap-2 rounded-xl bg-[var(--accent-primary)] px-8 py-4 text-base font-semibold text-white shadow-[var(--shadow-glow-accent)] transition-all hover:opacity-90"
-        >
-          Get Started — $2 Trial
-          <ArrowRight className="h-4 w-4" />
-        </Link>
+        <div className="mx-auto mb-10 max-w-md space-y-2">
+          {FINAL_CTA.body.map((line, i) => (
+            <p key={i} className="text-[17px] text-[var(--text-secondary)]">{line}</p>
+          ))}
+        </div>
+        <div className="flex flex-col items-center gap-3">
+          <PrimaryButton href={FINAL_CTA.cta.href} size="lg">{FINAL_CTA.cta.label}</PrimaryButton>
+          <p className="text-[11px] text-[var(--text-muted)]">{FINAL_CTA.cta.subtext}</p>
+        </div>
       </div>
     </section>
   );
 }
 
-/* ── Footer ─────────────────────────────────────────────────────────────── */
+/* ─── Footer ──────────────────────────────────────────────────────────────── */
 
-function Footer() {
+function FooterSection() {
   return (
-    <footer className="border-t border-[var(--bg-border)] bg-[var(--bg-surface)] py-12">
+    <footer className="border-t border-[var(--bg-border)] py-10">
       <div className="mx-auto max-w-6xl px-6">
-        <div className="grid grid-cols-1 gap-8 md:grid-cols-3">
-          {/* Brand */}
-          <div>
-            <div className="mb-3 flex items-center gap-2">
-              <Zap className="h-4 w-4 text-[var(--accent-primary)]" />
-              <span className="font-semibold">ReelForge</span>
+        <div className="flex flex-col items-start justify-between gap-6 sm:flex-row sm:items-center">
+          <div className="flex items-center gap-2">
+            <div
+              className="flex h-6 w-6 items-center justify-center rounded-md"
+              style={{ background: "var(--accent-primary)" }}
+            >
+              <Play className="h-3 w-3 fill-white text-white" />
             </div>
-            <p className="text-sm text-[var(--text-muted)]">
-              AI-powered short-form video creation for modern creators.
-            </p>
+            <span className="text-[15px] font-semibold text-[var(--text-primary)]">{SITE.name}</span>
           </div>
-
-          {/* Links */}
-          <div>
-            <h4 className="mb-3 text-xs font-semibold uppercase tracking-wider text-[var(--text-muted)]">
-              Product
-            </h4>
-            <ul className="space-y-2 text-sm text-[var(--text-secondary)]">
-              {[
-                { label: "Pricing", href: "#pricing" },
-                { label: "FAQ", href: "#faq" },
-                { label: "Sign In", href: "/sign-in" },
-              ].map(({ label, href }) => (
-                <li key={label}>
-                  <Link href={href} className="hover:text-[var(--text-primary)] transition-colors">
-                    {label}
-                  </Link>
-                </li>
-              ))}
-            </ul>
-          </div>
-
-          {/* Legal */}
-          <div>
-            <h4 className="mb-3 text-xs font-semibold uppercase tracking-wider text-[var(--text-muted)]">
-              Legal
-            </h4>
-            <ul className="space-y-2 text-sm text-[var(--text-secondary)]">
-              {["Privacy Policy", "Terms of Service"].map((l) => (
-                <li key={l}>
-                  <span className="cursor-default text-[var(--text-muted)]">{l}</span>
-                </li>
-              ))}
-            </ul>
+          <div className="flex flex-wrap gap-5">
+            {FOOTER.links.map((link) => (
+              <Link
+                key={link.label}
+                href={link.href}
+                className="text-[12px] text-[var(--text-muted)] transition-colors hover:text-[var(--text-secondary)]"
+              >
+                {link.label}
+              </Link>
+            ))}
           </div>
         </div>
-
-        <div className="mt-10 border-t border-[var(--bg-border)] pt-6 text-center text-xs text-[var(--text-muted)]">
-          © {new Date().getFullYear()} ReelForge. All rights reserved.
+        <div className="mt-8 flex flex-col items-start justify-between gap-4 border-t border-[var(--bg-border)] pt-6 sm:flex-row sm:items-center">
+          <p className="text-[11px] text-[var(--text-muted)]">{FOOTER.copyright}</p>
+          <div className="flex flex-wrap gap-2">
+            {FOOTER.platforms.map((p) => (
+              <span
+                key={p}
+                className="rounded-full bg-[var(--bg-elevated)] px-2.5 py-1 text-[10px] text-[var(--text-muted)]"
+              >
+                {p}
+              </span>
+            ))}
+          </div>
         </div>
       </div>
     </footer>

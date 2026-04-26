@@ -19,6 +19,25 @@ interface ElevenLabsVoiceListItem {
 
 // Voice IDs allowed per language — overrides label-based filtering when set
 const LANGUAGE_VOICE_ALLOWLIST: Record<string, string[]> = {
+  english: [
+    "CwhRBWXzGAHq8TQ4Fs17", // Roger   — male,    laid-back casual
+    "EXAVITQu4vr4xnSDxMaL", // Sarah   — female,  mature confident
+    "FGY2WhTYpPnrIDTdsKH5", // Laura   — female,  quirky enthusiast
+    "IKne3meq5aSn9XLyUdCD", // Charlie — male,    deep energetic
+    "JBFqnCBsd6RMkjVDRZzb", // George  — male,    warm storyteller
+    "TX3LPaxmHKxFdv7VOQHJ", // Liam    — male,    social media creator
+    "Xb7hH8MSUJpSbSDYk0k2", // Alice   — female,  clear educator
+    "XrExE9yKIg1WjnnlVkGX", // Matilda — female,  professional
+    "cgSgspJ2msm6clMCkdW9", // Jessica — female,  playful bright
+    "cjVigY5qzO86Huf0OWal", // Eric    — male,    smooth trustworthy
+    "hpp4J3VqNfWAUOO0d1Us", // Bella   — female,  professional bright
+    "iP95p4xoKVk53GoZ742B", // Chris   — male,    charming
+    "nPczCjzI2devNBz1zQrb", // Brian   — male,    deep resonant
+    "onwK4e9ZLuTAKqWW03F9", // Daniel  — male,    broadcaster
+    "pFZP5JQG7iQjIQuC4Bku", // Lily    — female,  velvety actress
+    "pNInz6obpgDQGcFmaJgB", // Adam    — male,    dominant firm
+    "pqHfZKP75CvOlQylNhV4", // Bill    — male,    wise mature
+  ],
   bengali: ["5KpHC9wNrzTPFRQHQaQc", "22jmlXsxSX5mWjsybkYr"],
 };
 

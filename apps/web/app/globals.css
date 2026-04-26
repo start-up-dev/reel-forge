@@ -9,20 +9,20 @@
 /* ── ReelForge Design Tokens ────────────────────────────────────────────── */
 @theme {
   /* Colors */
-  --color-bg-base: #0a0a0f;
-  --color-bg-surface: #13131a;
-  --color-bg-elevated: #1c1c27;
-  --color-bg-border: #2a2a3a;
+  --color-bg-base: #09090b;
+  --color-bg-surface: #111113;
+  --color-bg-elevated: #1a1a1e;
+  --color-bg-border: #27272a;
 
-  --color-accent-primary: #7c5cfc;
-  --color-accent-secondary: #5b8def;
+  --color-accent-primary: #f55c2a;
+  --color-accent-secondary: #4a90e2;
   --color-accent-success: #34d399;
   --color-accent-warning: #fbbf24;
   --color-accent-danger: #f87171;
 
   --color-text-primary: #f4f4f8;
-  --color-text-secondary: #9898b0;
-  --color-text-muted: #5a5a72;
+  --color-text-secondary: #a1a1aa;
+  --color-text-muted: #52525b;
 
   /* Typography */
   --font-sans: var(--font-inter), ui-sans-serif, system-ui, sans-serif;
@@ -37,24 +37,24 @@
 
 /* ── CSS Variables ───────────────────────────────────────────────────────── */
 :root {
-  --bg-base: #0a0a0f;
-  --bg-surface: #13131a;
-  --bg-elevated: #1c1c27;
-  --bg-border: #2a2a3a;
+  --bg-base: #09090b;
+  --bg-surface: #111113;
+  --bg-elevated: #1a1a1e;
+  --bg-border: #27272a;
 
-  --accent-primary: #7c5cfc;
-  --accent-secondary: #5b8def;
+  --accent-primary: #f55c2a;
+  --accent-secondary: #4a90e2;
   --accent-success: #34d399;
   --accent-warning: #fbbf24;
   --accent-danger: #f87171;
 
   --text-primary: #f4f4f8;
-  --text-secondary: #9898b0;
-  --text-muted: #5a5a72;
+  --text-secondary: #a1a1aa;
+  --text-muted: #52525b;
 
-  --shadow-card: 0 1px 3px rgba(0, 0, 0, 0.4), 0 0 0 1px var(--bg-border);
-  --shadow-modal: 0 24px 64px rgba(0, 0, 0, 0.7);
-  --shadow-glow-accent: 0 0 24px rgba(124, 92, 252, 0.25);
+  --shadow-card: 0 1px 3px rgba(0, 0, 0, 0.5), 0 0 0 1px var(--bg-border);
+  --shadow-modal: 0 24px 64px rgba(0, 0, 0, 0.8);
+  --shadow-glow-accent: 0 0 24px rgba(245, 92, 42, 0.3);
 }
 
 /* ── Base Reset ──────────────────────────────────────────────────────────── */
