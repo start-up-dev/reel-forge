@@ -25,12 +25,8 @@ import {
   Type,
   Rocket,
   Check,
-  Trophy,
   Activity,
-  PlayCircle,
-  Cpu,
   ShieldCheck,
-  MousePointer2,
   Sparkles,
   ZapIcon,
 } from "lucide-react";
@@ -44,7 +40,6 @@ import {
 import {
   HERO,
   SHOWCASE,
-  PROOF_STATS,
   PROBLEM,
   SOLUTION,
   PIPELINE,
@@ -149,11 +144,11 @@ function PrimaryButton({
 
 function HeroSection() {
   return (
-    <section className="relative flex min-h-[90vh] flex-col items-center justify-start overflow-hidden pt-40 pb-20">
+    <section className="relative flex min-h-[90vh] flex-col items-center justify-start overflow-hidden pt-32 pb-16 md:pt-40 md:pb-20">
       {/* Background elements */}
-      <div className="absolute top-0 left-1/2 -translate-x-1/2 w-[1000px] h-[600px] pointer-events-none z-0">
+      <div className="absolute top-0 left-1/2 -translate-x-1/2 w-full max-w-[1000px] h-[600px] pointer-events-none z-0">
         <div
-          className="absolute inset-0 rounded-full blur-[120px] opacity-20"
+          className="absolute inset-0 rounded-full blur-[80px] md:blur-[120px] opacity-20"
           style={{
             background: `radial-gradient(circle, ${O(1)} 0%, transparent 70%)`,
           }}
@@ -162,26 +157,26 @@ function HeroSection() {
 
       <div className="relative z-10 mx-auto max-w-5xl px-6 text-center">
         <FadeIn delay={0.1}>
-          <div className="mb-10 inline-flex items-center gap-3 rounded-full border border-white/10 bg-white/[0.03] px-5 py-2 backdrop-blur-md shadow-2xl">
+          <div className="mb-8 md:mb-10 inline-flex items-center gap-3 rounded-full border border-white/10 bg-white/[0.03] px-5 py-2 backdrop-blur-md shadow-2xl">
             <div className="flex h-2 w-2 relative">
               <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-[var(--accent-primary)] opacity-75"></span>
               <span className="relative inline-flex rounded-full h-2 w-2 bg-[var(--accent-primary)]"></span>
             </div>
-            <p className="text-[12px] font-bold uppercase tracking-[0.1em] text-[var(--text-primary)]">
+            <p className="text-[10px] md:text-[12px] font-bold uppercase tracking-[0.1em] text-[var(--text-primary)]">
               {HERO.eyebrow}
             </p>
           </div>
         </FadeIn>
 
         <FadeIn delay={0.2}>
-          <h1 className="mb-8 text-[64px] font-[900] leading-[0.9] tracking-[-0.04em] text-[var(--text-primary)] md:text-[100px] lg:text-[110px]">
+          <h1 className="mb-6 md:mb-8 text-[48px] sm:text-[64px] font-[900] leading-[0.95] md:leading-[0.9] tracking-[-0.04em] text-[var(--text-primary)] md:text-[100px] lg:text-[110px]">
             {HERO.headlineLine1}
             <br />
             <span className="pb-4 text-transparent bg-clip-text bg-gradient-to-b from-[var(--text-primary)] to-[var(--text-primary)]/50 relative inline-block">
               {HERO.headlineLine2}
               <svg
                 aria-hidden
-                className="absolute -bottom-4 left-0 w-full opacity-40"
+                className="absolute -bottom-2 md:-bottom-4 left-0 w-full opacity-40"
                 height="12"
                 viewBox="0 0 400 12"
                 preserveAspectRatio="none"
@@ -199,62 +194,58 @@ function HeroSection() {
         </FadeIn>
 
         <FadeIn delay={0.3}>
-          <p className="mx-auto mb-12 max-w-[640px] text-[18px] leading-[1.6] text-[var(--text-secondary)] md:text-[21px]">
+          <p className="mx-auto mb-10 md:mb-12 max-w-[640px] text-[16px] md:text-[21px] leading-[1.6] text-[var(--text-secondary)]">
             {HERO.subheadline}
           </p>
         </FadeIn>
 
         <FadeIn delay={0.4}>
           <div className="flex flex-col items-center gap-6 sm:flex-row sm:justify-center">
-            <div className="flex flex-col items-center gap-3">
-              <PrimaryButton href={HERO.primaryCta.href} size="lg">
+            <div className="flex w-full flex-col items-center gap-3 sm:w-auto">
+              <PrimaryButton href={HERO.primaryCta.href} size="lg" className="w-full sm:w-auto justify-center">
                 {HERO.primaryCta.label}
               </PrimaryButton>
               <div className="flex items-center gap-1.5 px-3 py-1 rounded-full bg-white/[0.03] border border-white/5">
                 <ShieldCheck className="w-3.5 h-3.5 text-[var(--accent-success)]" />
-                <p className="text-[12px] text-[var(--text-muted)] font-medium">
+                <p className="text-[11px] md:text-[12px] text-[var(--text-muted)] font-medium">
                   {HERO.primaryCta.subtext}
                 </p>
               </div>
             </div>
-            {/* <button className="flex items-center gap-3 rounded-full border border-white/10 bg-white/[0.02] px-8 py-5 text-[15px] font-bold text-[var(--text-primary)] transition-all hover:border-white/20 hover:bg-white/[0.05]">
-              <div className="flex h-6 w-6 items-center justify-center rounded-full bg-[var(--accent-primary)]/10">
-                <Play className="h-3 w-3 fill-[var(--accent-primary)] text-[var(--accent-primary)] translate-x-0.5" />
-              </div>
-              {HERO.secondaryCta.label}
-            </button> */}
           </div>
         </FadeIn>
 
         <FadeIn delay={0.5}>
           <div className="mt-8 flex flex-col items-center gap-4">
-            <div className="flex items-center gap-4 px-6 py-3 rounded-2xl bg-white/[0.02] border border-white/5 backdrop-blur-sm">
+            <div className="flex flex-col sm:flex-row items-center gap-4 px-4 py-3 md:px-6 rounded-2xl bg-white/[0.02] border border-white/5 backdrop-blur-sm">
               <div className="flex -space-x-3">
                 {[1, 2, 3, 4, 5].map((i) => (
                   <div
                     key={i}
-                    className="h-9 w-9 rounded-full border-2 border-[var(--bg-base)] bg-[var(--bg-elevated)] overflow-hidden"
+                    className="h-8 w-8 md:h-9 md:w-9 rounded-full border-2 border-[var(--bg-base)] bg-[var(--bg-elevated)] overflow-hidden"
                   >
+                    {/* eslint-disable-next-line @next/next/no-img-element */}
                     <img
                       src={`https://api.dicebear.com/7.x/avataaars/svg?seed=${i + 10}`}
                       alt="user"
+                      className="h-full w-full object-cover"
                     />
                   </div>
                 ))}
               </div>
-              <div className="h-8 w-px bg-white/10" />
-              <div className="text-left">
-                <div className="flex items-center gap-1 text-[var(--accent-warning)]">
-                  <Star className="h-3.5 w-3.5 fill-current" />
-                  <Star className="h-3.5 w-3.5 fill-current" />
-                  <Star className="h-3.5 w-3.5 fill-current" />
-                  <Star className="h-3.5 w-3.5 fill-current" />
-                  <Star className="h-3.5 w-3.5 fill-current" />
-                  <span className="ml-1 text-[13px] font-black text-[var(--text-primary)]">
+              <div className="hidden sm:block h-8 w-px bg-white/10" />
+              <div className="text-center sm:text-left">
+                <div className="flex items-center justify-center sm:justify-start gap-1 text-[var(--accent-warning)]">
+                  <Star className="h-3 w-3 md:h-3.5 md:w-3.5 fill-current" />
+                  <Star className="h-3 w-3 md:h-3.5 md:w-3.5 fill-current" />
+                  <Star className="h-3 w-3 md:h-3.5 md:w-3.5 fill-current" />
+                  <Star className="h-3 w-3 md:h-3.5 md:w-3.5 fill-current" />
+                  <Star className="h-3 w-3 md:h-3.5 md:w-3.5 fill-current" />
+                  <span className="ml-1 text-[12px] md:text-[13px] font-black text-[var(--text-primary)]">
                     5.0
                   </span>
                 </div>
-                <p className="text-[12px] text-[var(--text-secondary)] font-medium">
+                <p className="text-[11px] md:text-[12px] text-[var(--text-secondary)] font-medium">
                   {HERO.proof.text}
                 </p>
               </div>
@@ -265,10 +256,30 @@ function HeroSection() {
 
       <ScaleIn
         delay={0.7}
-        className="relative mx-auto mt-24 w-full max-w-6xl px-6"
+        className="relative mx-auto mt-16 md:mt-24 w-full max-w-6xl px-6"
       >
-        <div className="absolute -inset-1 rounded-[2.5rem] bg-gradient-to-b from-[var(--accent-primary)]/20 to-transparent blur-md -z-10" />
-        <div className="relative overflow-hidden rounded-[2rem] border-2 border-white/10 shadow-[0_40px_100px_rgba(0,0,0,0.8)] bg-[#0c0c0e]"></div>
+        <div className="absolute -inset-1 rounded-[2rem] md:rounded-[2.5rem] bg-gradient-to-b from-[var(--accent-primary)]/20 to-transparent blur-md -z-10" />
+        <div className="relative overflow-hidden rounded-[1.5rem] md:rounded-[2rem] border-2 border-white/10 shadow-[0_40px_100px_rgba(0,0,0,0.8)] bg-[#0c0c0e] min-h-[300px] md:min-h-[600px]">
+          {/* Mock UI for Hero Preview */}
+          <div className="absolute inset-0 flex flex-col">
+            <div className="h-10 md:h-12 border-b border-white/5 bg-white/[0.02] flex items-center px-4 gap-2">
+              <div className="flex gap-1.5">
+                <div className="w-2 h-2 md:w-2.5 md:h-2.5 rounded-full bg-white/10" />
+                <div className="w-2 h-2 md:w-2.5 md:h-2.5 rounded-full bg-white/10" />
+                <div className="w-2 h-2 md:w-2.5 md:h-2.5 rounded-full bg-white/10" />
+              </div>
+              <div className="mx-auto h-5 md:h-6 w-32 md:w-48 rounded-lg bg-white/5" />
+            </div>
+            <div className="flex-1 p-4 md:p-8 grid grid-cols-2 md:grid-cols-4 gap-4 md:gap-6">
+              {[1, 2, 3, 4, 5, 6, 7, 8].map((i) => (
+                <div key={i} className="aspect-[9/16] rounded-xl bg-white/[0.03] border border-white/5 animate-pulse flex flex-col justify-end p-3 gap-2">
+                  <div className="h-2 w-full bg-white/10 rounded" />
+                  <div className="h-2 w-2/3 bg-white/5 rounded" />
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
       </ScaleIn>
     </section>
   );
@@ -282,26 +293,26 @@ function ShowcaseSection() {
   return (
     <section
       id="showcase"
-      className="pb-24 pt-12 md:pb-32 md:pt-16 overflow-hidden bg-gradient-to-b from-[var(--bg-base)] via-[var(--bg-surface)] to-[var(--bg-base)]"
+      className="pb-20 pt-10 md:pb-32 md:pt-16 overflow-hidden bg-gradient-to-b from-[var(--bg-base)] via-[var(--bg-surface)] to-[var(--bg-base)]"
     >
       <div className="mx-auto max-w-6xl px-6">
-        <FadeIn className="mb-20 text-center">
+        <FadeIn className="mb-16 md:mb-20 text-center">
           <SectionLabel variant="accent">{SHOWCASE.label}</SectionLabel>
-          <h2 className="mb-6 whitespace-pre-line text-[42px] font-[900] leading-tight tracking-tight text-[var(--text-primary)] md:text-[64px]">
+          <h2 className="mb-6 whitespace-pre-line text-[32px] sm:text-[42px] font-[900] leading-tight tracking-tight text-[var(--text-primary)] md:text-[64px]">
             {SHOWCASE.headline}
           </h2>
-          <p className="mx-auto max-w-xl text-[18px] text-[var(--text-secondary)] leading-relaxed">
+          <p className="mx-auto max-w-xl text-[16px] md:text-[18px] text-[var(--text-secondary)] leading-relaxed">
             {SHOWCASE.subheadline}
           </p>
         </FadeIn>
       </div>
 
       {/* Infinite Auto-scrolling Marquee */}
-      <div className="relative w-full overflow-hidden py-6 md:py-8">
-        <div className="absolute left-0 top-0 bottom-0 z-10 w-32 md:w-64 bg-gradient-to-r from-[var(--bg-base)] to-transparent pointer-events-none" />
-        <div className="absolute right-0 top-0 bottom-0 z-10 w-32 md:w-64 bg-gradient-to-l from-[var(--bg-base)] to-transparent pointer-events-none" />
+      <div className="relative w-full overflow-hidden py-4 md:py-8">
+        <div className="absolute left-0 top-0 bottom-0 z-10 w-12 md:w-64 bg-gradient-to-r from-[var(--bg-base)] to-transparent pointer-events-none" />
+        <div className="absolute right-0 top-0 bottom-0 z-10 w-12 md:w-64 bg-gradient-to-l from-[var(--bg-base)] to-transparent pointer-events-none" />
 
-        <div className="flex w-max animate-scroll items-end justify-center gap-8 md:gap-12 px-10 hover:[animation-play-state:paused]">
+        <div className="flex w-max animate-scroll items-end justify-center gap-6 md:gap-12 px-4 md:px-10 hover:[animation-play-state:paused]">
           {repeatedVideos.map((v, i) => {
             // Organic vertical offsets
             const offsets = [
@@ -328,13 +339,13 @@ function ShowcaseSection() {
             {[1, 2, 3].map((i) => (
               <div
                 key={i}
-                className="w-6 h-6 rounded-full border border-[var(--bg-base)] bg-[var(--accent-primary)] flex items-center justify-center"
+                className="w-5 h-5 md:w-6 md:h-6 rounded-full border border-[var(--bg-base)] bg-[var(--accent-primary)] flex items-center justify-center"
               >
-                <Play className="w-2 h-2 fill-white text-white" />
+                <Play className="w-1.5 h-1.5 md:w-2 md:h-2 fill-white text-white" />
               </div>
             ))}
           </div>
-          <p className="text-[13px] font-bold text-[var(--text-primary)] tracking-wide">
+          <p className="text-[12px] md:text-[13px] font-bold text-[var(--text-primary)] tracking-wide">
             Hover to pause and explore {SHOWCASE.videos.length}+ viral templates
           </p>
         </div>
@@ -352,7 +363,7 @@ function PhoneFrame({ video }: { video: (typeof SHOWCASE.videos)[number] }) {
   const dotColor = platformColor[video.platform] ?? "#888";
 
   return (
-    <div className="group relative w-[260px] md:w-[300px]">
+    <div className="group relative w-[230px] sm:w-[260px] md:w-[300px]">
       {/* Dynamic Glow */}
       <div
         className="absolute inset-0 -z-10 rounded-[3rem] blur-3xl opacity-0 group-hover:opacity-40 transition-opacity duration-500"
@@ -362,15 +373,15 @@ function PhoneFrame({ video }: { video: (typeof SHOWCASE.videos)[number] }) {
       />
 
       {/* Phone body */}
-      <div className="relative overflow-hidden rounded-[3rem] border-[8px] border-[#18181b] bg-[#09090b] shadow-[0_40px_100px_rgba(0,0,0,0.8)] transition-all duration-500 group-hover:-translate-y-4 group-hover:scale-[1.02] group-hover:shadow-[0_60px_120px_rgba(0,0,0,0.9)] group-hover:border-[#27272a]">
+      <div className="relative overflow-hidden rounded-[2.5rem] md:rounded-[3rem] border-[6px] md:border-[8px] border-[#18181b] bg-[#09090b] shadow-[0_30px_80px_rgba(0,0,0,0.8)] md:shadow-[0_40px_100px_rgba(0,0,0,0.8)] transition-all duration-500 group-hover:-translate-y-4 group-hover:scale-[1.02] group-hover:shadow-[0_60px_120px_rgba(0,0,0,0.9)] group-hover:border-[#27272a]">
         {/* Notch */}
-        <div className="relative z-10 flex justify-center pt-3 pb-2.5">
-          <div className="h-1.5 w-16 rounded-full bg-[#27272a] group-hover:bg-[#3f3f46] transition-colors" />
+        <div className="relative z-10 flex justify-center pt-2 md:pt-3 pb-2 md:pb-2.5">
+          <div className="h-1 md:h-1.5 w-12 md:w-16 rounded-full bg-[#27272a] group-hover:bg-[#3f3f46] transition-colors" />
         </div>
 
         {/* Screen */}
         <div
-          className="relative mx-1.5 mb-1.5 overflow-hidden rounded-[2.2rem] h-[460px] md:h-[520px]"
+          className="relative mx-1 mb-1 md:mx-1.5 md:mb-1.5 overflow-hidden rounded-[2rem] md:rounded-[2.2rem] h-[400px] sm:h-[460px] md:h-[520px]"
           style={{
             background: `linear-gradient(160deg, ${video.gradientFrom}, ${video.gradientTo})`,
           }}
@@ -380,7 +391,7 @@ function PhoneFrame({ video }: { video: (typeof SHOWCASE.videos)[number] }) {
 
           {/* Style badge */}
           <div
-            className="absolute left-4 top-4 z-20 rounded-full px-3 py-1 text-[10px] font-black uppercase tracking-widest text-white shadow-xl backdrop-blur-xl border border-white/10"
+            className="absolute left-3 top-3 md:left-4 md:top-4 z-20 rounded-full px-2.5 py-0.5 md:px-3 md:py-1 text-[9px] md:text-[10px] font-black uppercase tracking-widest text-white shadow-xl backdrop-blur-xl border border-white/10"
             style={{ background: video.accentColor + "aa" }}
           >
             {video.style}
@@ -388,41 +399,41 @@ function PhoneFrame({ video }: { video: (typeof SHOWCASE.videos)[number] }) {
 
           {/* Play overlay on hover */}
           <div className="absolute inset-0 z-20 flex items-center justify-center bg-black/20 opacity-0 backdrop-blur-[2px] transition-all group-hover:opacity-100 duration-500">
-            <div className="w-16 h-16 rounded-full bg-white/10 backdrop-blur-md flex items-center justify-center border border-white/20 scale-90 group-hover:scale-100 transition-transform duration-500">
-              <Play className="h-6 w-6 fill-white text-white translate-x-0.5" />
+            <div className="w-12 h-12 md:w-16 md:h-16 rounded-full bg-white/10 backdrop-blur-md flex items-center justify-center border border-white/20 scale-90 group-hover:scale-100 transition-transform duration-500">
+              <Play className="h-5 w-5 md:h-6 md:h-6 fill-white text-white translate-x-0.5" />
             </div>
           </div>
 
           {/* Content area */}
-          <div className="absolute inset-0 flex flex-col items-center justify-center px-8">
-            <h4 className="text-center text-[22px] md:text-[24px] font-[1000] leading-[1.1] text-white drop-shadow-2xl italic tracking-tighter">
-              "{video.hook}"
+          <div className="absolute inset-0 flex flex-col items-center justify-center px-6 md:px-8">
+            <h4 className="text-center text-[18px] sm:text-[22px] md:text-[24px] font-[1000] leading-[1.1] text-white drop-shadow-2xl italic tracking-tighter">
+              &quot;{video.hook}&quot;
             </h4>
           </div>
 
           {/* Subtitle bar */}
-          <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black via-black/60 to-transparent px-6 pb-8 pt-20">
-            <div className="flex items-center justify-between mb-4">
-              <div className="flex items-center gap-2">
+          <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black via-black/60 to-transparent px-4 md:px-6 pb-6 md:pb-8 pt-16 md:pt-20">
+            <div className="flex items-center justify-between mb-3 md:mb-4">
+              <div className="flex items-center gap-1.5 md:gap-2">
                 <div
-                  className="w-5 h-5 rounded-full flex items-center justify-center"
+                  className="w-4 h-4 md:w-5 md:h-5 rounded-full flex items-center justify-center"
                   style={{ background: dotColor }}
                 >
-                  <Play className="w-2 h-2 fill-white text-white translate-x-0.25" />
+                  <Play className="w-1.5 h-1.5 md:w-2 md:h-2 fill-white text-white translate-x-0.25" />
                 </div>
-                <span className="text-[10px] font-black uppercase text-white/60 tracking-tighter">
+                <span className="text-[9px] md:text-[10px] font-black uppercase text-white/60 tracking-tighter">
                   {video.platform}
                 </span>
               </div>
-              <div className="flex items-center gap-1.5 text-[11px] font-black text-white/90">
-                <Activity className="h-3.5 w-3.5 text-[var(--accent-success)]" />
+              <div className="flex items-center gap-1 md:gap-1.5 text-[10px] md:text-[11px] font-black text-white/90">
+                <Activity className="h-3 md:h-3.5 w-3 md:w-3.5 text-[var(--accent-success)]" />
                 {video.views}
               </div>
             </div>
-            <div className="h-px w-full bg-white/10 mb-4" />
+            <div className="h-px w-full bg-white/10 mb-3 md:mb-4" />
             <div className="text-center">
               <span
-                className="rounded-lg px-4 py-1.5 text-[11px] font-black uppercase tracking-wider text-white shadow-2xl backdrop-blur-md border border-white/10"
+                className="rounded-lg px-3 py-1 md:px-4 md:py-1.5 text-[10px] md:text-[11px] font-black uppercase tracking-wider text-white shadow-2xl backdrop-blur-md border border-white/10"
                 style={{ background: video.accentColor + "30" }}
               >
                 {video.niche}
@@ -451,17 +462,17 @@ function ProblemSection() {
 
   return (
     <section className="mx-auto max-w-6xl px-6 pb-16 md:pb-24">
-      <div className="text-center mb-16 md:mb-20">
+      <div className="text-center mb-12 md:mb-20">
         <SectionLabel>{PROBLEM.label}</SectionLabel>
         <FadeIn>
-          <h2 className="mb-8 text-[42px] font-[900] leading-[1] tracking-[-0.03em] text-[var(--text-primary)] md:text-[72px]">
+          <h2 className="mb-6 md:mb-8 text-[32px] sm:text-[42px] font-[900] leading-[1.1] md:leading-[1] tracking-[-0.03em] text-[var(--text-primary)] md:text-[72px]">
             {PROBLEM.headlineLine1}
             <br />
             {PROBLEM.headlineLine2}{" "}
             <span className="text-[var(--accent-danger)] relative inline-block">
               {PROBLEM.headlineAccent}
               <svg
-                className="absolute -bottom-2 left-0 w-full h-3 text-[var(--accent-danger)]/20"
+                className="absolute -bottom-1 md:-bottom-2 left-0 w-full h-2 md:h-3 text-[var(--accent-danger)]/20"
                 viewBox="0 0 100 10"
                 preserveAspectRatio="none"
               >
@@ -480,7 +491,7 @@ function ProblemSection() {
             {PROBLEM.body.map((p, i) => (
               <p
                 key={i}
-                className="text-[18px] md:text-[20px] leading-relaxed text-[var(--text-secondary)]"
+                className="text-[16px] md:text-[20px] leading-relaxed text-[var(--text-secondary)]"
               >
                 {p
                   .split(/(2–4 hours|5 videos a day|10–20 hours)/)
@@ -504,24 +515,24 @@ function ProblemSection() {
         </FadeIn>
       </div>
 
-      <StaggerContainer delay={0.4} className="grid gap-6 md:grid-cols-3">
+      <StaggerContainer delay={0.4} className="grid gap-4 md:gap-6 md:grid-cols-3">
         {PROBLEM.cards.map((card) => {
           const k = card.iconKey as keyof typeof icons;
           const Icon = icons[k];
           return (
             <StaggerItem key={card.title}>
-              <div className="group h-full relative rounded-[2rem] border border-white/5 bg-gradient-to-b from-white/[0.03] to-transparent p-8 md:p-10 transition-all hover:-translate-y-2 hover:border-white/10 hover:shadow-[0_20px_40px_rgba(0,0,0,0.4)] overflow-hidden">
+              <div className="group h-full relative rounded-[1.5rem] md:rounded-[2rem] border border-white/5 bg-gradient-to-b from-white/[0.03] to-transparent p-6 md:p-10 transition-all hover:-translate-y-1 hover:border-white/10 hover:shadow-[0_20px_40px_rgba(0,0,0,0.4)] overflow-hidden">
                 <div
                   className="absolute -top-10 -left-10 w-40 h-40 opacity-0 group-hover:opacity-10 transition-opacity duration-500 rounded-full blur-3xl"
                   style={{ background: colors[k] }}
                 />
-                <div className="mb-6 inline-flex h-14 w-14 items-center justify-center rounded-[1rem] bg-white/[0.03] border border-white/5 shadow-2xl group-hover:scale-110 group-hover:rotate-3 transition-all duration-500">
-                  <Icon className="h-7 w-7" style={{ color: colors[k] }} />
+                <div className="mb-5 md:mb-6 inline-flex h-12 w-12 md:h-14 md:w-14 items-center justify-center rounded-[0.8rem] md:rounded-[1rem] bg-white/[0.03] border border-white/5 shadow-2xl group-hover:scale-110 group-hover:rotate-3 transition-all duration-500">
+                  <Icon className="h-6 w-6 md:h-7 md:w-7" style={{ color: colors[k] }} />
                 </div>
-                <h3 className="mb-3 text-[20px] font-black text-[var(--text-primary)] leading-tight">
+                <h3 className="mb-2 md:mb-3 text-[18px] md:text-[20px] font-black text-[var(--text-primary)] leading-tight">
                   {card.title}
                 </h3>
-                <p className="text-[15px] leading-relaxed text-[var(--text-secondary)] font-medium">
+                <p className="text-[14px] md:text-[15px] leading-relaxed text-[var(--text-secondary)] font-medium">
                   {card.body}
                 </p>
               </div>
@@ -537,7 +548,7 @@ function ProblemSection() {
 
 function SolutionReveal() {
   return (
-    <section className="relative overflow-hidden bg-[var(--bg-surface)] py-20 md:py-32 border-y border-white/5">
+    <section className="relative overflow-hidden bg-[var(--bg-surface)] py-16 md:py-32 border-y border-white/5">
       <div
         aria-hidden
         className="pointer-events-none absolute inset-0"
@@ -548,14 +559,14 @@ function SolutionReveal() {
       <div className="relative z-10 mx-auto max-w-4xl px-6 text-center">
         <FadeIn>
           <div className="flex justify-center mb-8">
-            <div className="relative h-16 w-16">
+            <div className="relative h-14 w-14 md:h-16 md:w-16">
               <div className="absolute inset-0 bg-[var(--accent-primary)]/20 rounded-full animate-ping blur-xl" />
-              <div className="relative h-16 w-16 bg-gradient-to-tr from-[var(--accent-primary)] to-[var(--accent-secondary)] rounded-2xl flex items-center justify-center shadow-2xl border-2 border-[var(--bg-base)]">
-                <Bot className="h-8 w-8 text-white" />
+              <div className="relative h-14 w-14 md:h-16 md:w-16 bg-gradient-to-tr from-[var(--accent-primary)] to-[var(--accent-secondary)] rounded-xl md:rounded-2xl flex items-center justify-center shadow-2xl border-2 border-[var(--bg-base)]">
+                <Bot className="h-7 w-7 md:h-8 md:w-8 text-white" />
               </div>
             </div>
           </div>
-          <h2 className="mb-8 text-[40px] font-[900] leading-[1] tracking-[-0.03em] text-[var(--text-primary)] md:text-[72px]">
+          <h2 className="mb-6 md:mb-8 text-[32px] sm:text-[42px] md:text-[72px] font-[900] leading-[1.1] md:leading-[1] tracking-[-0.03em] text-[var(--text-primary)]">
             {SOLUTION.headlineLine1}
             <br />
             <span className="text-transparent bg-clip-text bg-gradient-to-r from-[var(--accent-primary)] to-[var(--accent-secondary)]">
@@ -565,18 +576,18 @@ function SolutionReveal() {
         </FadeIn>
 
         <FadeIn delay={0.2}>
-          <div className="mx-auto mb-12 max-w-2xl space-y-6">
+          <div className="mx-auto mb-10 md:mb-12 max-w-2xl space-y-6">
             {SOLUTION.body.map((p, i) => (
               <p
                 key={i}
-                className="text-[18px] md:text-[20px] font-medium leading-relaxed text-[var(--text-secondary)]"
+                className="text-[16px] md:text-[20px] font-medium leading-relaxed text-[var(--text-secondary)]"
               >
                 {p}
               </p>
             ))}
-            <div className="inline-flex items-center gap-3 px-6 py-3 rounded-2xl bg-[var(--bg-base)] border border-white/10 shadow-2xl group cursor-default">
-              <ZapIcon className="w-5 h-5 text-[var(--accent-primary)] group-hover:animate-pulse" />
-              <p className="text-[20px] font-black text-[var(--text-primary)] tracking-tight">
+            <div className="inline-flex items-center gap-2 md:gap-3 px-4 md:px-6 py-2 md:py-3 rounded-xl md:rounded-2xl bg-[var(--bg-base)] border border-white/10 shadow-2xl group cursor-default">
+              <ZapIcon className="w-4 h-4 md:w-5 md:h-5 text-[var(--accent-primary)] group-hover:animate-pulse" />
+              <p className="text-[16px] md:text-[20px] font-black text-[var(--text-primary)] tracking-tight">
                 {SOLUTION.closer}
               </p>
             </div>
@@ -585,7 +596,7 @@ function SolutionReveal() {
 
         {/* Improved Pipeline nodes */}
         <FadeIn delay={0.4}>
-          <div className="mb-12 flex flex-wrap justify-center gap-3">
+          <div className="mb-10 md:mb-12 grid grid-cols-2 sm:flex sm:flex-wrap justify-center gap-3">
             {SOLUTION.pipelineNodes.map((node, i) => {
               const nodeIcons = [Lightbulb, PenLine, Mic, ImageIcon, Rocket];
               const NodeIcon = nodeIcons[i] || CheckCircle;
@@ -594,21 +605,21 @@ function SolutionReveal() {
               return (
                 <div key={node} className="flex items-center group">
                   <div
-                    className={`flex flex-col items-center gap-2 px-5 py-5 rounded-2xl border border-white/5 bg-white/[0.02] min-w-[120px] transition-all hover:bg-white/[0.05] hover:border-white/10 hover:-translate-y-1 ${isLast ? "border-[var(--accent-success)]/40 bg-[var(--accent-success)]/[0.03]" : ""}`}
+                    className={`flex flex-1 flex-col items-center gap-2 px-3 py-4 md:px-5 md:py-5 rounded-xl md:rounded-2xl border border-white/5 bg-white/[0.02] min-w-[100px] md:min-w-[120px] transition-all hover:bg-white/[0.05] hover:border-white/10 hover:-translate-y-1 ${isLast ? "border-[var(--accent-success)]/40 bg-[var(--accent-success)]/[0.03]" : ""}`}
                   >
                     <div
-                      className={`flex h-10 w-10 items-center justify-center rounded-xl bg-[var(--bg-base)] border border-white/5 shadow-xl ${isLast ? "text-[var(--accent-success)] shadow-[0_0_20px_rgba(52,211,153,0.2)]" : "text-[var(--accent-primary)]"}`}
+                      className={`flex h-9 w-9 md:h-10 md:w-10 items-center justify-center rounded-lg md:rounded-xl bg-[var(--bg-base)] border border-white/5 shadow-xl ${isLast ? "text-[var(--accent-success)] shadow-[0_0_20px_rgba(52,211,153,0.2)]" : "text-[var(--accent-primary)]"}`}
                     >
-                      <NodeIcon className="w-5 h-5" />
+                      <NodeIcon className="w-4 h-4 md:w-5 md:h-5" />
                     </div>
                     <span
-                      className={`text-[12px] font-black uppercase tracking-tighter ${isLast ? "text-[var(--accent-success)]" : "text-[var(--text-secondary)]"}`}
+                      className={`text-[10px] md:text-[12px] font-black uppercase tracking-tighter ${isLast ? "text-[var(--accent-success)]" : "text-[var(--text-secondary)]"}`}
                     >
                       {node}
                     </span>
                   </div>
                   {i < SOLUTION.pipelineNodes.length - 1 && (
-                    <div className="hidden items-center sm:flex px-1">
+                    <div className="hidden items-center md:flex px-1">
                       <ArrowRight className="w-4 h-4 text-white/10 group-hover:text-[var(--accent-primary)]/40 transition-colors translate-y-[-10px]" />
                     </div>
                   )}
@@ -632,17 +643,17 @@ function PipelineSection() {
   const stepIcons = [Lightbulb, Bot, Mic, ImageIcon, Palette, Type, Rocket];
 
   return (
-    <section id="pipeline" className="mx-auto max-w-6xl px-6 py-24 md:py-32">
-      <FadeIn className="mb-20 text-center">
+    <section id="pipeline" className="mx-auto max-w-6xl px-6 py-20 md:py-32">
+      <FadeIn className="mb-16 md:mb-20 text-center">
         <SectionLabel variant="accent">{PIPELINE.label}</SectionLabel>
-        <h2 className="mb-6 text-[46px] font-[900] leading-[1] tracking-[-0.03em] text-[var(--text-primary)] md:text-[72px]">
+        <h2 className="mb-6 text-[36px] sm:text-[46px] md:text-[72px] font-[900] leading-[1.1] md:leading-[1] tracking-[-0.03em] text-[var(--text-primary)]">
           {PIPELINE.headlineLine1}
           <br />
           <span className="text-[var(--accent-primary)]">
             {PIPELINE.headlineLine2}
           </span>
         </h2>
-        <p className="text-[19px] font-medium text-[var(--text-secondary)] max-w-2xl mx-auto">
+        <p className="text-[17px] md:text-[19px] font-medium text-[var(--text-secondary)] max-w-2xl mx-auto">
           {PIPELINE.subheadline}
         </p>
       </FadeIn>
@@ -651,13 +662,13 @@ function PipelineSection() {
         {/* Modern Timeline Track */}
         <div
           aria-hidden
-          className="absolute inset-y-4 left-1/2 hidden w-[2px] -translate-x-1/2 md:block"
+          className="absolute inset-y-4 left-[30px] md:left-1/2 w-[2px] -translate-x-1/2"
           style={{
             background: `linear-gradient(to bottom, transparent, ${O(0.3)} 15%, ${O(0.3)} 85%, transparent)`,
           }}
         />
 
-        <div className="space-y-16 md:space-y-24">
+        <div className="space-y-12 md:space-y-24">
           {PIPELINE.steps.map((step, i) => {
             const even = i % 2 === 1;
             const Icon = stepIcons[i] || CheckCircle;
@@ -665,42 +676,42 @@ function PipelineSection() {
             return (
               <FadeIn
                 key={step.num}
-                className={`flex items-center gap-12 md:gap-0 ${even ? "md:flex-row-reverse" : ""}`}
+                className={`flex flex-row items-start md:items-center gap-8 md:gap-0 ${even ? "md:flex-row-reverse" : ""}`}
               >
                 {/* Visual Content */}
                 <div
                   className={`flex-1 md:max-w-[calc(50%-70px)] ${even ? "md:pl-16" : "md:pr-16"}`}
                 >
-                  <div className="group relative rounded-[2rem] border border-white/5 bg-gradient-to-br from-white/[0.04] to-transparent p-8 md:p-10 shadow-2xl transition-all hover:border-[var(--accent-primary)]/40 hover:bg-white/[0.06] hover:-translate-y-1 overflow-hidden">
+                  <div className="group relative rounded-[1.5rem] md:rounded-[2rem] border border-white/5 bg-gradient-to-br from-white/[0.04] to-transparent p-6 md:p-10 shadow-2xl transition-all hover:border-[var(--accent-primary)]/40 hover:bg-white/[0.06] hover:-translate-y-1 overflow-hidden">
                     <div className="absolute top-0 right-0 w-32 h-32 bg-[var(--accent-primary)]/5 blur-3xl rounded-full -mr-10 -mt-10 group-hover:bg-[var(--accent-primary)]/10 transition-colors" />
 
-                    <div className="flex items-center gap-4 mb-6">
-                      <div className="flex h-14 w-14 items-center justify-center rounded-xl bg-[var(--bg-base)] border border-white/10 shadow-inner group-hover:scale-110 transition-transform duration-500">
-                        <Icon className="h-7 w-7 text-[var(--accent-primary)]" />
+                    <div className="flex items-center gap-4 mb-5 md:mb-6">
+                      <div className="flex h-12 w-12 md:h-14 md:w-14 items-center justify-center rounded-xl bg-[var(--bg-base)] border border-white/10 shadow-inner group-hover:scale-110 transition-transform duration-500">
+                        <Icon className="h-6 w-6 md:h-7 md:w-7 text-[var(--accent-primary)]" />
                       </div>
                       <div className="flex flex-col">
-                        <span className="text-[10px] font-black uppercase tracking-[0.2em] text-[var(--accent-primary)] mb-1">
+                        <span className="text-[9px] md:text-[10px] font-black uppercase tracking-[0.2em] text-[var(--accent-primary)] mb-1">
                           Step {step.num}
                         </span>
-                        <h3 className="text-[22px] font-black text-[var(--text-primary)] leading-tight tracking-tight">
+                        <h3 className="text-[18px] md:text-[22px] font-black text-[var(--text-primary)] leading-tight tracking-tight">
                           {step.title}
                         </h3>
                       </div>
                     </div>
 
-                    <p className="mb-6 text-[16px] leading-relaxed text-[var(--text-secondary)] font-medium">
+                    <p className="mb-5 md:mb-6 text-[14px] md:text-[16px] leading-relaxed text-[var(--text-secondary)] font-medium">
                       {step.body}
                     </p>
 
                     {step.pill && (
                       <div
-                        className={`inline-flex items-center gap-2.5 rounded-xl px-4 py-2 text-[11px] font-black uppercase tracking-wider ${
+                        className={`inline-flex items-center gap-2.5 rounded-xl px-3.5 py-1.5 md:px-4 md:py-2 text-[10px] md:text-[11px] font-black uppercase tracking-wider ${
                           step.pillVariant === "success"
                             ? "border border-[var(--accent-success)]/30 bg-[var(--accent-success)]/5 text-[var(--accent-success)]"
                             : `border border-[var(--accent-primary)]/30 bg-[var(--accent-primary)]/5 text-[var(--accent-primary)]`
                         }`}
                       >
-                        <Zap className="w-3.5 h-3.5" />
+                        <Zap className="w-3 h-3 md:w-3.5 md:h-3.5" />
                         {step.pill}
                       </div>
                     )}
@@ -708,9 +719,9 @@ function PipelineSection() {
                 </div>
 
                 {/* Vertical Step Number */}
-                <div className="hidden shrink-0 items-center justify-center md:flex md:w-[140px]">
+                <div className="shrink-0 flex items-center justify-center w-[60px] md:w-[140px] relative z-10 order-first md:order-none">
                   <div
-                    className="relative z-10 flex h-16 w-16 items-center justify-center rounded-2xl border-[3px] bg-[#0c0c0e] text-[20px] font-[900] text-[var(--text-primary)] shadow-[0_0_30px_rgba(0,0,0,0.8)] transition-all duration-500 hover:border-[var(--accent-primary)] hover:text-[var(--accent-primary)] hover:scale-110"
+                    className="flex h-10 w-10 md:h-16 md:w-16 items-center justify-center rounded-lg md:rounded-2xl border-[2px] md:border-[3px] bg-[#0c0c0e] text-[16px] md:text-[20px] font-[900] text-[var(--text-primary)] shadow-[0_0_20px_rgba(0,0,0,0.8)] transition-all duration-500 hover:border-[var(--accent-primary)] hover:text-[var(--accent-primary)] hover:scale-110"
                     style={{ borderColor: "var(--bg-border)" }}
                   >
                     {step.num}
@@ -777,14 +788,14 @@ function StylesSection() {
   return (
     <section
       id="styles"
-      className="bg-[var(--bg-surface)] py-24 md:py-32 relative overflow-hidden"
+      className="bg-[var(--bg-surface)] py-20 md:py-32 relative overflow-hidden"
     >
       <div className="absolute top-0 left-0 w-full h-[400px] bg-gradient-to-b from-[var(--bg-base)] to-transparent pointer-events-none opacity-50" />
 
       <div className="mx-auto max-w-6xl px-6 relative z-10">
-        <FadeIn className="mb-20 text-center">
+        <FadeIn className="mb-16 md:mb-20 text-center">
           <SectionLabel>{STYLES.label}</SectionLabel>
-          <h2 className="text-[42px] font-[900] leading-[1] tracking-[-0.03em] text-[var(--text-primary)] md:text-[72px]">
+          <h2 className="text-[32px] sm:text-[42px] md:text-[72px] font-[900] leading-[1.1] md:leading-[1] tracking-[-0.03em] text-[var(--text-primary)]">
             {STYLES.headlineLine1}
             <br />
             {STYLES.headlineLine2}
@@ -792,7 +803,7 @@ function StylesSection() {
             <span className="text-[var(--accent-primary)] relative inline-block">
               {STYLES.headlineAccent}
               <svg
-                className="absolute -bottom-2 left-0 w-full h-3 text-[var(--accent-primary)]/20"
+                className="absolute -bottom-1 md:-bottom-2 left-0 w-full h-2 md:h-3 text-[var(--accent-primary)]/20"
                 viewBox="0 0 100 10"
                 preserveAspectRatio="none"
               >
@@ -805,19 +816,19 @@ function StylesSection() {
               </svg>
             </span>
           </h2>
-          <p className="mx-auto mt-6 max-w-2xl text-[19px] font-medium text-[var(--text-secondary)]">
+          <p className="mx-auto mt-6 max-w-2xl text-[17px] md:text-[19px] font-medium text-[var(--text-secondary)]">
             {STYLES.subheadline}
           </p>
         </FadeIn>
 
-        <StaggerContainer className="grid gap-6 sm:grid-cols-2 lg:grid-cols-4">
+        <StaggerContainer className="grid gap-4 md:gap-6 sm:grid-cols-2 lg:grid-cols-4">
           {STYLES.visualStyles.slice(0, 4).map((s) => (
             <StyleCard key={s.name} style={s} />
           ))}
         </StaggerContainer>
         <StaggerContainer
           delay={0.2}
-          className="mt-6 grid gap-6 sm:grid-cols-3"
+          className="mt-4 md:mt-6 grid gap-4 md:gap-6 sm:grid-cols-2 lg:grid-cols-3"
         >
           {STYLES.visualStyles.slice(4).map((s) => (
             <StyleCard key={s.name} style={s} />
@@ -825,37 +836,37 @@ function StylesSection() {
         </StaggerContainer>
 
         {/* Subtitle styles */}
-        <div className="mt-24 border-t border-white/5 pt-24">
-          <FadeIn className="mb-16 text-center">
-            <div className="inline-flex h-14 w-14 items-center justify-center rounded-xl bg-white/[0.03] border border-white/5 mb-6 text-[var(--text-muted)]">
-              <Type className="h-7 w-7" />
+        <div className="mt-16 md:mt-24 border-t border-white/5 pt-16 md:pt-24">
+          <FadeIn className="mb-12 md:mb-16 text-center">
+            <div className="inline-flex h-12 w-12 md:h-14 md:w-14 items-center justify-center rounded-xl bg-white/[0.03] border border-white/5 mb-6 text-[var(--text-muted)]">
+              <Type className="h-6 w-6 md:h-7 md:w-7" />
             </div>
-            <h3 className="mb-4 text-[32px] font-[900] text-[var(--text-primary)] md:text-[48px] tracking-tight">
+            <h3 className="mb-4 text-[28px] sm:text-[36px] md:text-[48px] font-[900] text-[var(--text-primary)] tracking-tight leading-tight">
               Then choose how your words land.
             </h3>
-            <p className="mx-auto max-w-2xl text-[17px] font-medium text-[var(--text-secondary)] leading-relaxed">
+            <p className="mx-auto max-w-2xl text-[16px] md:text-[17px] font-medium text-[var(--text-secondary)] leading-relaxed">
               85% of short-form video is watched on mute. Subtitles aren&apos;t
               decoration — they&apos;re your voice.
             </p>
           </FadeIn>
 
-          <StaggerContainer className="grid gap-6 sm:grid-cols-2 lg:grid-cols-4">
+          <StaggerContainer className="grid gap-4 md:gap-6 sm:grid-cols-2 lg:grid-cols-4">
             {STYLES.subtitleStyles.map((s) => (
               <StaggerItem key={s.name}>
-                <div className="group h-full flex flex-col overflow-hidden rounded-[2rem] border border-white/5 bg-[var(--bg-elevated)] transition-all hover:border-white/10 hover:shadow-2xl hover:-translate-y-1">
+                <div className="group h-full flex flex-col overflow-hidden rounded-[1.5rem] md:rounded-[2rem] border border-white/5 bg-[var(--bg-elevated)] transition-all hover:border-white/10 hover:shadow-2xl hover:-translate-y-1">
                   <SubtitlePreview name={s.name} />
-                  <div className="p-7 flex-1 flex flex-col">
+                  <div className="p-6 md:p-7 flex-1 flex flex-col">
                     <div className="mb-3 flex flex-wrap items-center gap-2">
-                      <h4 className="text-[17px] font-black text-[var(--text-primary)] tracking-tight">
+                      <h4 className="text-[16px] md:text-[17px] font-black text-[var(--text-primary)] tracking-tight">
                         {s.name}
                       </h4>
                       <span
-                        className={`rounded-full border px-2.5 py-0.5 text-[9px] font-black uppercase tracking-wider ${BADGE_CLS[s.badgeVariant as keyof typeof BADGE_CLS]}`}
+                        className={`rounded-full border px-2.5 py-0.5 text-[8px] md:text-[9px] font-black uppercase tracking-wider ${BADGE_CLS[s.badgeVariant as keyof typeof BADGE_CLS]}`}
                       >
                         {s.badge}
                       </span>
                     </div>
-                    <p className="text-[14px] leading-relaxed text-[var(--text-secondary)] font-medium">
+                    <p className="text-[13px] md:text-[14px] leading-relaxed text-[var(--text-secondary)] font-medium">
                       {s.description}
                     </p>
                   </div>
@@ -899,7 +910,7 @@ function SubtitlePreview({ name }: { name: string }) {
       <div className="relative flex h-40 items-end bg-[#09090b] pb-6 relative overflow-hidden">
         <div className="absolute inset-0 bg-gradient-to-tr from-gray-900/40 to-slate-800/40 opacity-40" />
         <p className="relative w-full text-center text-[13px] font-bold text-white/70 group-hover:text-white transition-colors tracking-wide px-6">
-          "Building a brand that lasts a lifetime."
+          &quot;Building a brand that lasts a lifetime.&quot;
         </p>
       </div>
     ),
@@ -921,26 +932,26 @@ function SubtitlePreview({ name }: { name: string }) {
 
 function BeforeAfterSection() {
   return (
-    <section className="mx-auto max-w-6xl px-6 py-24 md:py-32">
+    <section className="mx-auto max-w-6xl px-6 py-20 md:py-32">
       <FadeIn>
-        <div className="overflow-hidden rounded-[2.5rem] border border-white/5 bg-[#0c0c0e] shadow-[0_40px_80px_rgba(0,0,0,0.5)]">
-          <div className="grid md:grid-cols-2 divide-x divide-white/5">
+        <div className="overflow-hidden rounded-[2rem] md:rounded-[2.5rem] border border-white/5 bg-[#0c0c0e] shadow-[0_40px_80px_rgba(0,0,0,0.5)]">
+          <div className="grid md:grid-cols-2 divide-y md:divide-y-0 md:divide-x divide-white/5">
             {/* Without */}
-            <div className="p-8 md:p-12 relative overflow-hidden group">
+            <div className="p-6 md:p-12 relative overflow-hidden group">
               <div className="absolute top-0 left-0 w-full h-1 bg-[var(--accent-danger)]/20" />
-              <div className="mb-10 flex items-center gap-4">
-                <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-[var(--accent-danger)]/10 border border-[var(--accent-danger)]/20 text-[var(--accent-danger)]">
-                  <XCircle className="h-5 w-5" />
+              <div className="mb-8 md:mb-10 flex items-center gap-4">
+                <div className="flex h-9 w-9 md:h-10 md:w-10 items-center justify-center rounded-xl bg-[var(--accent-danger)]/10 border border-[var(--accent-danger)]/20 text-[var(--accent-danger)]">
+                  <XCircle className="h-4 w-4 md:h-5 md:w-5" />
                 </div>
-                <p className="text-[13px] font-[1000] uppercase tracking-[0.2em] text-[var(--accent-danger)] opacity-80">
+                <p className="text-[12px] md:text-[13px] font-[1000] uppercase tracking-[0.2em] text-[var(--accent-danger)] opacity-80">
                   {COMPARISON.withoutLabel}
                 </p>
               </div>
-              <div className="space-y-5">
+              <div className="space-y-4 md:space-y-5">
                 {COMPARISON.without.map((item) => (
                   <div key={item} className="flex items-start gap-3 group/item">
                     <div className="mt-1.5 h-1 w-1 rounded-full bg-[var(--accent-danger)]/30 group-hover/item:bg-[var(--accent-danger)] transition-colors" />
-                    <span className="text-[15px] font-medium text-[var(--text-secondary)] opacity-60 leading-tight">
+                    <span className="text-[14px] md:text-[15px] font-medium text-[var(--text-secondary)] opacity-60 leading-tight">
                       {item}
                     </span>
                   </div>
@@ -949,7 +960,7 @@ function BeforeAfterSection() {
             </div>
 
             {/* With */}
-            <div className="relative p-8 md:p-12 overflow-hidden group">
+            <div className="relative p-6 md:p-12 overflow-hidden group">
               <div className="absolute top-0 left-0 w-full h-1 bg-[var(--accent-success)]/40" />
               <div
                 aria-hidden
@@ -959,22 +970,22 @@ function BeforeAfterSection() {
                 }}
               />
 
-              <div className="mb-10 flex items-center gap-4 relative z-10">
-                <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-[var(--accent-success)]/10 border border-[var(--accent-success)]/20 text-[var(--accent-success)] shadow-[0_0_20px_rgba(52,211,153,0.2)]">
-                  <CheckCircle className="h-5 w-5" />
+              <div className="mb-8 md:mb-10 flex items-center gap-4 relative z-10">
+                <div className="flex h-9 w-9 md:h-10 md:w-10 items-center justify-center rounded-xl bg-[var(--accent-success)]/10 border border-[var(--accent-success)]/20 text-[var(--accent-success)] shadow-[0_0_20px_rgba(52,211,153,0.2)]">
+                  <CheckCircle className="h-4 w-4 md:h-5 md:w-5" />
                 </div>
-                <p className="text-[13px] font-[1000] uppercase tracking-[0.2em] text-[var(--accent-success)]">
+                <p className="text-[12px] md:text-[13px] font-[1000] uppercase tracking-[0.2em] text-[var(--accent-success)]">
                   {COMPARISON.withLabel}
                 </p>
               </div>
 
-              <div className="space-y-5 relative z-10">
+              <div className="space-y-4 md:space-y-5 relative z-10">
                 {COMPARISON.with.map((item) => (
                   <div key={item} className="flex items-start gap-3 group/item">
                     <div className="mt-0.5 h-4 w-4 flex items-center justify-center rounded-full bg-[var(--accent-success)]/10 text-[var(--accent-success)] group-hover/item:scale-125 transition-transform">
-                      <Check className="w-2.5 h-2.5 stroke-[4px]" />
+                      <Check className="w-2 md:w-2.5 h-2 md:h-2.5 stroke-[4px]" />
                     </div>
-                    <span className="text-[15px] font-black text-[var(--text-primary)] leading-tight tracking-tight">
+                    <span className="text-[14px] md:text-[15px] font-black text-[var(--text-primary)] leading-tight tracking-tight">
                       {item}
                     </span>
                   </div>
@@ -987,9 +998,9 @@ function BeforeAfterSection() {
 
       <FadeIn
         delay={0.2}
-        className="mt-16 flex flex-col items-center gap-5 text-center"
+        className="mt-12 md:mt-16 flex flex-col items-center gap-5 text-center"
       >
-        <h3 className="text-[32px] font-[900] text-[var(--text-primary)] md:text-[48px] tracking-tight">
+        <h3 className="text-[28px] sm:text-[36px] md:text-[48px] font-[900] text-[var(--text-primary)] tracking-tight leading-tight">
           {COMPARISON.cta.headline}
         </h3>
         <PrimaryButton href={COMPARISON.cta.href} size="lg">
@@ -997,7 +1008,7 @@ function BeforeAfterSection() {
         </PrimaryButton>
         <div className="flex items-center gap-2 px-4 py-1.5 rounded-full bg-white/[0.03] border border-white/5">
           <Check className="w-3.5 h-3.5 text-[var(--accent-success)] stroke-[3px]" />
-          <p className="text-[12px] font-black uppercase tracking-wider text-[var(--text-muted)]">
+          <p className="text-[11px] md:text-[12px] font-black uppercase tracking-wider text-[var(--text-muted)]">
             {COMPARISON.cta.subtext}
           </p>
         </div>
@@ -1012,21 +1023,21 @@ function PricingSection() {
   return (
     <section
       id="pricing"
-      className="bg-[#09090b] py-24 md:py-32 border-y border-white/5 relative"
+      className="bg-[#09090b] py-20 md:py-32 border-y border-white/5 relative"
     >
       <div className="absolute top-0 left-1/2 -translate-x-1/2 w-full max-w-4xl h-px bg-gradient-to-r from-transparent via-[var(--accent-primary)]/30 to-transparent" />
 
       <div className="mx-auto max-w-6xl px-6 relative z-10">
-        <FadeIn className="mb-16 text-center">
+        <FadeIn className="mb-12 md:mb-16 text-center">
           <SectionLabel variant="warning">{PRICING.label}</SectionLabel>
-          <h2 className="mb-5 text-[46px] font-[1000] leading-none tracking-[-0.04em] text-[var(--text-primary)] md:text-[80px]">
+          <h2 className="mb-5 text-[36px] sm:text-[46px] font-[1000] leading-none tracking-[-0.04em] text-[var(--text-primary)] md:text-[80px]">
             <span className="text-transparent bg-clip-text bg-gradient-to-b from-[var(--accent-primary)] to-[var(--accent-primary)]/60">
               {PRICING.headlineLine1}
             </span>
             <br />
             {PRICING.headlineLine2}
           </h2>
-          <p className="text-[19px] font-medium text-[var(--text-secondary)] max-w-xl mx-auto">
+          <p className="text-[17px] md:text-[19px] font-medium text-[var(--text-secondary)] max-w-xl mx-auto">
             {PRICING.subheadline}
           </p>
         </FadeIn>
@@ -1034,18 +1045,18 @@ function PricingSection() {
         {/* Improved Urgency banner */}
         <FadeIn
           delay={0.2}
-          className="mx-auto mb-12 max-w-2xl overflow-hidden rounded-2xl border border-[var(--accent-warning)]/40 bg-gradient-to-r from-[#1c1c1a] via-[#2d2d14] to-[#1c1c1a] px-6 py-5 shadow-2xl relative group"
+          className="mx-auto mb-10 md:mb-12 max-w-2xl overflow-hidden rounded-2xl border border-[var(--accent-warning)]/40 bg-gradient-to-r from-[#1c1c1a] via-[#2d2d14] to-[#1c1c1a] px-5 py-4 md:px-6 md:py-5 shadow-2xl relative group"
         >
           <div className="absolute left-0 top-0 bottom-0 w-1 bg-[var(--accent-warning)] shadow-[0_0_20px_rgba(251,191,36,0.5)]" />
-          <div className="flex items-center gap-5">
-            <div className="rounded-xl bg-[var(--accent-warning)]/20 p-2.5 shrink-0 shadow-inner group-hover:scale-110 group-hover:rotate-6 transition-all duration-500">
-              <Zap className="h-6 w-6 text-[var(--accent-warning)] fill-current" />
+          <div className="flex items-center gap-4 md:gap-5">
+            <div className="rounded-xl bg-[var(--accent-warning)]/20 p-2 md:p-2.5 shrink-0 shadow-inner group-hover:scale-110 group-hover:rotate-6 transition-all duration-500">
+              <Zap className="h-5 w-5 md:h-6 md:w-6 text-[var(--accent-warning)] fill-current" />
             </div>
             <div>
-              <p className="text-[16px] font-[900] text-[var(--text-primary)] tracking-tight">
+              <p className="text-[14px] md:text-[16px] font-[900] text-[var(--text-primary)] tracking-tight">
                 {PRICING.urgencyBanner}
               </p>
-              <p className="mt-0.5 text-[12px] font-bold text-[var(--accent-warning)] opacity-80 uppercase tracking-widest">
+              <p className="mt-0.5 text-[10px] md:text-[12px] font-bold text-[var(--accent-warning)] opacity-80 uppercase tracking-widest">
                 {PRICING.urgencyNote}
               </p>
             </div>
@@ -1054,14 +1065,14 @@ function PricingSection() {
 
         <StaggerContainer
           delay={0.3}
-          className="grid gap-6 md:grid-cols-3 items-center"
+          className="grid gap-6 md:grid-cols-3 items-stretch"
         >
           {PRICING.plans.map((plan) => (
             <StaggerItem key={plan.name} className="h-full">
               <div
-                className={`relative h-full flex flex-col rounded-[2.5rem] p-8 md:p-10 transition-all duration-500 hover:-translate-y-2 ${
+                className={`relative h-full flex flex-col rounded-[2rem] md:rounded-[2.5rem] p-6 md:p-10 transition-all duration-500 hover:-translate-y-1 ${
                   plan.highlighted
-                    ? "border-[2px] bg-gradient-to-b from-[var(--bg-elevated)] to-[#09090b] scale-[1.02] z-10 shadow-[0_30px_60px_rgba(245,92,42,0.1)]"
+                    ? "border-[2px] bg-gradient-to-b from-[var(--bg-elevated)] to-[#09090b] md:scale-[1.02] z-10 md:shadow-[0_30px_60px_rgba(245,92,42,0.1)]"
                     : "border border-white/10 bg-[#0c0c0e] hover:bg-white/[0.04]"
                 }`}
                 style={
@@ -1072,7 +1083,7 @@ function PricingSection() {
               >
                 {plan.badge && (
                   <div
-                    className="absolute -top-4 left-1/2 -translate-x-1/2 rounded-full px-4 py-1.5 text-[11px] font-black uppercase tracking-[0.2em] text-white shadow-2xl"
+                    className="absolute -top-4 left-1/2 -translate-x-1/2 rounded-full px-4 py-1.5 text-[10px] md:text-[11px] font-black uppercase tracking-[0.2em] text-white shadow-2xl"
                     style={{ background: "var(--accent-primary)" }}
                   >
                     {plan.badge}
@@ -1080,32 +1091,32 @@ function PricingSection() {
                 )}
 
                 <p
-                  className={`mb-5 text-[12px] font-[1000] uppercase tracking-[0.2em] ${plan.nameStyle === "accent" ? "text-[var(--accent-primary)]" : "text-[var(--text-muted)]"}`}
+                  className={`mb-4 md:mb-5 text-[11px] md:text-[12px] font-[1000] uppercase tracking-[0.2em] ${plan.nameStyle === "accent" ? "text-[var(--accent-primary)]" : "text-[var(--text-muted)]"}`}
                 >
                   {plan.name}
                 </p>
 
                 <div className="mb-1 flex items-end gap-2">
-                  <span className="text-[54px] font-[1000] leading-none text-[var(--text-primary)] tracking-tighter">
+                  <span className="text-[44px] md:text-[54px] font-[1000] leading-none text-[var(--text-primary)] tracking-tighter">
                     {plan.price}
                   </span>
-                  <span className="mb-2 text-[14px] font-bold text-[var(--text-muted)]">
+                  <span className="mb-1.5 md:mb-2 text-[12px] md:text-[14px] font-bold text-[var(--text-muted)]">
                     {plan.period}
                   </span>
                 </div>
-                <p className="mb-8 text-[13px] font-bold text-[var(--text-muted)] h-5">
+                <p className="mb-6 md:mb-8 text-[12px] md:text-[13px] font-bold text-[var(--text-muted)] h-5">
                   {plan.subPrice}
                 </p>
 
-                <div className="mb-8 h-px bg-white/5" />
+                <div className="mb-6 md:mb-8 h-px bg-white/5" />
 
-                <ul className="mb-10 flex-1 space-y-4">
+                <ul className="mb-8 md:mb-10 flex-1 space-y-3 md:space-y-4">
                   {plan.features.map((f) => (
                     <li key={f} className="flex items-start gap-3 group/feat">
-                      <div className="mt-1 h-4 w-4 flex items-center justify-center rounded-full bg-[var(--accent-success)]/10 text-[var(--accent-success)] group-hover/feat:scale-125 transition-transform">
-                        <Check className="w-2.5 h-2.5 stroke-[3px]" />
+                      <div className="mt-1 h-3.5 w-3.5 md:h-4 md:w-4 flex items-center justify-center rounded-full bg-[var(--accent-success)]/10 text-[var(--accent-success)] group-hover/feat:scale-125 transition-transform">
+                        <Check className="w-2 md:w-2.5 h-2 md:h-2.5 stroke-[3px]" />
                       </div>
-                      <span className="text-[14px] font-black text-[var(--text-secondary)] tracking-tight group-hover/feat:text-[var(--text-primary)] transition-colors">
+                      <span className="text-[13px] md:text-[14px] font-black text-[var(--text-secondary)] tracking-tight group-hover/feat:text-[var(--text-primary)] transition-colors">
                         {f}
                       </span>
                     </li>
@@ -1114,7 +1125,7 @@ function PricingSection() {
 
                 <Link
                   href={plan.href}
-                  className={`block rounded-2xl py-4 text-center text-[14px] font-[1000] uppercase tracking-[0.1em] transition-all shadow-xl hover:shadow-2xl ${
+                  className={`block rounded-xl md:rounded-2xl py-3.5 md:py-4 text-center text-[12px] md:text-[14px] font-[1000] uppercase tracking-[0.1em] transition-all shadow-xl hover:shadow-2xl ${
                     plan.highlighted
                       ? "bg-[var(--accent-primary)] text-white hover:brightness-110"
                       : "bg-white/[0.03] border border-white/10 text-white hover:bg-white/[0.08]"
@@ -1127,7 +1138,7 @@ function PricingSection() {
           ))}
         </StaggerContainer>
 
-        <p className="mt-12 text-center text-[13px] font-black text-[var(--text-muted)] flex items-center justify-center gap-2.5 uppercase tracking-widest opacity-60">
+        <p className="mt-10 md:mt-12 text-center text-[12px] md:text-[13px] font-black text-[var(--text-muted)] flex items-center justify-center gap-2.5 uppercase tracking-widest opacity-60">
           <Film className="w-4 h-4 text-[var(--accent-primary)]" />{" "}
           {PRICING.footerNote}
         </p>
@@ -1140,11 +1151,11 @@ function PricingSection() {
 
 function FAQSection() {
   return (
-    <section id="faq" className="py-24 md:py-32">
+    <section id="faq" className="py-20 md:py-32">
       <div className="mx-auto max-w-4xl px-6">
-        <FadeIn className="mb-16 text-center">
+        <FadeIn className="mb-12 md:mb-16 text-center">
           <SectionLabel>{FAQ.label}</SectionLabel>
-          <h2 className="text-[40px] font-[900] tracking-[-0.03em] text-[var(--text-primary)] md:text-[64px]">
+          <h2 className="text-[32px] sm:text-[40px] md:text-[64px] font-[900] tracking-[-0.03em] text-[var(--text-primary)]">
             {FAQ.headline}
           </h2>
         </FadeIn>
@@ -1152,18 +1163,18 @@ function FAQSection() {
         <StaggerContainer className="space-y-4">
           {FAQ.items.map((item, i) => (
             <StaggerItem key={i}>
-              <details className="group rounded-2xl border border-white/5 bg-white/[0.01] transition-all hover:border-white/10 hover:bg-white/[0.03]">
-                <summary className="flex cursor-pointer list-none items-center justify-between gap-6 p-6 md:p-8 focus:outline-none">
-                  <span className="text-[17px] md:text-[19px] font-black text-[var(--text-primary)] tracking-tight leading-tight">
+              <details className="group rounded-xl md:rounded-2xl border border-white/5 bg-white/[0.01] transition-all hover:border-white/10 hover:bg-white/[0.03]">
+                <summary className="flex cursor-pointer list-none items-center justify-between gap-4 p-5 md:p-8 focus:outline-none">
+                  <span className="text-[15px] md:text-[19px] font-black text-[var(--text-primary)] tracking-tight leading-tight">
                     {item.question}
                   </span>
-                  <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border border-white/5 bg-[#09090b] group-open:bg-[var(--accent-primary)] group-open:border-[var(--accent-primary)] transition-all duration-500 shadow-xl">
-                    <ChevronDown className="h-5 w-5 text-[var(--text-muted)] group-open:text-white transition-transform duration-500 group-open:rotate-180" />
+                  <div className="flex h-9 w-9 md:h-10 md:w-10 shrink-0 items-center justify-center rounded-lg md:rounded-xl border border-white/5 bg-[#09090b] group-open:bg-[var(--accent-primary)] group-open:border-[var(--accent-primary)] transition-all duration-500 shadow-xl">
+                    <ChevronDown className="h-4 w-4 md:h-5 md:w-5 text-[var(--text-muted)] group-open:text-white transition-transform duration-500 group-open:rotate-180" />
                   </div>
                 </summary>
-                <div className="px-6 pb-6 md:px-8 md:pb-8">
+                <div className="px-5 pb-5 md:px-8 md:pb-8">
                   <div className="h-px w-full bg-white/5 mb-5" />
-                  <p className="text-[15px] md:text-[17px] leading-relaxed text-[var(--text-secondary)] font-medium max-w-3xl">
+                  <p className="text-[14px] md:text-[17px] leading-relaxed text-[var(--text-secondary)] font-medium max-w-3xl">
                     {item.answer}
                   </p>
                 </div>
@@ -1180,7 +1191,7 @@ function FAQSection() {
 
 function FinalCTASection() {
   return (
-    <section className="relative overflow-hidden bg-[#09090b] py-32 md:py-48 border-t border-white/5">
+    <section className="relative overflow-hidden bg-[#09090b] py-20 md:py-48 border-t border-white/5">
       {/* Dynamic Background */}
       <div className="absolute inset-0 z-0 pointer-events-none">
         <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[800px] h-[500px] bg-[var(--accent-primary)] opacity-[0.07] blur-[120px] rounded-full" />
@@ -1189,17 +1200,17 @@ function FinalCTASection() {
 
       <div className="relative z-10 mx-auto max-w-4xl px-6 text-center">
         <FadeIn>
-          <div className="inline-flex h-20 w-20 items-center justify-center rounded-2xl bg-gradient-to-br from-[var(--accent-primary)] to-[var(--accent-secondary)] mb-10 shadow-[0_20px_50px_rgba(245,92,42,0.3)] rotate-3">
-            <Rocket className="h-10 w-10 text-white" />
+          <div className="inline-flex h-16 w-16 md:h-20 md:w-20 items-center justify-center rounded-xl md:rounded-2xl bg-gradient-to-br from-[var(--accent-primary)] to-[var(--accent-secondary)] mb-8 md:mb-10 shadow-[0_20px_50px_rgba(245,92,42,0.3)] rotate-3">
+            <Rocket className="h-8 w-8 md:h-10 md:w-10 text-white" />
           </div>
-          <h2 className="mb-8 text-[48px] font-[1000] leading-[0.95] tracking-[-0.04em] text-[var(--text-primary)] md:text-[84px] lg:text-[96px]">
+          <h2 className="mb-6 md:mb-8 text-[36px] sm:text-[48px] md:text-[84px] lg:text-[96px] font-[1000] leading-[1] md:leading-[0.95] tracking-[-0.04em] text-[var(--text-primary)]">
             {FINAL_CTA.headlineLine1}
             <br />
             {FINAL_CTA.headlineLine2}{" "}
             <span className="text-transparent bg-clip-text bg-gradient-to-r from-[var(--accent-primary)] to-[var(--accent-secondary)] relative inline-block italic">
               {FINAL_CTA.headlineAccent}
               <svg
-                className="absolute -bottom-1 left-0 w-full h-3 text-[var(--accent-primary)]/30"
+                className="absolute -bottom-1 left-0 w-full h-2 md:h-3 text-[var(--accent-primary)]/30"
                 viewBox="0 0 100 10"
                 preserveAspectRatio="none"
               >
@@ -1217,31 +1228,31 @@ function FinalCTASection() {
         </FadeIn>
 
         <FadeIn delay={0.2}>
-          <div className="mx-auto mb-12 max-w-xl space-y-3">
+          <div className="mx-auto mb-10 md:mb-12 max-w-xl space-y-2 md:space-y-3">
             {FINAL_CTA.body.map((line, i) => (
               <p
                 key={i}
-                className="text-[18px] md:text-[22px] font-black text-[var(--text-secondary)] tracking-tight leading-tight uppercase italic opacity-80"
+                className="text-[15px] md:text-[22px] font-black text-[var(--text-secondary)] tracking-tight leading-tight uppercase italic opacity-80"
               >
                 {line}
               </p>
             ))}
           </div>
           <div className="flex flex-col items-center gap-6">
-            <div className="group relative">
+            <div className="group relative w-full sm:w-auto">
               <div className="absolute -inset-1 rounded-full bg-gradient-to-r from-[var(--accent-primary)] to-[var(--accent-secondary)] blur opacity-40 group-hover:opacity-100 transition duration-1000 group-hover:duration-200" />
               <PrimaryButton
                 href={FINAL_CTA.cta.href}
                 size="lg"
-                className="px-12 py-6 text-[18px] relative"
+                className="w-full sm:w-auto px-10 md:px-12 py-5 md:py-6 text-[16px] md:text-[18px] relative justify-center"
               >
                 {FINAL_CTA.cta.label}
               </PrimaryButton>
             </div>
 
-            <div className="flex items-center gap-2 px-5 py-2 rounded-full bg-white/[0.03] border border-white/5 backdrop-blur-md">
-              <ShieldCheck className="w-4 h-4 text-[var(--accent-success)]" />
-              <p className="text-[12px] font-black uppercase tracking-widest text-[var(--text-muted)]">
+            <div className="flex items-center gap-2 px-4 md:px-5 py-1.5 md:py-2 rounded-full bg-white/[0.03] border border-white/5 backdrop-blur-md">
+              <ShieldCheck className="w-3.5 h-3.5 md:w-4 md:h-4 text-[var(--accent-success)]" />
+              <p className="text-[10px] md:text-[12px] font-black uppercase tracking-widest text-[var(--text-muted)]">
                 {FINAL_CTA.cta.subtext}
               </p>
             </div>

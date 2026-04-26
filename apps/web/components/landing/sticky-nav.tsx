@@ -2,11 +2,12 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
-import { Play } from "lucide-react";
+import { Play, Menu, X } from "lucide-react";
 import { NAV_LINKS, NAV_CTA, SITE } from "@/lib/content";
 
 export function StickyNav() {
   const [scrolled, setScrolled] = useState(false);
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
   useEffect(() => {
     const handler = () => setScrolled(window.scrollY > 60);
@@ -15,54 +16,92 @@ export function StickyNav() {
   }, []);
 
   return (
-    <nav
-      className={`fixed top-0 z-50 w-full transition-all duration-500 ${
-        scrolled
-          ? "border-b border-white/5 bg-[var(--bg-base)]/80 backdrop-blur-xl py-3"
-          : "bg-transparent py-5"
-      }`}
-    >
-      <div className="mx-auto flex max-w-6xl items-center justify-between px-6">
-        {/* Logo */}
-        <Link href="/" className="group flex items-center gap-3">
-          <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-[var(--accent-primary)] shadow-[0_0_20px_rgba(245,92,42,0.3)] transition-transform group-hover:rotate-12">
-            <Play className="h-5 w-5 fill-white text-white translate-x-0.5" />
+    <>
+      <nav
+        className={`fixed top-0 z-50 w-full transition-all duration-500 ${
+          scrolled || mobileMenuOpen
+            ? "border-b border-white/5 bg-[var(--bg-base)]/90 backdrop-blur-xl py-3"
+            : "bg-transparent py-5"
+        }`}
+      >
+        <div className="mx-auto flex max-w-6xl items-center justify-between px-6">
+          {/* Logo */}
+          <Link href="/" className="group flex items-center gap-3 relative z-50">
+            <div className="flex h-9 w-9 md:h-10 md:w-10 items-center justify-center rounded-lg md:rounded-xl bg-[var(--accent-primary)] shadow-[0_0_20px_rgba(245,92,42,0.3)] transition-transform group-hover:rotate-12">
+              <Play className="h-4 w-4 md:h-5 md:w-5 fill-white text-white translate-x-0.5" />
+            </div>
+            <span className="text-[18px] md:text-[20px] font-black tracking-tighter text-[var(--text-primary)]">
+              {SITE.name}
+            </span>
+          </Link>
+
+          {/* Center links — desktop only */}
+          <div className="hidden items-center gap-8 lg:gap-10 md:flex">
+            {NAV_LINKS.map((link) => (
+              <a
+                key={link.label}
+                href={link.href}
+                className="text-[12px] lg:text-[13px] font-black uppercase tracking-widest text-[var(--text-secondary)] transition-all hover:text-[var(--accent-primary)] hover:tracking-[0.2em]"
+              >
+                {link.label}
+              </a>
+            ))}
           </div>
-          <span className="text-[20px] font-black tracking-tighter text-[var(--text-primary)]">
-            {SITE.name}
-          </span>
-        </Link>
 
-        {/* Center links — desktop only */}
-        <div className="hidden items-center gap-10 md:flex">
-          {NAV_LINKS.map((link) => (
-            <a
-              key={link.label}
-              href={link.href}
-              className="text-[13px] font-black uppercase tracking-widest text-[var(--text-secondary)] transition-all hover:text-[var(--accent-primary)] hover:tracking-[0.2em]"
+          {/* Right actions */}
+          <div className="flex items-center gap-4 md:gap-6 relative z-50">
+            <Link
+              href="/sign-in"
+              className="hidden text-[12px] lg:text-[13px] font-black uppercase tracking-widest text-[var(--text-secondary)] transition-colors hover:text-[var(--text-primary)] sm:block"
             >
-              {link.label}
-            </a>
-          ))}
+              {NAV_CTA.signIn}
+            </Link>
+            <Link
+              href={NAV_CTA.primary.href}
+              className="group relative inline-flex items-center justify-center overflow-hidden rounded-full bg-[var(--accent-primary)] px-5 py-2 md:px-6 md:py-2.5 text-[11px] md:text-[13px] font-black uppercase tracking-widest text-white transition-all hover:scale-105 active:scale-95 hover:shadow-[0_0_30px_rgba(245,92,42,0.4)]"
+            >
+              <span className="relative z-10">{NAV_CTA.primary.label}</span>
+              <div className="absolute inset-0 z-0 bg-gradient-to-r from-white/0 via-white/20 to-white/0 -translate-x-full group-hover:animate-[shimmer_1.5s_infinite]" />
+            </Link>
+
+            {/* Mobile menu toggle */}
+            <button
+              onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
+              className="flex h-9 w-9 items-center justify-center rounded-lg bg-white/[0.03] border border-white/10 text-[var(--text-primary)] md:hidden"
+            >
+              {mobileMenuOpen ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
+            </button>
+          </div>
         </div>
 
-        {/* Right actions */}
-        <div className="flex items-center gap-6">
-          <Link
-            href="/sign-in"
-            className="hidden text-[13px] font-black uppercase tracking-widest text-[var(--text-secondary)] transition-colors hover:text-[var(--text-primary)] sm:block"
-          >
-            {NAV_CTA.signIn}
-          </Link>
-          <Link
-            href={NAV_CTA.primary.href}
-            className="group relative inline-flex items-center justify-center overflow-hidden rounded-full bg-[var(--accent-primary)] px-6 py-2.5 text-[13px] font-black uppercase tracking-widest text-white transition-all hover:scale-105 active:scale-95 hover:shadow-[0_0_30px_rgba(245,92,42,0.4)]"
-          >
-            <span className="relative z-10">{NAV_CTA.primary.label}</span>
-            <div className="absolute inset-0 z-0 bg-gradient-to-r from-white/0 via-white/20 to-white/0 -translate-x-full group-hover:animate-[shimmer_1.5s_infinite]" />
-          </Link>
+        {/* Mobile menu overlay */}
+        <div
+          className={`fixed inset-0 top-0 z-40 bg-[var(--bg-base)] transition-all duration-500 md:hidden ${
+            mobileMenuOpen ? "translate-y-0 opacity-100" : "-translate-y-full opacity-0"
+          }`}
+        >
+          <div className="flex h-full flex-col items-center justify-center gap-8 px-6 pt-20">
+            {NAV_LINKS.map((link) => (
+              <a
+                key={link.label}
+                href={link.href}
+                onClick={() => setMobileMenuOpen(false)}
+                className="text-[20px] font-black uppercase tracking-[0.2em] text-[var(--text-primary)] transition-all hover:text-[var(--accent-primary)]"
+              >
+                {link.label}
+              </a>
+            ))}
+            <div className="h-px w-20 bg-white/10" />
+            <Link
+              href="/sign-in"
+              onClick={() => setMobileMenuOpen(false)}
+              className="text-[16px] font-black uppercase tracking-[0.2em] text-[var(--text-secondary)]"
+            >
+              {NAV_CTA.signIn}
+            </Link>
+          </div>
         </div>
-      </div>
-    </nav>
+      </nav>
+    </>
   );
 }
