@@ -210,7 +210,7 @@ Tasks are ordered by dependency. Each phase can largely begin after the previous
 
 ### 4.1 Landing Page
 
-- [x] Build landing page (`app/page.tsx`) — public route
+- [x] Build landing page (`app/page.tsx`) — public route (Polished v2)
 - [x] Implement navbar with sign-in / get-started buttons
 - [x] Implement Hero section with CTA
 - [x] Implement "How It Works" section (5-step flow)
@@ -220,7 +220,7 @@ Tasks are ordered by dependency. Each phase can largely begin after the previous
 - [x] Implement FAQ accordion
 - [x] Implement final CTA section
 - [x] Implement footer
-- [ ] Ensure fully responsive (mobile, tablet, desktop)
+- [x] Ensure fully responsive (mobile, tablet, desktop)
 
 ### 4.2 Onboarding Modal
 

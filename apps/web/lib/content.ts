@@ -177,7 +177,8 @@ export const PIPELINE = {
   label: "The ReelForge Pipeline",
   headlineLine1: "One idea in.",
   headlineLine2: "Finished video out.",
-  subheadline: "Seven steps. Under 10 minutes of your attention. The rest is automated.",
+  subheadline:
+    "Seven steps. Under 10 minutes of your attention. The rest is automated.",
   steps: [
     {
       num: "01",
@@ -384,7 +385,8 @@ export const PRICING = {
   label: "Founding Member Pricing",
   headlineLine1: "Start for $5.",
   headlineLine2: "Scale when you're ready.",
-  subheadline: "Try the full pipeline with 3 video credits. See a finished video. Then decide.",
+  subheadline:
+    "Try the full pipeline with 3 video credits. See a finished video. Then decide.",
   urgencyBanner:
     "Founding member pricing — subscription rates are locked in for the life of your account when you join during launch.",
   urgencyNote: "Rates increase after launch period.",
@@ -453,7 +455,8 @@ export const FAQ = {
   headline: "Honest answers.",
   items: [
     {
-      question: "How is this different from just using ChatGPT and ElevenLabs myself?",
+      question:
+        "How is this different from just using ChatGPT and ElevenLabs myself?",
       answer:
         "You could assemble those tools yourself — and you'd spend your time doing it. You'd write prompts for each scene, generate images one by one, feed them into a video tool, manually line up the audio, burn the subtitles, export, and repeat. For every video. ReelForge isn't a collection of AI tools — it's a production pipeline. The orchestration, the scene direction, the timing sync, the FFmpeg assembly — that's the product. The AI tools are the ingredients. ReelForge is the kitchen.",
     },
@@ -493,9 +496,9 @@ export const FAQ = {
 // ─── Final CTA ────────────────────────────────────────────────────────────────
 
 export const FINAL_CTA = {
-  headlineLine1: "The creators winning",
-  headlineLine2: "tomorrow started",
-  headlineAccent: "automating",
+  headlineLine1: "Tomorrow’s",
+  headlineLine2: "winners",
+  headlineAccent: "automated",
   headlineLine3: "yesterday.",
   body: [
     "Your ideas deserve to exist at scale.",

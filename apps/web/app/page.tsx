@@ -17,8 +17,30 @@ import {
   CheckCircle,
   XCircle,
   Play,
+  Lightbulb,
+  Bot,
+  Mic,
+  Image as ImageIcon,
+  Palette,
+  Type,
+  Rocket,
+  Check,
+  Trophy,
+  Activity,
+  PlayCircle,
+  Cpu,
+  ShieldCheck,
+  MousePointer2,
+  Sparkles,
+  ZapIcon,
 } from "lucide-react";
 import { StickyNav } from "@/components/landing/sticky-nav";
+import {
+  FadeIn,
+  ScaleIn,
+  StaggerContainer,
+  StaggerItem,
+} from "@/components/landing/animate";
 import {
   HERO,
   SHOWCASE,
@@ -36,7 +58,6 @@ import {
 } from "@/lib/content";
 
 // ─── rgba shorthand for the new orange primary ─────────────────────────────
-// #f55c2a = rgb(245, 92, 42)
 const O = (a: number) => `rgba(245,92,42,${a})`;
 
 export default async function RootPage() {
@@ -44,11 +65,14 @@ export default async function RootPage() {
   if (userId) redirect("/dashboard");
 
   return (
-    <div className="min-h-screen overflow-x-hidden bg-[var(--bg-base)] text-[var(--text-primary)]">
+    <div className="min-h-screen overflow-x-hidden bg-[var(--bg-base)] text-[var(--text-primary)] selection:bg-[var(--accent-primary)] selection:text-white">
       <StickyNav />
       <HeroSection />
+
+      {/* Reordered Showcase right after Hero */}
       <ShowcaseSection />
-      <ProofStrip />
+
+      {/* <ProofStrip /> */}
       <ProblemSection />
       <SolutionReveal />
       <PipelineSection />
@@ -78,12 +102,18 @@ function SectionLabel({
         ? "text-[var(--accent-warning)]"
         : "text-[var(--text-muted)]";
   return (
-    <div className="mb-5 flex flex-col items-center gap-3">
-      <p className={`text-[11px] font-semibold uppercase tracking-[0.16em] ${color}`}>
-        {children}
-      </p>
-      <div className="h-px w-8 bg-[var(--accent-primary)]" />
-    </div>
+    <FadeIn className="mb-6 flex flex-col items-center gap-3">
+      <div className="flex items-center gap-2">
+        <Sparkles className={`w-3 h-3 ${color}`} />
+        <p
+          className={`text-[12px] font-bold uppercase tracking-[0.2em] ${color}`}
+        >
+          {children}
+        </p>
+        <Sparkles className={`w-3 h-3 ${color}`} />
+      </div>
+      <div className="h-[2px] w-12 bg-gradient-to-r from-transparent via-[var(--accent-primary)] to-transparent" />
+    </FadeIn>
   );
 }
 
@@ -98,14 +128,19 @@ function PrimaryButton({
   size?: "sm" | "md" | "lg";
   className?: string;
 }) {
-  const sz = { sm: "px-5 py-2.5 text-sm", md: "px-7 py-3.5 text-sm", lg: "px-9 py-4 text-[15px]" };
+  const sz = {
+    sm: "px-5 py-2.5 text-sm",
+    md: "px-7 py-3.5 text-sm",
+    lg: "px-10 py-5 text-[16px]",
+  };
   return (
     <Link
       href={href}
-      className={`group inline-flex items-center gap-2 rounded-full bg-[var(--accent-primary)] font-bold text-white transition-all hover:opacity-90 hover:shadow-[0_0_36px_${O(0.45)}] ${sz[size]} ${className}`}
+      className={`group relative inline-flex items-center gap-2 overflow-hidden rounded-full bg-[var(--accent-primary)] font-bold text-white transition-all hover:scale-105 active:scale-95 hover:shadow-[0_0_40px_${O(0.5)}] ${sz[size]} ${className}`}
     >
-      {children}
-      <ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-1" />
+      <span className="relative z-10">{children}</span>
+      <ArrowRight className="relative z-10 h-4 w-4 transition-transform group-hover:translate-x-1" />
+      <div className="absolute inset-0 z-0 bg-gradient-to-r from-white/0 via-white/20 to-white/0 -translate-x-full group-hover:animate-[shimmer_1.5s_infinite]" />
     </Link>
   );
 }
@@ -114,230 +149,198 @@ function PrimaryButton({
 
 function HeroSection() {
   return (
-    <section className="relative flex min-h-screen flex-col items-center justify-start overflow-hidden pt-36 pb-20">
-      {/* Ambient glow — warm, not neon */}
-      <div
-        aria-hidden
-        className="pointer-events-none absolute inset-0"
-        style={{
-          background: `radial-gradient(ellipse 700px 420px at 50% 30%, ${O(0.08)}, transparent)`,
-        }}
-      />
-      {/* Subtle grain overlay for texture */}
-      <div
-        aria-hidden
-        className="pointer-events-none absolute inset-0 opacity-[0.025]"
-        style={{
-          backgroundImage:
-            "url(\"data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)'/%3E%3C/svg%3E\")",
-          backgroundSize: "200px 200px",
-        }}
-      />
+    <section className="relative flex min-h-[90vh] flex-col items-center justify-start overflow-hidden pt-40 pb-20">
+      {/* Background elements */}
+      <div className="absolute top-0 left-1/2 -translate-x-1/2 w-[1000px] h-[600px] pointer-events-none z-0">
+        <div
+          className="absolute inset-0 rounded-full blur-[120px] opacity-20"
+          style={{
+            background: `radial-gradient(circle, ${O(1)} 0%, transparent 70%)`,
+          }}
+        />
+      </div>
 
-      <div className="relative mx-auto max-w-4xl px-6 text-center">
-        {/* Eyebrow */}
-        <div className="mb-8 inline-flex items-center gap-2.5 rounded-full border border-[var(--accent-primary)]/20 bg-[var(--accent-primary)]/[0.07] px-4 py-1.5">
-          <span className="h-1.5 w-1.5 rounded-full bg-[var(--accent-primary)]" />
-          <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-[var(--accent-primary)]">
-            {HERO.eyebrow}
-          </p>
-        </div>
-
-        {/* Headline */}
-        <h1 className="mb-7 text-[62px] font-black leading-[0.93] tracking-[-0.03em] text-[var(--text-primary)] md:text-[90px]">
-          {HERO.headlineLine1}
-          <br />
-          <span className="relative inline-block">
-            {HERO.headlineLine2}
-            <svg
-              aria-hidden
-              className="absolute -bottom-2 left-0 w-full"
-              height="6"
-              viewBox="0 0 400 6"
-              preserveAspectRatio="none"
-              fill="none"
-            >
-              <path
-                d="M0 4 C80 1, 160 5.5, 240 3 C320 0.5, 370 5, 400 3"
-                stroke="var(--accent-primary)"
-                strokeWidth="2"
-                strokeLinecap="round"
-                opacity="0.7"
-              />
-            </svg>
-          </span>
-        </h1>
-
-        {/* Sub */}
-        <p className="mx-auto mb-10 max-w-[520px] text-[17px] leading-[1.65] text-[var(--text-secondary)] md:text-[19px]">
-          {HERO.subheadline}
-        </p>
-
-        {/* CTAs */}
-        <div className="flex flex-col items-center gap-4 sm:flex-row sm:justify-center">
-          <div className="flex flex-col items-center gap-2.5">
-            <PrimaryButton href={HERO.primaryCta.href} size="lg">
-              {HERO.primaryCta.label}
-            </PrimaryButton>
-            <p className="text-[11px] text-[var(--text-muted)]">{HERO.primaryCta.subtext}</p>
+      <div className="relative z-10 mx-auto max-w-5xl px-6 text-center">
+        <FadeIn delay={0.1}>
+          <div className="mb-10 inline-flex items-center gap-3 rounded-full border border-white/10 bg-white/[0.03] px-5 py-2 backdrop-blur-md shadow-2xl">
+            <div className="flex h-2 w-2 relative">
+              <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-[var(--accent-primary)] opacity-75"></span>
+              <span className="relative inline-flex rounded-full h-2 w-2 bg-[var(--accent-primary)]"></span>
+            </div>
+            <p className="text-[12px] font-bold uppercase tracking-[0.1em] text-[var(--text-primary)]">
+              {HERO.eyebrow}
+            </p>
           </div>
-          <button className="flex items-center gap-2 rounded-full border border-white/[0.08] px-6 py-4 text-[14px] text-[var(--text-secondary)] transition-all hover:border-white/20 hover:text-[var(--text-primary)]">
-            <Play className="h-3.5 w-3.5 fill-[var(--accent-primary)] text-[var(--accent-primary)]" />
-            {HERO.secondaryCta.label}
-          </button>
-        </div>
+        </FadeIn>
 
-        {/* Social proof */}
-        <div className="mt-12 flex flex-col items-center gap-2.5">
-          <div className="flex items-center gap-3">
-            <div className="flex -space-x-2">
-              {["#f55c2a", "#4a90e2", "#34d399", "#fbbf24", "#f87171"].map((c, i) => (
-                <div
-                  key={i}
-                  className="h-7 w-7 rounded-full border-2 border-[var(--bg-base)]"
-                  style={{ backgroundColor: c }}
+        <FadeIn delay={0.2}>
+          <h1 className="mb-8 text-[64px] font-[900] leading-[0.9] tracking-[-0.04em] text-[var(--text-primary)] md:text-[100px] lg:text-[110px]">
+            {HERO.headlineLine1}
+            <br />
+            <span className="pb-4 text-transparent bg-clip-text bg-gradient-to-b from-[var(--text-primary)] to-[var(--text-primary)]/50 relative inline-block">
+              {HERO.headlineLine2}
+              <svg
+                aria-hidden
+                className="absolute -bottom-4 left-0 w-full opacity-40"
+                height="12"
+                viewBox="0 0 400 12"
+                preserveAspectRatio="none"
+                fill="none"
+              >
+                <path
+                  d="M0 8 C100 2, 200 12, 400 8"
+                  stroke="var(--accent-primary)"
+                  strokeWidth="4"
+                  strokeLinecap="round"
                 />
-              ))}
+              </svg>
+            </span>
+          </h1>
+        </FadeIn>
+
+        <FadeIn delay={0.3}>
+          <p className="mx-auto mb-12 max-w-[640px] text-[18px] leading-[1.6] text-[var(--text-secondary)] md:text-[21px]">
+            {HERO.subheadline}
+          </p>
+        </FadeIn>
+
+        <FadeIn delay={0.4}>
+          <div className="flex flex-col items-center gap-6 sm:flex-row sm:justify-center">
+            <div className="flex flex-col items-center gap-3">
+              <PrimaryButton href={HERO.primaryCta.href} size="lg">
+                {HERO.primaryCta.label}
+              </PrimaryButton>
+              <div className="flex items-center gap-1.5 px-3 py-1 rounded-full bg-white/[0.03] border border-white/5">
+                <ShieldCheck className="w-3.5 h-3.5 text-[var(--accent-success)]" />
+                <p className="text-[12px] text-[var(--text-muted)] font-medium">
+                  {HERO.primaryCta.subtext}
+                </p>
+              </div>
             </div>
-            <div>
-              <div className="text-[11px] text-[var(--accent-warning)]">★★★★★</div>
-              <p className="text-[11px] text-[var(--text-muted)]">{HERO.proof.rating}</p>
+            {/* <button className="flex items-center gap-3 rounded-full border border-white/10 bg-white/[0.02] px-8 py-5 text-[15px] font-bold text-[var(--text-primary)] transition-all hover:border-white/20 hover:bg-white/[0.05]">
+              <div className="flex h-6 w-6 items-center justify-center rounded-full bg-[var(--accent-primary)]/10">
+                <Play className="h-3 w-3 fill-[var(--accent-primary)] text-[var(--accent-primary)] translate-x-0.5" />
+              </div>
+              {HERO.secondaryCta.label}
+            </button> */}
+          </div>
+        </FadeIn>
+
+        <FadeIn delay={0.5}>
+          <div className="mt-8 flex flex-col items-center gap-4">
+            <div className="flex items-center gap-4 px-6 py-3 rounded-2xl bg-white/[0.02] border border-white/5 backdrop-blur-sm">
+              <div className="flex -space-x-3">
+                {[1, 2, 3, 4, 5].map((i) => (
+                  <div
+                    key={i}
+                    className="h-9 w-9 rounded-full border-2 border-[var(--bg-base)] bg-[var(--bg-elevated)] overflow-hidden"
+                  >
+                    <img
+                      src={`https://api.dicebear.com/7.x/avataaars/svg?seed=${i + 10}`}
+                      alt="user"
+                    />
+                  </div>
+                ))}
+              </div>
+              <div className="h-8 w-px bg-white/10" />
+              <div className="text-left">
+                <div className="flex items-center gap-1 text-[var(--accent-warning)]">
+                  <Star className="h-3.5 w-3.5 fill-current" />
+                  <Star className="h-3.5 w-3.5 fill-current" />
+                  <Star className="h-3.5 w-3.5 fill-current" />
+                  <Star className="h-3.5 w-3.5 fill-current" />
+                  <Star className="h-3.5 w-3.5 fill-current" />
+                  <span className="ml-1 text-[13px] font-black text-[var(--text-primary)]">
+                    5.0
+                  </span>
+                </div>
+                <p className="text-[12px] text-[var(--text-secondary)] font-medium">
+                  {HERO.proof.text}
+                </p>
+              </div>
             </div>
           </div>
-          <p className="text-[12px] text-[var(--text-muted)]">{HERO.proof.text}</p>
-        </div>
+        </FadeIn>
       </div>
 
-      {/* Scene review mockup */}
-      <div className="relative mx-auto mt-16 w-full max-w-5xl px-6">
-        <div
-          aria-hidden
-          className="pointer-events-none absolute -left-24 top-1/2 h-72 w-72 -translate-y-1/2 rounded-full blur-3xl"
-          style={{ background: O(0.06) }}
-        />
-        <div
-          aria-hidden
-          className="pointer-events-none absolute -right-24 top-1/2 h-72 w-72 -translate-y-1/2 rounded-full blur-3xl"
-          style={{ background: "rgba(74,144,226,0.06)" }}
-        />
-        <div
-          className="relative overflow-hidden rounded-2xl border border-white/[0.05] shadow-[0_32px_80px_rgba(0,0,0,0.7)]"
-          style={{ transform: "perspective(1200px) rotateX(1.5deg)" }}
-        >
-          <SceneReviewMockup />
-        </div>
-      </div>
-
-      <a
-        href="#showcase"
-        className="mt-14 flex animate-bounce flex-col items-center text-[var(--text-muted)] transition-colors hover:text-[var(--text-secondary)]"
+      <ScaleIn
+        delay={0.7}
+        className="relative mx-auto mt-24 w-full max-w-6xl px-6"
       >
-        <ChevronDown className="h-5 w-5" />
-      </a>
+        <div className="absolute -inset-1 rounded-[2.5rem] bg-gradient-to-b from-[var(--accent-primary)]/20 to-transparent blur-md -z-10" />
+        <div className="relative overflow-hidden rounded-[2rem] border-2 border-white/10 shadow-[0_40px_100px_rgba(0,0,0,0.8)] bg-[#0c0c0e]"></div>
+      </ScaleIn>
     </section>
-  );
-}
-
-function SceneReviewMockup() {
-  const scenes = [
-    { label: "Hook opening", g: "from-slate-900 to-blue-950" },
-    { label: "Problem reveal", g: "from-stone-900 to-orange-950" },
-    { label: "Data point", g: "from-zinc-900 to-indigo-950" },
-    { label: "Solution intro", g: "from-neutral-900 to-teal-950" },
-    { label: "Feature beat", g: "from-gray-900 to-violet-950" },
-    { label: "Social proof", g: "from-slate-900 to-emerald-950" },
-    { label: "CTA lead-in", g: "from-stone-900 to-amber-950" },
-    { label: "Closing frame", g: "from-zinc-900 to-cyan-950" },
-  ];
-  return (
-    <div className="bg-[var(--bg-surface)] p-5">
-      {/* Chrome bar */}
-      <div className="mb-4 flex items-center justify-between">
-        <div className="flex items-center gap-1.5">
-          <div className="h-2.5 w-2.5 rounded-full bg-[var(--accent-danger)] opacity-50" />
-          <div className="h-2.5 w-2.5 rounded-full bg-[var(--accent-warning)] opacity-50" />
-          <div className="h-2.5 w-2.5 rounded-full bg-[var(--accent-success)] opacity-50" />
-        </div>
-        <div className="flex items-center gap-1">
-          {["Idea", "Script", "Voice", "Scenes", "Style", "Submit"].map((s, i) => (
-            <div
-              key={s}
-              className={`flex h-5 items-center rounded px-2 text-[9px] font-semibold ${
-                i === 3
-                  ? "bg-[var(--accent-primary)] text-white"
-                  : i < 3
-                    ? "bg-[var(--accent-success)]/15 text-[var(--accent-success)]"
-                    : "bg-[var(--bg-elevated)] text-[var(--text-muted)]"
-              }`}
-            >
-              {i < 3 ? "✓" : s}
-            </div>
-          ))}
-        </div>
-        <div
-          className="rounded-full px-3 py-1 text-[10px] font-bold text-white"
-          style={{ background: "var(--accent-primary)" }}
-        >
-          Approve All
-        </div>
-      </div>
-      {/* Scene grid */}
-      <div className="grid grid-cols-4 gap-2.5 sm:grid-cols-8">
-        {scenes.map((s, i) => (
-          <div
-            key={i}
-            className={`group relative aspect-[9/16] overflow-hidden rounded-lg bg-gradient-to-br ${s.g} ring-1 ring-white/[0.04] transition-all hover:ring-[var(--accent-primary)]/50`}
-          >
-            <div className="absolute left-1.5 top-1.5 rounded bg-black/40 px-1 py-0.5 text-[8px] font-bold text-white">
-              {String(i + 1).padStart(2, "0")}
-            </div>
-            <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/80 p-1.5">
-              <p className="text-[7px] text-white/70 leading-tight">{s.label}</p>
-            </div>
-          </div>
-        ))}
-      </div>
-    </div>
   );
 }
 
 /* ─── Video Showcase ──────────────────────────────────────────────────────── */
 
 function ShowcaseSection() {
+  const repeatedVideos = [
+    ...SHOWCASE.videos,
+    ...SHOWCASE.videos,
+    ...SHOWCASE.videos,
+  ];
+
   return (
-    <section id="showcase" className="py-24 md:py-32">
+    <section
+      id="showcase"
+      className="pb-16 md:pb-24 overflow-hidden bg-gradient-to-b from-[var(--bg-base)] via-[var(--bg-surface)] to-[var(--bg-base)]"
+    >
       <div className="mx-auto max-w-6xl px-6">
-        <div className="mb-14 text-center">
+        <FadeIn className="mb-20 text-center">
           <SectionLabel variant="accent">{SHOWCASE.label}</SectionLabel>
-          <h2 className="mb-4 whitespace-pre-line text-[36px] font-extrabold leading-tight tracking-tight text-[var(--text-primary)] md:text-[52px]">
+          <h2 className="mb-6 whitespace-pre-line text-[42px] font-[900] leading-tight tracking-tight text-[var(--text-primary)] md:text-[64px]">
             {SHOWCASE.headline}
           </h2>
-          <p className="mx-auto max-w-md text-[16px] text-[var(--text-secondary)]">
+          <p className="mx-auto max-w-xl text-[18px] text-[var(--text-secondary)] leading-relaxed">
             {SHOWCASE.subheadline}
           </p>
-        </div>
+        </FadeIn>
+      </div>
 
-        {/* Staggered phone grid */}
-        <div className="flex items-end justify-center gap-4 overflow-x-auto pb-4 md:overflow-visible">
-          {SHOWCASE.videos.map((v, i) => {
-            const offsets = [0, -28, -12, -36, -8, -24];
+      {/* Bigger Marquee */}
+      <div className="relative w-full overflow-hidden pb-10">
+        <div className="absolute left-0 top-0 bottom-0 z-10 w-40 bg-gradient-to-r from-[var(--bg-base)] to-transparent" />
+        <div className="absolute right-0 top-0 bottom-0 z-10 w-40 bg-gradient-to-l from-[var(--bg-base)] to-transparent" />
+
+        <div className="flex w-max animate-[scroll_60s_linear_infinite] items-end justify-center gap-10 px-10 hover:[animation-play-state:paused]">
+          {repeatedVideos.map((v, i) => {
+            // Larger variations in vertical offset for a more organic feel
+            const offsets = [0, -60, -20, -100, -10, -50, -30, -80];
             return (
               <div
                 key={i}
                 className="shrink-0"
-                style={{ marginBottom: `${Math.abs(offsets[i] ?? 0)}px` }}
+                style={{
+                  marginBottom: `${Math.abs(offsets[i % offsets.length] ?? 0)}px`,
+                }}
               >
                 <PhoneFrame video={v} />
               </div>
             );
           })}
         </div>
-
-        {/* Disclaimer */}
-        <p className="mt-10 text-center text-[12px] text-[var(--text-muted)]">
-          Illustrative examples of content types ReelForge can produce across different niches and visual styles.
-        </p>
       </div>
+
+      <FadeIn delay={0.2} className="mt-16 text-center px-6">
+        <div className="inline-flex items-center gap-3 px-6 py-3 rounded-full bg-white/[0.03] border border-white/10 backdrop-blur-md">
+          <div className="flex -space-x-2">
+            {[1, 2, 3].map((i) => (
+              <div
+                key={i}
+                className="w-6 h-6 rounded-full border border-[var(--bg-base)] bg-[var(--accent-primary)] flex items-center justify-center"
+              >
+                <Play className="w-2 h-2 fill-white text-white" />
+              </div>
+            ))}
+          </div>
+          <p className="text-[13px] font-bold text-[var(--text-primary)] tracking-wide">
+            Scroll to see more variations across 7+ visual styles
+          </p>
+        </div>
+      </FadeIn>
     </section>
   );
 }
@@ -351,85 +354,83 @@ function PhoneFrame({ video }: { video: (typeof SHOWCASE.videos)[number] }) {
   const dotColor = platformColor[video.platform] ?? "#888";
 
   return (
-    <div className="group relative w-[130px] md:w-[148px]">
+    <div className="group relative w-[240px] md:w-[280px]">
+      {/* Dynamic Glow */}
+      <div
+        className="absolute inset-0 -z-10 rounded-[3rem] blur-3xl opacity-0 group-hover:opacity-40 transition-opacity duration-500"
+        style={{
+          background: `radial-gradient(circle, ${video.accentColor} 0%, transparent 70%)`,
+        }}
+      />
+
       {/* Phone body */}
-      <div className="relative overflow-hidden rounded-[22px] border-[3px] border-[var(--bg-border)] bg-[var(--bg-base)] shadow-[0_24px_48px_rgba(0,0,0,0.6)] transition-all duration-300 group-hover:-translate-y-2 group-hover:shadow-[0_32px_64px_rgba(0,0,0,0.7)]">
+      <div className="relative overflow-hidden rounded-[3rem] border-[8px] border-[#18181b] bg-[#09090b] shadow-[0_40px_100px_rgba(0,0,0,0.8)] transition-all duration-500 group-hover:-translate-y-6 group-hover:scale-[1.03] group-hover:shadow-[0_60px_120px_rgba(0,0,0,0.9)] group-hover:border-[#27272a]">
         {/* Notch */}
-        <div className="relative z-10 flex justify-center pt-2 pb-1">
-          <div className="h-2 w-12 rounded-full bg-[var(--bg-border)]" />
+        <div className="relative z-10 flex justify-center pt-3 pb-2.5">
+          <div className="h-1.5 w-16 rounded-full bg-[#27272a] group-hover:bg-[#3f3f46] transition-colors" />
         </div>
 
         {/* Screen */}
         <div
-          className="relative mx-1 mb-1 overflow-hidden rounded-[16px]"
+          className="relative mx-1.5 mb-1.5 overflow-hidden rounded-[2.2rem] h-[440px] md:h-[500px]"
           style={{
-            aspectRatio: "9/16",
             background: `linear-gradient(160deg, ${video.gradientFrom}, ${video.gradientTo})`,
           }}
         >
+          {/* Visual Texture Overlay */}
+          <div className="absolute inset-0 opacity-10 mix-blend-overlay bg-[url('https://www.transparenttextures.com/patterns/cubes.png')]" />
+
           {/* Style badge */}
           <div
-            className="absolute left-2 top-2 rounded-full px-2 py-0.5 text-[8px] font-bold text-white"
-            style={{ background: video.accentColor }}
+            className="absolute left-4 top-4 z-20 rounded-full px-3 py-1 text-[10px] font-black uppercase tracking-widest text-white shadow-xl backdrop-blur-xl border border-white/10"
+            style={{ background: video.accentColor + "aa" }}
           >
             {video.style}
           </div>
 
-          {/* Platform dot */}
-          <div
-            className="absolute right-2 top-2 flex h-4 w-4 items-center justify-center rounded-full"
-            style={{ background: dotColor }}
-          >
-            <Play className="h-2 w-2 fill-white text-white" />
+          {/* Play overlay on hover */}
+          <div className="absolute inset-0 z-20 flex items-center justify-center bg-black/20 opacity-0 backdrop-blur-[2px] transition-all group-hover:opacity-100 duration-500">
+            <div className="w-16 h-16 rounded-full bg-white/10 backdrop-blur-md flex items-center justify-center border border-white/20 scale-90 group-hover:scale-100 transition-transform duration-500">
+              <Play className="h-6 w-6 fill-white text-white translate-x-0.5" />
+            </div>
           </div>
 
           {/* Content area */}
-          <div className="absolute inset-0 flex flex-col items-center justify-center px-3">
-            <p className="text-center text-[10px] font-black leading-tight text-white">
+          <div className="absolute inset-0 flex flex-col items-center justify-center px-8">
+            <h4 className="text-center text-[22px] md:text-[24px] font-[900] leading-[1.1] text-white drop-shadow-2xl">
               {video.hook}
-            </p>
+            </h4>
           </div>
 
           {/* Subtitle bar */}
-          <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/90 px-2 pb-3 pt-6">
-            <div className="text-center text-[8px] font-bold text-white">
+          <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black via-black/60 to-transparent px-6 pb-8 pt-20">
+            <div className="flex items-center justify-between mb-4">
+              <div className="flex items-center gap-2">
+                <div
+                  className="w-5 h-5 rounded-full flex items-center justify-center"
+                  style={{ background: dotColor }}
+                >
+                  <Play className="w-2 h-2 fill-white text-white translate-x-0.25" />
+                </div>
+                <span className="text-[10px] font-black uppercase text-white/60 tracking-tighter">
+                  {video.platform}
+                </span>
+              </div>
+              <div className="flex items-center gap-1.5 text-[11px] font-black text-white/90">
+                <Activity className="h-3.5 w-3.5 text-[var(--accent-success)]" />
+                {video.views}
+              </div>
+            </div>
+            <div className="h-px w-full bg-white/10 mb-4" />
+            <div className="text-center">
               <span
-                className="rounded-sm px-1 py-0.5"
-                style={{ background: video.accentColor + "33" }}
+                className="rounded-lg px-4 py-1.5 text-[11px] font-black uppercase tracking-wider text-white shadow-2xl backdrop-blur-md border border-white/10"
+                style={{ background: video.accentColor + "30" }}
               >
                 {video.niche}
               </span>
             </div>
-            <p className="mt-1 text-center text-[8px] font-semibold text-white/90">
-              {video.views}
-            </p>
           </div>
-        </div>
-      </div>
-
-      {/* Label below frame */}
-      <p className="mt-3 text-center text-[11px] text-[var(--text-muted)]">
-        {video.style}
-      </p>
-    </div>
-  );
-}
-
-/* ─── Proof Strip ─────────────────────────────────────────────────────────── */
-
-function ProofStrip() {
-  return (
-    <div className="border-y border-[var(--bg-border)] bg-[var(--bg-surface)] py-6">
-      <div className="mx-auto max-w-5xl px-6">
-        <div className="flex flex-wrap items-center justify-center gap-x-14 gap-y-6">
-          {PROOF_STATS.map((s, i) => (
-            <div key={i} className="flex flex-col items-center gap-1">
-              <span className="text-[36px] font-black text-[var(--text-primary)]">{s.value}</span>
-              <span className="whitespace-pre-line text-center text-[10px] uppercase tracking-[0.07em] text-[var(--text-muted)]">
-                {s.label}
-              </span>
-            </div>
-          ))}
         </div>
       </div>
     </div>
@@ -439,7 +440,11 @@ function ProofStrip() {
 /* ─── Problem ─────────────────────────────────────────────────────────────── */
 
 function ProblemSection() {
-  const icons = { clock: Clock, "trending-down": TrendingDown, flame: Flame } as const;
+  const icons = {
+    clock: Clock,
+    "trending-down": TrendingDown,
+    flame: Flame,
+  } as const;
   const colors = {
     clock: "var(--accent-danger)",
     "trending-down": "var(--accent-warning)",
@@ -447,48 +452,85 @@ function ProblemSection() {
   } as const;
 
   return (
-    <section className="mx-auto max-w-6xl px-6 py-28 md:py-40">
-      <div className="text-center">
+    <section className="mx-auto max-w-6xl px-6 pb-16 md:pb-24">
+      <div className="text-center mb-24">
         <SectionLabel>{PROBLEM.label}</SectionLabel>
-        <h2 className="mb-10 text-[38px] font-extrabold leading-tight tracking-[-0.02em] text-[var(--text-primary)] md:text-[58px]">
-          {PROBLEM.headlineLine1}
-          <br />
-          {PROBLEM.headlineLine2}{" "}
-          <span className="text-[var(--accent-danger)]">{PROBLEM.headlineAccent}</span>
-        </h2>
-        <div className="mx-auto max-w-[540px] space-y-5">
-          {PROBLEM.body.map((p, i) => (
-            <p key={i} className="text-[17px] leading-relaxed text-[var(--text-secondary)]">
-              {p.split(/(2–4 hours|5 videos a day|10–20 hours)/).map((part, j) =>
-                ["2–4 hours", "5 videos a day", "10–20 hours"].includes(part) ? (
-                  <span key={j} className="font-semibold text-[var(--text-primary)]">
-                    {part}
-                  </span>
-                ) : (
-                  part
-                )
-              )}
-            </p>
-          ))}
-        </div>
+        <FadeIn>
+          <h2 className="mb-10 text-[42px] font-[900] leading-[1] tracking-[-0.03em] text-[var(--text-primary)] md:text-[72px]">
+            {PROBLEM.headlineLine1}
+            <br />
+            {PROBLEM.headlineLine2}{" "}
+            <span className="text-[var(--accent-danger)] relative inline-block">
+              {PROBLEM.headlineAccent}
+              <svg
+                className="absolute -bottom-2 left-0 w-full h-3 text-[var(--accent-danger)]/20"
+                viewBox="0 0 100 10"
+                preserveAspectRatio="none"
+              >
+                <path
+                  d="M0 5 Q 50 10 100 5"
+                  stroke="currentColor"
+                  strokeWidth="6"
+                  fill="transparent"
+                />
+              </svg>
+            </span>
+          </h2>
+        </FadeIn>
+        <FadeIn delay={0.2}>
+          <div className="mx-auto max-w-[620px] space-y-6">
+            {PROBLEM.body.map((p, i) => (
+              <p
+                key={i}
+                className="text-[18px] md:text-[20px] leading-relaxed text-[var(--text-secondary)]"
+              >
+                {p
+                  .split(/(2–4 hours|5 videos a day|10–20 hours)/)
+                  .map((part, j) =>
+                    ["2–4 hours", "5 videos a day", "10–20 hours"].includes(
+                      part,
+                    ) ? (
+                      <span
+                        key={j}
+                        className="font-black text-[var(--text-primary)] border-b-2 border-[var(--accent-danger)]/30 px-0.5"
+                      >
+                        {part}
+                      </span>
+                    ) : (
+                      part
+                    ),
+                  )}
+              </p>
+            ))}
+          </div>
+        </FadeIn>
       </div>
 
-      <div className="mt-14 grid gap-4 md:grid-cols-3">
+      <StaggerContainer delay={0.4} className="grid gap-8 md:grid-cols-3">
         {PROBLEM.cards.map((card) => {
           const k = card.iconKey as keyof typeof icons;
           const Icon = icons[k];
           return (
-            <div
-              key={card.title}
-              className="rounded-2xl border border-[var(--bg-border)] bg-[var(--bg-surface)] p-7"
-            >
-              <Icon className="mb-4 h-5 w-5" style={{ color: colors[k] }} />
-              <h3 className="mb-2 text-[16px] font-bold text-[var(--text-primary)]">{card.title}</h3>
-              <p className="text-[14px] leading-relaxed text-[var(--text-secondary)]">{card.body}</p>
-            </div>
+            <StaggerItem key={card.title}>
+              <div className="group h-full relative rounded-[2.5rem] border border-white/5 bg-gradient-to-b from-white/[0.03] to-transparent p-10 transition-all hover:-translate-y-3 hover:border-white/10 hover:shadow-[0_30px_60px_rgba(0,0,0,0.5)] overflow-hidden">
+                <div
+                  className="absolute -top-10 -left-10 w-40 h-40 opacity-0 group-hover:opacity-10 transition-opacity duration-500 rounded-full blur-3xl"
+                  style={{ background: colors[k] }}
+                />
+                <div className="mb-8 inline-flex h-16 w-16 items-center justify-center rounded-[1.5rem] bg-white/[0.03] border border-white/5 shadow-2xl group-hover:scale-110 group-hover:rotate-3 transition-all duration-500">
+                  <Icon className="h-8 w-8" style={{ color: colors[k] }} />
+                </div>
+                <h3 className="mb-4 text-[22px] font-black text-[var(--text-primary)] leading-tight">
+                  {card.title}
+                </h3>
+                <p className="text-[16px] leading-relaxed text-[var(--text-secondary)] font-medium">
+                  {card.body}
+                </p>
+              </div>
+            </StaggerItem>
           );
         })}
-      </div>
+      </StaggerContainer>
     </section>
   );
 }
@@ -497,58 +539,90 @@ function ProblemSection() {
 
 function SolutionReveal() {
   return (
-    <section className="relative overflow-hidden bg-[var(--bg-surface)] py-28 md:py-40">
+    <section className="relative overflow-hidden bg-[var(--bg-surface)] py-32 md:py-48 border-y border-white/5">
       <div
         aria-hidden
         className="pointer-events-none absolute inset-0"
         style={{
-          background: `radial-gradient(ellipse 800px 440px at 50% 50%, ${O(0.07)}, transparent)`,
+          background: `radial-gradient(circle at 50% 50%, ${O(0.1)} 0%, transparent 60%)`,
         }}
       />
-      <div className="relative mx-auto max-w-2xl px-6 text-center">
-        <h2 className="mb-8 text-[38px] font-extrabold leading-tight tracking-[-0.02em] text-[var(--text-primary)] md:text-[64px]">
-          {SOLUTION.headlineLine1}
-          <br />
-          <span className="text-[var(--accent-primary)]">{SOLUTION.headlineLine2}</span>
-        </h2>
-        <div className="mx-auto mb-10 max-w-md space-y-5">
-          {SOLUTION.body.map((p, i) => (
-            <p key={i} className="text-[17px] leading-relaxed text-[var(--text-secondary)]">
-              {p}
-            </p>
-          ))}
-          <p className="text-[18px] font-bold text-[var(--text-primary)]">{SOLUTION.closer}</p>
-        </div>
-
-        {/* Pipeline nodes */}
-        <div className="mb-10 flex flex-col items-center gap-2 sm:flex-row sm:justify-center sm:gap-0">
-          {SOLUTION.pipelineNodes.map((node, i) => (
-            <div key={node} className="flex items-center">
-              <div className="rounded-full border border-[var(--bg-border)] bg-[var(--bg-elevated)] px-4 py-2 text-[13px] font-semibold">
-                {node === "Finished Video" ? (
-                  <span className="text-[var(--accent-success)]">{node}</span>
-                ) : (
-                  <span className="text-[var(--text-secondary)]">{node}</span>
-                )}
+      <div className="relative z-10 mx-auto max-w-4xl px-6 text-center">
+        <FadeIn>
+          <div className="flex justify-center mb-10">
+            <div className="relative h-20 w-20">
+              <div className="absolute inset-0 bg-[var(--accent-primary)]/20 rounded-full animate-ping blur-xl" />
+              <div className="relative h-20 w-20 bg-gradient-to-tr from-[var(--accent-primary)] to-[var(--accent-secondary)] rounded-full flex items-center justify-center shadow-2xl border-4 border-[var(--bg-base)]">
+                <Bot className="h-10 w-10 text-white" />
               </div>
-              {i < SOLUTION.pipelineNodes.length - 1 && (
-                <div className="hidden items-center sm:flex">
-                  <div className="h-px w-5 bg-[var(--bg-border)]" />
-                  <div className="h-1.5 w-1.5 rounded-full bg-[var(--accent-primary)] opacity-70" />
-                  <div className="h-px w-5 bg-[var(--bg-border)]" />
-                </div>
-              )}
             </div>
-          ))}
-        </div>
+          </div>
+          <h2 className="mb-10 text-[46px] font-[900] leading-[0.95] tracking-[-0.03em] text-[var(--text-primary)] md:text-[80px]">
+            {SOLUTION.headlineLine1}
+            <br />
+            <span className="text-transparent bg-clip-text bg-gradient-to-r from-[var(--accent-primary)] to-[var(--accent-secondary)]">
+              {SOLUTION.headlineLine2}
+            </span>
+          </h2>
+        </FadeIn>
 
-        <a
-          href={SOLUTION.inlineCta.href}
-          className="group inline-flex items-center gap-1.5 text-[14px] font-semibold text-[var(--accent-primary)] transition-all hover:gap-3"
-        >
-          {SOLUTION.inlineCta.label}
-          <ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-1" />
-        </a>
+        <FadeIn delay={0.2}>
+          <div className="mx-auto mb-16 max-w-2xl space-y-8">
+            {SOLUTION.body.map((p, i) => (
+              <p
+                key={i}
+                className="text-[20px] md:text-[22px] font-medium leading-relaxed text-[var(--text-secondary)]"
+              >
+                {p}
+              </p>
+            ))}
+            <div className="inline-flex items-center gap-3 px-8 py-4 rounded-[1.5rem] bg-[var(--bg-base)] border border-white/10 shadow-2xl group cursor-default">
+              <ZapIcon className="w-6 h-6 text-[var(--accent-primary)] group-hover:animate-pulse" />
+              <p className="text-[24px] font-black text-[var(--text-primary)] tracking-tight">
+                {SOLUTION.closer}
+              </p>
+            </div>
+          </div>
+        </FadeIn>
+
+        {/* Improved Pipeline nodes */}
+        <FadeIn delay={0.4}>
+          <div className="mb-16 flex flex-wrap justify-center gap-4">
+            {SOLUTION.pipelineNodes.map((node, i) => {
+              const nodeIcons = [Lightbulb, PenLine, Mic, ImageIcon, Rocket];
+              const NodeIcon = nodeIcons[i] || CheckCircle;
+              const isLast = node === "Finished Video";
+
+              return (
+                <div key={node} className="flex items-center group">
+                  <div
+                    className={`flex flex-col items-center gap-3 px-6 py-6 rounded-3xl border border-white/5 bg-white/[0.02] min-w-[140px] transition-all hover:bg-white/[0.05] hover:border-white/10 hover:-translate-y-2 ${isLast ? "border-[var(--accent-success)]/40 bg-[var(--accent-success)]/[0.03]" : ""}`}
+                  >
+                    <div
+                      className={`flex h-12 w-12 items-center justify-center rounded-2xl bg-[var(--bg-base)] border border-white/5 shadow-xl ${isLast ? "text-[var(--accent-success)] shadow-[0_0_20px_rgba(52,211,153,0.2)]" : "text-[var(--accent-primary)]"}`}
+                    >
+                      <NodeIcon className="w-6 h-6" />
+                    </div>
+                    <span
+                      className={`text-[14px] font-black uppercase tracking-tighter ${isLast ? "text-[var(--accent-success)]" : "text-[var(--text-secondary)]"}`}
+                    >
+                      {node}
+                    </span>
+                  </div>
+                  {i < SOLUTION.pipelineNodes.length - 1 && (
+                    <div className="hidden items-center lg:flex px-2">
+                      <ArrowRight className="w-5 h-5 text-white/10 group-hover:text-[var(--accent-primary)]/40 transition-colors translate-y-[-10px]" />
+                    </div>
+                  )}
+                </div>
+              );
+            })}
+          </div>
+
+          <PrimaryButton href={SOLUTION.inlineCta.href} size="lg">
+            Explore the pipeline
+          </PrimaryButton>
+        </FadeIn>
       </div>
     </section>
   );
@@ -557,90 +631,97 @@ function SolutionReveal() {
 /* ─── Pipeline ────────────────────────────────────────────────────────────── */
 
 function PipelineSection() {
+  const stepIcons = [Lightbulb, Bot, Mic, ImageIcon, Palette, Type, Rocket];
+
   return (
-    <section id="pipeline" className="mx-auto max-w-6xl px-6 py-28 md:py-40">
-      <div className="mb-16 text-center">
+    <section id="pipeline" className="mx-auto max-w-6xl px-6 py-32 md:py-48">
+      <FadeIn className="mb-24 text-center">
         <SectionLabel variant="accent">{PIPELINE.label}</SectionLabel>
-        <h2 className="mb-4 text-[38px] font-extrabold leading-tight tracking-[-0.02em] text-[var(--text-primary)] md:text-[58px]">
+        <h2 className="mb-8 text-[46px] font-[900] leading-[1] tracking-[-0.03em] text-[var(--text-primary)] md:text-[72px]">
           {PIPELINE.headlineLine1}
           <br />
-          <span className="text-[var(--accent-primary)]">{PIPELINE.headlineLine2}</span>
+          <span className="text-[var(--accent-primary)]">
+            {PIPELINE.headlineLine2}
+          </span>
         </h2>
-        <p className="text-[17px] text-[var(--text-secondary)]">{PIPELINE.subheadline}</p>
-      </div>
+        <p className="text-[20px] font-medium text-[var(--text-secondary)] max-w-2xl mx-auto">
+          {PIPELINE.subheadline}
+        </p>
+      </FadeIn>
 
       <div className="relative">
-        {/* Center line */}
+        {/* Modern Timeline Track */}
         <div
           aria-hidden
-          className="absolute inset-y-4 left-1/2 hidden w-px -translate-x-1/2 md:block"
+          className="absolute inset-y-4 left-1/2 hidden w-[2px] -translate-x-1/2 md:block"
           style={{
-            background: `linear-gradient(to bottom, transparent, ${O(0.2)} 15%, ${O(0.2)} 85%, transparent)`,
+            background: `linear-gradient(to bottom, transparent, ${O(0.3)} 15%, ${O(0.3)} 85%, transparent)`,
           }}
         />
 
-        <div className="space-y-6">
+        <div className="space-y-24">
           {PIPELINE.steps.map((step, i) => {
             const even = i % 2 === 1;
+            const Icon = stepIcons[i] || CheckCircle;
+
             return (
-              <div
+              <FadeIn
                 key={step.num}
-                className={`flex items-start gap-4 md:gap-0 ${even ? "md:flex-row-reverse" : ""}`}
+                className={`flex items-center gap-12 md:gap-0 ${even ? "md:flex-row-reverse" : ""}`}
               >
-                {/* Card */}
-                <div className={`flex-1 md:max-w-[calc(50%-44px)] ${even ? "md:pl-10" : "md:pr-10"}`}>
-                  <div className="rounded-2xl border border-[var(--bg-border)] bg-[var(--bg-surface)] p-7 transition-all hover:border-[var(--accent-primary)]/20">
-                    <p
-                      className={`mb-2 text-[10px] font-bold uppercase tracking-[0.12em] ${step.labelVariant === "accent" ? "text-[var(--accent-primary)]" : "text-[var(--text-muted)]"}`}
-                    >
-                      {step.label}
-                    </p>
-                    <h3 className="mb-3 text-[17px] font-bold leading-snug text-[var(--text-primary)]">
-                      {step.title}
-                    </h3>
-                    <p className="mb-4 text-[14px] leading-relaxed text-[var(--text-secondary)]">
+                {/* Visual Content */}
+                <div
+                  className={`flex-1 md:max-w-[calc(50%-70px)] ${even ? "md:pl-16" : "md:pr-16"}`}
+                >
+                  <div className="group relative rounded-[2.5rem] border border-white/5 bg-gradient-to-br from-white/[0.04] to-transparent p-10 shadow-2xl transition-all hover:border-[var(--accent-primary)]/40 hover:bg-white/[0.06] hover:-translate-y-2 overflow-hidden">
+                    <div className="absolute top-0 right-0 w-32 h-32 bg-[var(--accent-primary)]/5 blur-3xl rounded-full -mr-10 -mt-10 group-hover:bg-[var(--accent-primary)]/10 transition-colors" />
+
+                    <div className="flex items-center gap-4 mb-6">
+                      <div className="flex h-14 w-14 items-center justify-center rounded-[1.25rem] bg-[var(--bg-base)] border border-white/10 shadow-inner group-hover:scale-110 transition-transform duration-500">
+                        <Icon className="h-7 w-7 text-[var(--accent-primary)]" />
+                      </div>
+                      <div className="flex flex-col">
+                        <span className="text-[10px] font-black uppercase tracking-[0.2em] text-[var(--accent-primary)] mb-1">
+                          Step {step.num}
+                        </span>
+                        <h3 className="text-[22px] font-black text-[var(--text-primary)] leading-tight tracking-tight">
+                          {step.title}
+                        </h3>
+                      </div>
+                    </div>
+
+                    <p className="mb-8 text-[16px] leading-relaxed text-[var(--text-secondary)] font-medium">
                       {step.body}
                     </p>
+
                     {step.pill && (
-                      <span
-                        className={`inline-flex items-center rounded-full px-3 py-1 text-[10px] font-bold ${
+                      <div
+                        className={`inline-flex items-center gap-2.5 rounded-2xl px-5 py-2.5 text-[12px] font-black uppercase tracking-wider ${
                           step.pillVariant === "success"
-                            ? "border border-[var(--accent-success)]/25 bg-[var(--accent-success)]/10 text-[var(--accent-success)]"
-                            : `border bg-[var(--accent-primary)]/10 text-[var(--accent-primary)]`
+                            ? "border border-[var(--accent-success)]/30 bg-[var(--accent-success)]/5 text-[var(--accent-success)]"
+                            : `border border-[var(--accent-primary)]/30 bg-[var(--accent-primary)]/5 text-[var(--accent-primary)]`
                         }`}
-                        style={
-                          step.pillVariant !== "success"
-                            ? { borderColor: O(0.25) }
-                            : undefined
-                        }
                       >
+                        <Zap className="w-4 h-4" />
                         {step.pill}
-                      </span>
+                      </div>
                     )}
                   </div>
                 </div>
 
-                {/* Circle — desktop */}
-                <div className="hidden shrink-0 items-start justify-center pt-7 md:flex md:w-[88px]">
+                {/* Vertical Step Number */}
+                <div className="hidden shrink-0 items-center justify-center md:flex md:w-[140px]">
                   <div
-                    className="relative z-10 flex h-10 w-10 items-center justify-center rounded-full border-2 bg-[var(--bg-base)] text-[13px] font-bold text-[var(--accent-primary)]"
-                    style={{ borderColor: "var(--accent-primary)" }}
+                    className="relative z-10 flex h-20 w-20 items-center justify-center rounded-[2rem] border-[4px] bg-[#0c0c0e] text-[24px] font-[900] text-[var(--text-primary)] shadow-[0_0_30px_rgba(0,0,0,0.8)] transition-all duration-500 hover:border-[var(--accent-primary)] hover:text-[var(--accent-primary)] hover:scale-110"
+                    style={{ borderColor: "var(--bg-border)" }}
                   >
-                    {i + 1}
+                    {step.num}
                   </div>
                 </div>
 
-                {/* Empty spacer — desktop */}
+                {/* Spacer */}
                 <div className="hidden md:block md:flex-1" />
-
-                {/* Circle — mobile */}
-                <div
-                  className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full border bg-[var(--bg-base)] text-[11px] font-bold text-[var(--accent-primary)] md:hidden"
-                  style={{ borderColor: "var(--accent-primary)" }}
-                >
-                  {i + 1}
-                </div>
-              </div>
+              </FadeIn>
             );
           })}
         </div>
@@ -650,7 +731,6 @@ function PipelineSection() {
 }
 
 /* ─── Styles ──────────────────────────────────────────────────────────────── */
-
 const STYLE_ICONS = {
   film: Film,
   smile: Smile,
@@ -662,87 +742,129 @@ const STYLE_ICONS = {
 } as const;
 
 const BADGE_CLS = {
-  warning: "border-[var(--accent-warning)]/25 bg-[var(--accent-warning)]/10 text-[var(--accent-warning)]",
-  primary: `text-[var(--accent-primary)]`,
+  warning:
+    "border-[var(--accent-warning)]/25 bg-[var(--accent-warning)]/10 text-[var(--accent-warning)]",
+  primary: `border-[var(--accent-primary)]/30 bg-[var(--accent-primary)]/10 text-[var(--accent-primary)]`,
   muted: "border-white/10 bg-white/5 text-[var(--text-muted)]",
-  secondary: "border-[var(--accent-secondary)]/25 bg-[var(--accent-secondary)]/10 text-[var(--accent-secondary)]",
+  secondary:
+    "border-[var(--accent-secondary)]/25 bg-[var(--accent-secondary)]/10 text-[var(--accent-secondary)]",
 } as const;
 
 function StyleCard({ style }: { style: (typeof STYLES.visualStyles)[number] }) {
   const Icon = STYLE_ICONS[style.iconKey as keyof typeof STYLE_ICONS];
   return (
-    <div className="rounded-2xl border border-[var(--bg-border)] bg-[var(--bg-surface)] p-6 transition-all duration-200 hover:-translate-y-1 hover:border-[var(--accent-primary)]/30">
-      <div
-        className="mb-4 flex h-10 w-10 items-center justify-center rounded-xl"
-        style={{ background: style.iconBg }}
-      >
-        <Icon className="h-5 w-5" style={{ color: style.iconColor }} />
+    <StaggerItem>
+      <div className="group h-full flex flex-col rounded-[2.5rem] border border-white/5 bg-gradient-to-b from-white/[0.03] to-transparent p-8 transition-all duration-500 hover:-translate-y-3 hover:border-white/10 hover:bg-white/[0.05] hover:shadow-[0_30px_60px_rgba(0,0,0,0.5)]">
+        <div
+          className="mb-8 flex h-16 w-16 items-center justify-center rounded-2xl shadow-2xl group-hover:scale-110 group-hover:rotate-6 transition-all duration-500 border border-white/5"
+          style={{ background: style.iconBg }}
+        >
+          <Icon className="h-8 w-8" style={{ color: style.iconColor }} />
+        </div>
+        <h3 className="mb-2 text-[20px] font-[900] text-[var(--text-primary)] tracking-tight">
+          {style.name}
+        </h3>
+        <p className="mb-4 text-[11px] font-black tracking-[0.1em] uppercase text-[var(--accent-primary)]/80">
+          {style.mood}
+        </p>
+        <p className="text-[15px] leading-relaxed text-[var(--text-secondary)] font-medium flex-1">
+          {style.description}
+        </p>
       </div>
-      <h3 className="mb-1 text-[15px] font-bold text-[var(--text-primary)]">{style.name}</h3>
-      <p className="mb-2.5 text-[11px] italic text-[var(--text-muted)]">{style.mood}</p>
-      <p className="text-[13px] leading-relaxed text-[var(--text-secondary)]">{style.description}</p>
-    </div>
+    </StaggerItem>
   );
 }
 
 function StylesSection() {
   return (
-    <section id="styles" className="bg-[var(--bg-surface)] py-28 md:py-40">
-      <div className="mx-auto max-w-6xl px-6">
-        <div className="mb-14 text-center">
+    <section
+      id="styles"
+      className="bg-[var(--bg-surface)] py-32 md:py-48 relative overflow-hidden"
+    >
+      <div className="absolute top-0 left-0 w-full h-[500px] bg-gradient-to-b from-[var(--bg-base)] to-transparent pointer-events-none opacity-50" />
+
+      <div className="mx-auto max-w-6xl px-6 relative z-10">
+        <FadeIn className="mb-24 text-center">
           <SectionLabel>{STYLES.label}</SectionLabel>
-          <h2 className="text-[38px] font-extrabold leading-tight tracking-[-0.02em] text-[var(--text-primary)] md:text-[54px]">
+          <h2 className="text-[42px] font-[900] leading-[1] tracking-[-0.03em] text-[var(--text-primary)] md:text-[72px]">
             {STYLES.headlineLine1}
             <br />
             {STYLES.headlineLine2}
             <br />
-            <span className="text-[var(--accent-primary)]">{STYLES.headlineAccent}</span>
+            <span className="text-[var(--accent-primary)] relative inline-block">
+              {STYLES.headlineAccent}
+              <svg
+                className="absolute -bottom-2 left-0 w-full h-3 text-[var(--accent-primary)]/20"
+                viewBox="0 0 100 10"
+                preserveAspectRatio="none"
+              >
+                <path
+                  d="M0 5 Q 50 10 100 5"
+                  stroke="currentColor"
+                  strokeWidth="6"
+                  fill="transparent"
+                />
+              </svg>
+            </span>
           </h2>
-          <p className="mx-auto mt-4 max-w-lg text-[16px] text-[var(--text-secondary)]">
+          <p className="mx-auto mt-8 max-w-2xl text-[19px] font-medium text-[var(--text-secondary)]">
             {STYLES.subheadline}
           </p>
-        </div>
+        </FadeIn>
 
-        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-          {STYLES.visualStyles.slice(0, 4).map((s) => <StyleCard key={s.name} style={s} />)}
-        </div>
-        <div className="mt-4 grid gap-4 sm:grid-cols-3">
-          {STYLES.visualStyles.slice(4).map((s) => <StyleCard key={s.name} style={s} />)}
-        </div>
+        <StaggerContainer className="grid gap-8 sm:grid-cols-2 lg:grid-cols-4">
+          {STYLES.visualStyles.slice(0, 4).map((s) => (
+            <StyleCard key={s.name} style={s} />
+          ))}
+        </StaggerContainer>
+        <StaggerContainer
+          delay={0.2}
+          className="mt-8 grid gap-8 sm:grid-cols-3"
+        >
+          {STYLES.visualStyles.slice(4).map((s) => (
+            <StyleCard key={s.name} style={s} />
+          ))}
+        </StaggerContainer>
 
         {/* Subtitle styles */}
-        <div className="mt-20 border-t border-[var(--bg-border)] pt-16">
-          <div className="mb-10 text-center">
-            <h3 className="mb-3 text-[28px] font-bold text-[var(--text-primary)] md:text-[36px]">
+        <div className="mt-32 border-t border-white/5 pt-32">
+          <FadeIn className="mb-20 text-center">
+            <div className="inline-flex h-16 w-16 items-center justify-center rounded-2xl bg-white/[0.03] border border-white/5 mb-8 text-[var(--text-muted)]">
+              <Type className="h-8 w-8" />
+            </div>
+            <h3 className="mb-6 text-[36px] font-[900] text-[var(--text-primary)] md:text-[54px] tracking-tight">
               Then choose how your words land.
             </h3>
-            <p className="mx-auto max-w-md text-[15px] text-[var(--text-secondary)]">
-              85% of short-form video is watched on mute. Subtitles aren&apos;t decoration — they&apos;re your voice.
+            <p className="mx-auto max-w-2xl text-[18px] font-medium text-[var(--text-secondary)] leading-relaxed">
+              85% of short-form video is watched on mute. Subtitles aren&apos;t
+              decoration — they&apos;re your voice.
             </p>
-          </div>
-          <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+          </FadeIn>
+
+          <StaggerContainer className="grid gap-8 sm:grid-cols-2 lg:grid-cols-4">
             {STYLES.subtitleStyles.map((s) => (
-              <div key={s.name} className="overflow-hidden rounded-2xl border border-[var(--bg-border)] bg-[var(--bg-elevated)]">
-                <SubtitlePreview name={s.name} />
-                <div className="p-5">
-                  <div className="mb-2 flex items-center gap-2">
-                    <h4 className="text-[14px] font-bold text-[var(--text-primary)]">{s.name}</h4>
-                    <span
-                      className={`rounded-full border px-2 py-0.5 text-[9px] font-bold ${BADGE_CLS[s.badgeVariant]}`}
-                      style={
-                        s.badgeVariant === "primary"
-                          ? { borderColor: O(0.25), background: O(0.08) }
-                          : undefined
-                      }
-                    >
-                      {s.badge}
-                    </span>
+              <StaggerItem key={s.name}>
+                <div className="group h-full flex flex-col overflow-hidden rounded-[2.5rem] border border-white/5 bg-[var(--bg-elevated)] transition-all hover:border-white/10 hover:shadow-2xl hover:-translate-y-2">
+                  <SubtitlePreview name={s.name} />
+                  <div className="p-8 flex-1 flex flex-col">
+                    <div className="mb-4 flex flex-wrap items-center gap-3">
+                      <h4 className="text-[18px] font-black text-[var(--text-primary)] tracking-tight">
+                        {s.name}
+                      </h4>
+                      <span
+                        className={`rounded-full border px-3 py-1 text-[10px] font-black uppercase tracking-wider ${BADGE_CLS[s.badgeVariant as keyof typeof BADGE_CLS]}`}
+                      >
+                        {s.badge}
+                      </span>
+                    </div>
+                    <p className="text-[15px] leading-relaxed text-[var(--text-secondary)] font-medium">
+                      {s.description}
+                    </p>
                   </div>
-                  <p className="text-[12px] leading-relaxed text-[var(--text-secondary)]">{s.description}</p>
                 </div>
-              </div>
+              </StaggerItem>
             ))}
-          </div>
+          </StaggerContainer>
         </div>
       </div>
     </section>
@@ -752,92 +874,136 @@ function StylesSection() {
 function SubtitlePreview({ name }: { name: string }) {
   const map: Record<string, React.ReactNode> = {
     "Bold Pop": (
-      <div className="flex h-32 items-center justify-center bg-[var(--bg-base)] px-3">
-        <p className="text-[17px] font-black text-white drop-shadow-[0_2px_6px_rgba(0,0,0,0.9)]">
+      <div className="flex h-48 items-center justify-center bg-[#09090b] px-3 relative overflow-hidden">
+        <div className="absolute inset-0 bg-gradient-to-tr from-purple-900/30 to-orange-900/30 opacity-40" />
+        <p className="relative text-[26px] font-[1000] text-white drop-shadow-[0_8px_24px_rgba(0,0,0,1)] scale-110 group-hover:scale-125 transition-transform duration-700">
           SAVE{" "}
-          <span className="rounded-sm bg-[var(--accent-warning)] px-1 text-black">YOUR</span>{" "}
+          <span className="rounded-lg bg-[var(--accent-warning)] px-2.5 py-0.5 text-black shadow-2xl">
+            YOUR
+          </span>{" "}
           MONEY
         </p>
       </div>
     ),
     "Word Highlight": (
-      <div className="flex h-32 items-center justify-center gap-2 bg-[var(--bg-base)]">
-        <span className="text-sm font-bold text-white/30">Your</span>
-        <span className="text-base font-bold text-white/60">Future</span>
-        <span className="text-xl font-black text-white">Starts</span>
+      <div className="flex h-48 items-center justify-center gap-3 bg-[#09090b] relative overflow-hidden">
+        <div className="absolute inset-0 bg-gradient-to-tr from-blue-900/30 to-teal-900/30 opacity-40" />
+        <div className="relative flex items-end gap-3 group-hover:-translate-y-2 transition-transform duration-700">
+          <span className="text-lg font-bold text-white/20">Your</span>
+          <span className="text-xl font-bold text-white/40">Future</span>
+          <span className="text-3xl font-[1000] text-[var(--accent-primary)] drop-shadow-[0_4px_16px_rgba(245,92,42,0.6)]">
+            Starts
+          </span>
+        </div>
       </div>
     ),
     Minimal: (
-      <div className="relative flex h-32 items-end bg-[var(--bg-base)] pb-3">
-        <p className="w-full text-center text-[12px] text-white/80">Start saving now.</p>
+      <div className="relative flex h-48 items-end bg-[#09090b] pb-8 relative overflow-hidden">
+        <div className="absolute inset-0 bg-gradient-to-tr from-gray-900/40 to-slate-800/40 opacity-40" />
+        <p className="relative w-full text-center text-[15px] font-bold text-white/70 group-hover:text-white transition-colors tracking-wide px-6">
+          "Building a brand that lasts a lifetime."
+        </p>
       </div>
     ),
     Cinematic: (
-      <div className="relative flex h-32 items-end bg-[var(--bg-base)]">
-        <div className="w-full bg-black/65 py-2.5 px-3 backdrop-blur-sm">
-          <p className="text-center text-[12px] tracking-wide text-white">
-            The moment everything changed.
+      <div className="relative flex h-48 items-end bg-[#09090b] overflow-hidden">
+        <div className="absolute inset-0 bg-[url('https://images.unsplash.com/photo-1536440136628-849c177e76a1?q=80&w=800&auto=format&fit=crop')] bg-cover bg-center opacity-40 group-hover:scale-110 transition-transform duration-1000" />
+        <div className="relative w-full bg-black/80 py-4 px-6 backdrop-blur-xl group-hover:bg-black/95 transition-colors border-t border-white/10">
+          <p className="text-center text-[14px] font-serif tracking-[0.25em] text-white uppercase font-light">
+            Everything changes tonight.
           </p>
         </div>
       </div>
     ),
   };
-  return <div className="overflow-hidden rounded-t-2xl">{map[name] ?? null}</div>;
+  return <div className="border-b border-white/5">{map[name] ?? null}</div>;
 }
 
 /* ─── Before / After ─────────────────────────────────────────────────────── */
 
 function BeforeAfterSection() {
   return (
-    <section className="mx-auto max-w-6xl px-6 py-28 md:py-40">
-      <div className="overflow-hidden rounded-3xl border border-[var(--bg-border)] bg-[var(--bg-surface)]">
-        <div className="grid md:grid-cols-2">
-          {/* Without */}
-          <div className="border-b border-[var(--bg-border)] p-8 md:border-b-0 md:border-r md:p-12">
-            <p className="mb-6 text-[11px] font-bold uppercase tracking-[0.14em] text-[var(--accent-danger)]">
-              {COMPARISON.withoutLabel}
-            </p>
-            <div className="space-y-4">
-              {COMPARISON.without.map((item) => (
-                <div key={item} className="flex items-start gap-3">
-                  <XCircle className="mt-0.5 h-4 w-4 shrink-0 text-[var(--accent-danger)] opacity-50" />
-                  <span className="text-[14px] text-[var(--text-secondary)]">{item}</span>
+    <section className="mx-auto max-w-6xl px-6 py-32 md:py-48">
+      <FadeIn>
+        <div className="overflow-hidden rounded-[3.5rem] border border-white/5 bg-[#0c0c0e] shadow-[0_50px_100px_rgba(0,0,0,0.6)]">
+          <div className="grid md:grid-cols-2 divide-x divide-white/5">
+            {/* Without */}
+            <div className="p-10 md:p-16 relative overflow-hidden group">
+              <div className="absolute top-0 left-0 w-full h-1 bg-[var(--accent-danger)]/20" />
+              <div className="mb-12 flex items-center gap-4">
+                <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-[var(--accent-danger)]/10 border border-[var(--accent-danger)]/20 text-[var(--accent-danger)]">
+                  <XCircle className="h-6 w-6" />
                 </div>
-              ))}
+                <p className="text-[15px] font-[1000] uppercase tracking-[0.25em] text-[var(--accent-danger)] opacity-80">
+                  {COMPARISON.withoutLabel}
+                </p>
+              </div>
+              <div className="space-y-6">
+                {COMPARISON.without.map((item) => (
+                  <div key={item} className="flex items-start gap-4 group/item">
+                    <div className="mt-1.5 h-1.5 w-1.5 rounded-full bg-[var(--accent-danger)]/30 group-hover/item:bg-[var(--accent-danger)] transition-colors" />
+                    <span className="text-[17px] font-medium text-[var(--text-secondary)] opacity-60 leading-tight">
+                      {item}
+                    </span>
+                  </div>
+                ))}
+              </div>
             </div>
-          </div>
 
-          {/* With */}
-          <div className="relative p-8 md:p-12">
-            <div
-              aria-hidden
-              className="pointer-events-none absolute inset-0"
-              style={{ background: `radial-gradient(ellipse 360px 360px at 80% 50%, ${O(0.05)}, transparent)` }}
-            />
-            <p className="mb-6 text-[11px] font-bold uppercase tracking-[0.14em] text-[var(--accent-success)]">
-              {COMPARISON.withLabel}
-            </p>
-            <div className="space-y-4">
-              {COMPARISON.with.map((item) => (
-                <div key={item} className="flex items-start gap-3">
-                  <CheckCircle className="mt-0.5 h-4 w-4 shrink-0 text-[var(--accent-success)]" />
-                  <span className="text-[14px] font-medium text-[var(--text-primary)]">{item}</span>
+            {/* With */}
+            <div className="relative p-10 md:p-16 overflow-hidden group">
+              <div className="absolute top-0 left-0 w-full h-1 bg-[var(--accent-success)]/40" />
+              <div
+                aria-hidden
+                className="pointer-events-none absolute inset-0 opacity-20 group-hover:opacity-30 transition-opacity duration-700"
+                style={{
+                  background: `radial-gradient(circle at 70% 30%, ${O(0.2)}, transparent 70%)`,
+                }}
+              />
+
+              <div className="mb-12 flex items-center gap-4 relative z-10">
+                <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-[var(--accent-success)]/10 border border-[var(--accent-success)]/20 text-[var(--accent-success)] shadow-[0_0_20px_rgba(52,211,153,0.2)]">
+                  <CheckCircle className="h-6 w-6" />
                 </div>
-              ))}
+                <p className="text-[15px] font-[1000] uppercase tracking-[0.25em] text-[var(--accent-success)]">
+                  {COMPARISON.withLabel}
+                </p>
+              </div>
+
+              <div className="space-y-6 relative z-10">
+                {COMPARISON.with.map((item) => (
+                  <div key={item} className="flex items-start gap-4 group/item">
+                    <div className="mt-1 h-5 w-5 flex items-center justify-center rounded-full bg-[var(--accent-success)]/10 text-[var(--accent-success)] group-hover/item:scale-125 transition-transform">
+                      <Check className="w-3 h-3 stroke-[4px]" />
+                    </div>
+                    <span className="text-[17px] font-black text-[var(--text-primary)] leading-tight tracking-tight">
+                      {item}
+                    </span>
+                  </div>
+                ))}
+              </div>
             </div>
           </div>
         </div>
-      </div>
+      </FadeIn>
 
-      <div className="mt-12 flex flex-col items-center gap-3 text-center">
-        <h3 className="text-[30px] font-extrabold text-[var(--text-primary)] md:text-[38px]">
+      <FadeIn
+        delay={0.2}
+        className="mt-20 flex flex-col items-center gap-6 text-center"
+      >
+        <h3 className="text-[36px] font-[900] text-[var(--text-primary)] md:text-[54px] tracking-tight">
           {COMPARISON.cta.headline}
         </h3>
-        <PrimaryButton href={COMPARISON.cta.href} size="md" className="mt-2">
+        <PrimaryButton href={COMPARISON.cta.href} size="lg">
           {COMPARISON.cta.label}
         </PrimaryButton>
-        <p className="text-[11px] text-[var(--text-muted)]">{COMPARISON.cta.subtext}</p>
-      </div>
+        <div className="flex items-center gap-2 px-5 py-2 rounded-full bg-white/[0.03] border border-white/5">
+          <Check className="w-4 h-4 text-[var(--accent-success)] stroke-[3px]" />
+          <p className="text-[13px] font-black uppercase tracking-wider text-[var(--text-muted)]">
+            {COMPARISON.cta.subtext}
+          </p>
+        </div>
+      </FadeIn>
     </section>
   );
 }
@@ -846,99 +1012,127 @@ function BeforeAfterSection() {
 
 function PricingSection() {
   return (
-    <section id="pricing" className="bg-[var(--bg-surface)] py-28 md:py-40">
-      <div className="mx-auto max-w-5xl px-6">
-        <div className="mb-12 text-center">
+    <section
+      id="pricing"
+      className="bg-[#09090b] py-32 md:py-48 border-y border-white/5 relative"
+    >
+      <div className="absolute top-0 left-1/2 -translate-x-1/2 w-full max-w-4xl h-px bg-gradient-to-r from-transparent via-[var(--accent-primary)]/30 to-transparent" />
+
+      <div className="mx-auto max-w-6xl px-6 relative z-10">
+        <FadeIn className="mb-20 text-center">
           <SectionLabel variant="warning">{PRICING.label}</SectionLabel>
-          <h2 className="mb-4 text-[38px] font-extrabold leading-tight tracking-[-0.02em] text-[var(--text-primary)] md:text-[58px]">
-            <span className="text-[var(--accent-primary)]">{PRICING.headlineLine1}</span>
+          <h2 className="mb-6 text-[46px] font-[1000] leading-none tracking-[-0.04em] text-[var(--text-primary)] md:text-[80px]">
+            <span className="text-transparent bg-clip-text bg-gradient-to-b from-[var(--accent-primary)] to-[var(--accent-primary)]/60">
+              {PRICING.headlineLine1}
+            </span>
             <br />
             {PRICING.headlineLine2}
           </h2>
-          <p className="text-[17px] text-[var(--text-secondary)]">{PRICING.subheadline}</p>
-        </div>
+          <p className="text-[20px] font-medium text-[var(--text-secondary)] max-w-xl mx-auto">
+            {PRICING.subheadline}
+          </p>
+        </FadeIn>
 
-        {/* Urgency banner */}
-        <div className="mx-auto mb-8 max-w-xl rounded-xl border border-[var(--accent-warning)]/20 bg-[var(--accent-warning)]/[0.06] px-5 py-4">
-          <div className="flex items-start gap-3">
-            <Zap className="mt-0.5 h-4 w-4 shrink-0 text-[var(--accent-warning)]" />
+        {/* Improved Urgency banner */}
+        <FadeIn
+          delay={0.2}
+          className="mx-auto mb-16 max-w-3xl overflow-hidden rounded-[2rem] border border-[var(--accent-warning)]/40 bg-gradient-to-r from-[#1c1c1a] via-[#2d2d14] to-[#1c1c1a] px-8 py-6 shadow-2xl relative group"
+        >
+          <div className="absolute left-0 top-0 bottom-0 w-1.5 bg-[var(--accent-warning)] shadow-[0_0_20px_rgba(251,191,36,0.5)]" />
+          <div className="flex items-center gap-6">
+            <div className="rounded-2xl bg-[var(--accent-warning)]/20 p-3 shrink-0 shadow-inner group-hover:scale-110 group-hover:rotate-6 transition-all duration-500">
+              <Zap className="h-7 w-7 text-[var(--accent-warning)] fill-current" />
+            </div>
             <div>
-              <p className="text-[13px] font-semibold text-[var(--text-primary)]">{PRICING.urgencyBanner}</p>
-              <p className="mt-0.5 text-[11px] text-[var(--text-muted)]">{PRICING.urgencyNote}</p>
+              <p className="text-[18px] font-[900] text-[var(--text-primary)] tracking-tight">
+                {PRICING.urgencyBanner}
+              </p>
+              <p className="mt-1 text-[14px] font-bold text-[var(--accent-warning)] opacity-80 uppercase tracking-widest">
+                {PRICING.urgencyNote}
+              </p>
             </div>
           </div>
-        </div>
+        </FadeIn>
 
-        <p className="mb-8 text-center text-[12px] text-[var(--text-muted)]">{PRICING.monthlyNote}</p>
-
-        <div className="grid gap-5 md:grid-cols-3">
+        <StaggerContainer
+          delay={0.3}
+          className="grid gap-8 md:grid-cols-3 items-center"
+        >
           {PRICING.plans.map((plan) => (
-            <div
-              key={plan.name}
-              className={`relative flex flex-col rounded-3xl p-7 ${
-                plan.highlighted
-                  ? "border-2 bg-[var(--bg-elevated)]"
-                  : "border border-[var(--bg-border)] bg-[var(--bg-base)]"
-              }`}
-              style={
-                plan.highlighted
-                  ? {
-                      borderColor: "var(--accent-primary)",
-                      boxShadow: `0 0 48px ${O(0.12)}`,
-                    }
-                  : undefined
-              }
-            >
-              {plan.badge && (
-                <div
-                  className="absolute -top-4 left-1/2 -translate-x-1/2 rounded-full px-4 py-1 text-[10px] font-bold text-white"
-                  style={{ background: "var(--accent-primary)" }}
-                >
-                  {plan.badge}
-                </div>
-              )}
-
-              <p
-                className={`mb-3 text-[11px] font-bold uppercase tracking-[0.12em] ${plan.nameStyle === "accent" ? "text-[var(--accent-primary)]" : "text-[var(--text-muted)]"}`}
-              >
-                {plan.name}
-              </p>
-
-              <div className="mb-1 flex items-end gap-1.5">
-                <span className="text-[46px] font-black leading-none text-[var(--text-primary)]">
-                  {plan.price}
-                </span>
-                <span className="mb-1.5 text-[13px] text-[var(--text-muted)]">{plan.period}</span>
-              </div>
-              <p className="mb-6 text-[12px] text-[var(--text-muted)]">{plan.subPrice}</p>
-
-              <div className="mb-7 h-px bg-[var(--bg-border)]" />
-
-              <ul className="mb-7 flex-1 space-y-3">
-                {plan.features.map((f) => (
-                  <li key={f} className="flex items-start gap-2.5">
-                    <CheckCircle className="mt-0.5 h-3.5 w-3.5 shrink-0 text-[var(--accent-success)]" />
-                    <span className="text-[13px] text-[var(--text-secondary)]">{f}</span>
-                  </li>
-                ))}
-              </ul>
-
-              <Link
-                href={plan.href}
-                className="block rounded-full py-3 text-center text-[13px] font-bold transition-all"
+            <StaggerItem key={plan.name} className="h-full">
+              <div
+                className={`relative h-full flex flex-col rounded-[3rem] p-10 transition-all duration-500 hover:-translate-y-4 ${
+                  plan.highlighted
+                    ? "border-[3px] bg-gradient-to-b from-[var(--bg-elevated)] to-[#09090b] scale-[1.05] z-10 shadow-[0_40px_100px_rgba(245,92,42,0.15)]"
+                    : "border border-white/10 bg-[#0c0c0e] hover:bg-white/[0.04]"
+                }`}
                 style={
                   plan.highlighted
-                    ? { background: "var(--accent-primary)", color: "white" }
-                    : { border: "1px solid var(--bg-border)", background: "var(--bg-elevated)", color: "var(--text-primary)" }
+                    ? { borderColor: "var(--accent-primary)" }
+                    : undefined
                 }
               >
-                {plan.cta}
-              </Link>
-            </div>
-          ))}
-        </div>
+                {plan.badge && (
+                  <div
+                    className="absolute -top-5 left-1/2 -translate-x-1/2 rounded-full px-5 py-2 text-[12px] font-black uppercase tracking-[0.2em] text-white shadow-2xl"
+                    style={{ background: "var(--accent-primary)" }}
+                  >
+                    {plan.badge}
+                  </div>
+                )}
 
-        <p className="mt-7 text-center text-[12px] text-[var(--text-muted)]">{PRICING.footerNote}</p>
+                <p
+                  className={`mb-6 text-[13px] font-[1000] uppercase tracking-[0.25em] ${plan.nameStyle === "accent" ? "text-[var(--accent-primary)]" : "text-[var(--text-muted)]"}`}
+                >
+                  {plan.name}
+                </p>
+
+                <div className="mb-2 flex items-end gap-2">
+                  <span className="text-[64px] font-[1000] leading-none text-[var(--text-primary)] tracking-tighter">
+                    {plan.price}
+                  </span>
+                  <span className="mb-3 text-[16px] font-bold text-[var(--text-muted)]">
+                    {plan.period}
+                  </span>
+                </div>
+                <p className="mb-10 text-[14px] font-bold text-[var(--text-muted)] h-5">
+                  {plan.subPrice}
+                </p>
+
+                <div className="mb-10 h-px bg-white/5" />
+
+                <ul className="mb-12 flex-1 space-y-5">
+                  {plan.features.map((f) => (
+                    <li key={f} className="flex items-start gap-4 group/feat">
+                      <div className="mt-1 h-5 w-5 flex items-center justify-center rounded-full bg-[var(--accent-success)]/10 text-[var(--accent-success)] group-hover/feat:scale-125 transition-transform">
+                        <Check className="w-3 h-3 stroke-[3px]" />
+                      </div>
+                      <span className="text-[15px] font-black text-[var(--text-secondary)] tracking-tight group-hover/feat:text-[var(--text-primary)] transition-colors">
+                        {f}
+                      </span>
+                    </li>
+                  ))}
+                </ul>
+
+                <Link
+                  href={plan.href}
+                  className={`block rounded-[1.5rem] py-5 text-center text-[15px] font-[1000] uppercase tracking-[0.1em] transition-all shadow-xl hover:shadow-2xl ${
+                    plan.highlighted
+                      ? "bg-[var(--accent-primary)] text-white hover:brightness-110"
+                      : "bg-white/[0.03] border border-white/10 text-white hover:bg-white/[0.08]"
+                  }`}
+                >
+                  {plan.cta}
+                </Link>
+              </div>
+            </StaggerItem>
+          ))}
+        </StaggerContainer>
+
+        <p className="mt-16 text-center text-[14px] font-black text-[var(--text-muted)] flex items-center justify-center gap-3 uppercase tracking-widest opacity-60">
+          <Film className="w-5 h-5 text-[var(--accent-primary)]" />{" "}
+          {PRICING.footerNote}
+        </p>
       </div>
     </section>
   );
@@ -948,25 +1142,37 @@ function PricingSection() {
 
 function FAQSection() {
   return (
-    <section id="faq" className="py-28 md:py-40">
-      <div className="mx-auto max-w-2xl px-6">
-        <div className="mb-12">
+    <section id="faq" className="py-32 md:py-48">
+      <div className="mx-auto max-w-4xl px-6">
+        <FadeIn className="mb-20 text-center">
           <SectionLabel>{FAQ.label}</SectionLabel>
-          <h2 className="text-[38px] font-extrabold tracking-[-0.02em] text-[var(--text-primary)] md:text-[50px]">
+          <h2 className="text-[46px] font-[900] tracking-[-0.03em] text-[var(--text-primary)] md:text-[72px]">
             {FAQ.headline}
           </h2>
-        </div>
-        <div className="divide-y divide-[var(--bg-border)]">
+        </FadeIn>
+
+        <StaggerContainer className="space-y-6">
           {FAQ.items.map((item, i) => (
-            <details key={i} className="group py-6">
-              <summary className="flex cursor-pointer list-none items-start justify-between gap-4">
-                <span className="text-[15px] font-semibold text-[var(--text-primary)]">{item.question}</span>
-                <ChevronDown className="mt-0.5 h-4 w-4 shrink-0 text-[var(--text-muted)] transition-transform duration-200 group-open:rotate-180" />
-              </summary>
-              <p className="mt-4 text-[14px] leading-relaxed text-[var(--text-secondary)]">{item.answer}</p>
-            </details>
+            <StaggerItem key={i}>
+              <details className="group rounded-3xl border border-white/5 bg-white/[0.01] transition-all hover:border-white/10 hover:bg-white/[0.03]">
+                <summary className="flex cursor-pointer list-none items-center justify-between gap-8 p-8 focus:outline-none">
+                  <span className="text-[18px] md:text-[20px] font-black text-[var(--text-primary)] tracking-tight leading-tight">
+                    {item.question}
+                  </span>
+                  <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl border border-white/5 bg-[#09090b] group-open:bg-[var(--accent-primary)] group-open:border-[var(--accent-primary)] transition-all duration-500 shadow-xl">
+                    <ChevronDown className="h-6 w-6 text-[var(--text-muted)] group-open:text-white transition-transform duration-500 group-open:rotate-180" />
+                  </div>
+                </summary>
+                <div className="px-8 pb-8">
+                  <div className="h-px w-full bg-white/5 mb-6" />
+                  <p className="text-[16px] md:text-[18px] leading-relaxed text-[var(--text-secondary)] font-medium max-w-3xl">
+                    {item.answer}
+                  </p>
+                </div>
+              </details>
+            </StaggerItem>
           ))}
-        </div>
+        </StaggerContainer>
       </div>
     </section>
   );
@@ -976,31 +1182,76 @@ function FAQSection() {
 
 function FinalCTASection() {
   return (
-    <section className="relative overflow-hidden bg-[var(--bg-surface)] py-40 md:py-52">
+    <section className="relative overflow-hidden bg-[#09090b] py-48 md:py-64 border-t border-white/5">
       <div
         aria-hidden
-        className="pointer-events-none absolute inset-0"
-        style={{ background: `radial-gradient(ellipse 900px 540px at 50% 50%, ${O(0.09)}, transparent)` }}
+        className="pointer-events-none absolute inset-0 z-0"
+        style={{
+          background: `radial-gradient(circle at 50% 50%, ${O(0.12)} 0%, transparent 60%)`,
+        }}
       />
-      <div className="relative mx-auto max-w-3xl px-6 text-center">
-        <h2 className="mb-8 text-[42px] font-black leading-[0.93] tracking-[-0.03em] text-[var(--text-primary)] md:text-[72px]">
-          {FINAL_CTA.headlineLine1}
-          <br />
-          {FINAL_CTA.headlineLine2}
-          <br />
-          <span className="text-[var(--accent-primary)]">{FINAL_CTA.headlineAccent}</span>
-          <br />
-          {FINAL_CTA.headlineLine3}
-        </h2>
-        <div className="mx-auto mb-10 max-w-md space-y-2">
-          {FINAL_CTA.body.map((line, i) => (
-            <p key={i} className="text-[17px] text-[var(--text-secondary)]">{line}</p>
-          ))}
-        </div>
-        <div className="flex flex-col items-center gap-3">
-          <PrimaryButton href={FINAL_CTA.cta.href} size="lg">{FINAL_CTA.cta.label}</PrimaryButton>
-          <p className="text-[11px] text-[var(--text-muted)]">{FINAL_CTA.cta.subtext}</p>
-        </div>
+
+      {/* Animated Gradient Background */}
+      <div className="absolute inset-0 z-0 opacity-20 overflow-hidden">
+        <div className="absolute top-[-50%] left-[-50%] w-[200%] h-[200%] bg-[radial-gradient(ellipse_at_center,_var(--accent-primary)_0%,_transparent_50%)] animate-[spin_20s_linear_infinite]" />
+      </div>
+
+      <div className="relative z-10 mx-auto max-w-5xl px-6 text-center">
+        <FadeIn>
+          <div className="inline-flex h-24 w-24 items-center justify-center rounded-[2rem] bg-[var(--accent-primary)]/10 border-2 border-[var(--accent-primary)]/20 mb-12 shadow-[0_0_50px_rgba(245,92,42,0.2)] animate-bounce">
+            <Rocket className="h-12 w-12 text-[var(--accent-primary)]" />
+          </div>
+          <h2 className="mb-12 text-[52px] font-[1000] leading-[0.9] tracking-[-0.04em] text-[var(--text-primary)] md:text-[100px] lg:text-[110px]">
+            {FINAL_CTA.headlineLine1}
+            <br />
+            {FINAL_CTA.headlineLine2}{" "}
+            <span className="text-transparent bg-clip-text bg-gradient-to-r from-[var(--accent-primary)] to-[var(--accent-secondary)] relative inline-block">
+              {FINAL_CTA.headlineAccent}
+              <svg
+                className="absolute -bottom-2 left-0 w-full h-4 text-[var(--accent-primary)]/30"
+                viewBox="0 0 100 10"
+                preserveAspectRatio="none"
+              >
+                <path
+                  d="M0 5 Q 50 10 100 5"
+                  stroke="currentColor"
+                  strokeWidth="8"
+                  fill="transparent"
+                />
+              </svg>
+            </span>
+            <br />
+            {FINAL_CTA.headlineLine3}
+          </h2>
+        </FadeIn>
+
+        <FadeIn delay={0.2}>
+          <div className="mx-auto mb-16 max-w-2xl space-y-4">
+            {FINAL_CTA.body.map((line, i) => (
+              <p
+                key={i}
+                className="text-[22px] md:text-[26px] font-black text-[var(--text-secondary)] tracking-tight leading-tight uppercase italic"
+              >
+                {line}
+              </p>
+            ))}
+          </div>
+          <div className="flex flex-col items-center gap-6">
+            <PrimaryButton
+              href={FINAL_CTA.cta.href}
+              size="lg"
+              className="px-16 py-7 text-[20px] shadow-[0_20px_80px_rgba(245,92,42,0.4)]"
+            >
+              {FINAL_CTA.cta.label}
+            </PrimaryButton>
+            <div className="flex items-center gap-2 px-6 py-2.5 rounded-full bg-white/[0.03] border border-white/5 backdrop-blur-md">
+              <ShieldCheck className="w-5 h-5 text-[var(--accent-success)]" />
+              <p className="text-[14px] font-black uppercase tracking-widest text-[var(--text-muted)]">
+                {FINAL_CTA.cta.subtext}
+              </p>
+            </div>
+          </div>
+        </FadeIn>
       </div>
     </section>
   );
@@ -1010,37 +1261,41 @@ function FinalCTASection() {
 
 function FooterSection() {
   return (
-    <footer className="border-t border-[var(--bg-border)] py-10">
+    <footer className="border-t border-white/5 py-20 bg-[#060608]">
       <div className="mx-auto max-w-6xl px-6">
-        <div className="flex flex-col items-start justify-between gap-6 sm:flex-row sm:items-center">
-          <div className="flex items-center gap-2">
+        <div className="flex flex-col items-start justify-between gap-12 md:flex-row md:items-center">
+          <div className="flex items-center gap-4 group cursor-pointer">
             <div
-              className="flex h-6 w-6 items-center justify-center rounded-md"
+              className="flex h-12 w-12 items-center justify-center rounded-[1rem] shadow-2xl group-hover:rotate-12 transition-transform duration-500"
               style={{ background: "var(--accent-primary)" }}
             >
-              <Play className="h-3 w-3 fill-white text-white" />
+              <Play className="h-6 w-6 fill-white text-white translate-x-0.5" />
             </div>
-            <span className="text-[15px] font-semibold text-[var(--text-primary)]">{SITE.name}</span>
+            <span className="text-[24px] font-black tracking-tighter text-[var(--text-primary)] group-hover:text-[var(--accent-primary)] transition-colors">
+              {SITE.name}
+            </span>
           </div>
-          <div className="flex flex-wrap gap-5">
+          <div className="flex flex-wrap gap-10">
             {FOOTER.links.map((link) => (
               <Link
                 key={link.label}
                 href={link.href}
-                className="text-[12px] text-[var(--text-muted)] transition-colors hover:text-[var(--text-secondary)]"
+                className="text-[15px] font-[1000] uppercase tracking-widest text-[var(--text-muted)] transition-all hover:text-[var(--text-primary)] hover:tracking-[0.2em]"
               >
                 {link.label}
               </Link>
             ))}
           </div>
         </div>
-        <div className="mt-8 flex flex-col items-start justify-between gap-4 border-t border-[var(--bg-border)] pt-6 sm:flex-row sm:items-center">
-          <p className="text-[11px] text-[var(--text-muted)]">{FOOTER.copyright}</p>
-          <div className="flex flex-wrap gap-2">
+        <div className="mt-16 flex flex-col items-start justify-between gap-10 border-t border-white/5 pt-12 md:flex-row md:items-center">
+          <p className="text-[14px] font-bold text-[var(--text-muted)] tracking-tight">
+            {FOOTER.copyright}
+          </p>
+          <div className="flex flex-wrap gap-3">
             {FOOTER.platforms.map((p) => (
               <span
                 key={p}
-                className="rounded-full bg-[var(--bg-elevated)] px-2.5 py-1 text-[10px] text-[var(--text-muted)]"
+                className="rounded-xl border border-white/5 bg-white/[0.02] px-4 py-2 text-[12px] font-black uppercase tracking-widest text-[var(--text-muted)] hover:border-white/10 hover:text-[var(--text-secondary)] transition-colors"
               >
                 {p}
               </span>
