@@ -6,6 +6,7 @@ export interface FailedClipEntry {
   sceneIndex: number;
   visualPrompt: string;
   motionPrompt: string;
+  baseImageUrl: string;
   errorMessage: string;
   failedAt: number;
 }

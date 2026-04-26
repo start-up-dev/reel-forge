@@ -57,7 +57,7 @@ async function processClip(msg: ProcessClipMsg): Promise<void> {
     msg.imageBytes && msg.imageBytes.length > 0 ? new Uint8Array(msg.imageBytes) : null;
 
   // 1. Wait for the prompt input to appear (Grok SPA needs time to hydrate).
-  const promptEl = await waitForResolved<HTMLElement>(
+  await waitForResolved<HTMLElement>(
     () => resolvePromptInput(selectors.promptInput),
     30_000,
     clip.id,
@@ -65,7 +65,11 @@ async function processClip(msg: ProcessClipMsg): Promise<void> {
     selectors.promptInput,
   );
 
-  // 2. Attach the reference image — required for every clip.
+  // 2. Snapshot ALL video srcs currently on the page BEFORE we touch anything.
+  //    Anything that appears after this point is treated as newly generated.
+  const preExistingVideoSrcs = snapshotVideoSrcs();
+
+  // 3. Attach the reference image — required for every clip.
   console.log("[RF] imageBytes:", imageBytes ? `${imageBytes.byteLength} bytes` : "null");
   if (!imageBytes || imageBytes.byteLength === 0) {
     throw new Error("No base image bytes received — clip cannot be processed without reference image");
@@ -75,7 +79,7 @@ async function processClip(msg: ProcessClipMsg): Promise<void> {
   // Grok re-renders the UI after processing the image, so promptEl is now stale.
   await sleep(3000);
 
-  // 3. Re-resolve prompt input — Grok unmounts/remounts the textarea after image upload.
+  // 4. Re-resolve prompt input — Grok unmounts/remounts the textarea after image upload.
   const freshPromptEl = await waitForResolved<HTMLElement>(
     () => resolvePromptInput(selectors.promptInput),
     10_000,
@@ -83,21 +87,31 @@ async function processClip(msg: ProcessClipMsg): Promise<void> {
     "promptInput",
     selectors.promptInput,
   );
+
+  // 5. Clear any existing text first, then set our prompt.
+  //    This prevents Grok from auto-submitting with stale text when the image
+  //    is attached (image + pre-existing prompt can trigger auto-generation).
+  setReactValue(freshPromptEl, "");
+  await sleep(200);
   setReactValue(freshPromptEl, clip.motionPrompt || clip.visualPrompt);
-  await sleep(400);
 
-  // 4. Snapshot all video elements currently on the page BEFORE clicking Generate.
-  //    We use this to distinguish the generated video from any existing ones.
-  const preExistingVideoSrcs = snapshotVideoSrcs();
+  // Brief pause — give Grok time to react to the input events before we check
+  // whether generation has already started.
+  await sleep(500);
 
-  // 5. Find the generate button and click it.
+  // 6. Find the generate button.
   const generateBtn = resolveGenerateButton(selectors.generateButton);
   if (!generateBtn) {
     reportSelectorError(clip.id, "generateButton", selectors.generateButton);
     return;
   }
 
-  if (autoClick) {
+  // 7. Only click if Grok isn't already generating.
+  //    Setting React value on the prompt can trigger Grok's own auto-submit
+  //    (e.g. "press Enter" or debounced form submit), causing a double generation.
+  if (isAlreadyGenerating(generateBtn)) {
+    console.log("[RF] Grok is already generating — skipping button click to prevent double submission");
+  } else if (autoClick) {
     const [min, max] = DELAY_RANGES[clickDelayMode];
     await sleep(randomBetween(min, max));
     generateBtn.click();
@@ -107,22 +121,25 @@ async function processClip(msg: ProcessClipMsg): Promise<void> {
     removeHighlight(generateBtn);
   }
 
-  // 6. Wait for a BRAND-NEW video element to appear (up to 8 minutes for Grok).
-  //    We explicitly exclude anything that was in the DOM before we clicked.
+  // 8. Wait for a BRAND-NEW video element to appear (up to 8 minutes for Grok).
+  //    We explicitly exclude anything that was in the DOM before step 2.
   const videoEl = await waitForNewVideo(preExistingVideoSrcs, 8 * 60 * 1000, clip.id, selectors.outputVideo);
 
-  // 7. Wait a beat so the video src fully stabilises.
-  await sleep(1500);
+  // 9. Wait for the video to be fully generated before capturing the src.
+  //    Grok shows a video element early (even at ~10% generation progress) with a
+  //    streaming URL. Downloading at that point returns empty bytes. We wait until
+  //    the src stabilises and the browser can read video metadata (duration).
+  await waitForVideoReady(videoEl, 5 * 60 * 1000);
 
   const videoSrc = videoEl.src || videoEl.querySelector("source")?.src;
   if (!videoSrc) throw new Error("Video element found but src is empty");
 
-  console.log("[RF] Video detected:", videoSrc.substring(0, 80));
+  console.log("[RF] Video ready:", videoSrc.substring(0, 80));
 
-  // 8. Hand off to the service worker.
-  //    The SW injects a downloader into the page MAIN world (Origin = grok.com,
-  //    full cookies) — the only way assets.grok.com returns 200.
-  //    The SW then uploads to GCS and marks the clip complete.
+  // 10. Hand off to the service worker.
+  //     The SW injects a downloader into the page MAIN world (Origin = grok.com,
+  //     full cookies) — the only way assets.grok.com returns 200.
+  //     The SW then uploads to GCS and marks the clip complete.
   chrome.runtime.sendMessage({
     type: "UPLOAD_VIDEO",
     clipId: clip.id,
@@ -130,6 +147,64 @@ async function processClip(msg: ProcessClipMsg): Promise<void> {
     backendUrl,
     operatorSecret,
   });
+}
+
+// ── Already-generating detection ──────────────────────────────────────────────
+// Returns true if Grok has started a generation run without our button click.
+// A disabled/busy generate button after we've set a prompt + image is the
+// clearest signal — Grok disables it while a request is in flight.
+
+function isAlreadyGenerating(btn: HTMLElement): boolean {
+  if (btn instanceof HTMLButtonElement && btn.disabled) return true;
+  if (btn.getAttribute("aria-disabled") === "true") return true;
+  if (btn.getAttribute("aria-busy") === "true") return true;
+  // Loading spinner inside the button
+  if (btn.querySelector('[class*="load"], [class*="spin"], [class*="progress"]')) return true;
+  return false;
+}
+
+// ── Video readiness wait ──────────────────────────────────────────────────────
+// Polls until the video's src URL is stable AND the browser has loaded enough
+// metadata to confirm the file is accessible (readyState ≥ 2, duration > 0).
+// Falls through on timeout so the SW download retry can take over.
+
+async function waitForVideoReady(
+  videoEl: HTMLVideoElement,
+  timeoutMs: number,
+): Promise<void> {
+  const deadline = Date.now() + timeoutMs;
+  let lastSrc = videoEl.src || videoEl.querySelector("source")?.src || "";
+  let srcStableSince = Date.now();
+
+  while (Date.now() < deadline) {
+    await sleep(1000);
+
+    const currentSrc = videoEl.src || videoEl.querySelector("source")?.src || "";
+
+    if (currentSrc !== lastSrc) {
+      lastSrc = currentSrc;
+      srcStableSince = Date.now();
+      continue;
+    }
+
+    const msSrcStable = Date.now() - srcStableSince;
+    const hasMetadata =
+      currentSrc.length > 0 &&
+      !isNaN(videoEl.duration) &&
+      videoEl.duration > 0 &&
+      videoEl.readyState >= 2;
+
+    if (msSrcStable >= 3000 && hasMetadata) {
+      console.log(
+        `[RF] Video ready — duration=${videoEl.duration.toFixed(1)}s, ` +
+          `readyState=${videoEl.readyState}`,
+      );
+      return;
+    }
+  }
+
+  // Timed out — proceed anyway; the SW download has its own retry loop.
+  console.warn("[RF] waitForVideoReady timed out — proceeding to download");
 }
 
 // ── Video snapshot & new-video detection ─────────────────────────────────────

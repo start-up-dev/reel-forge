@@ -26,13 +26,19 @@ interface TabEntry {
   sceneIndex: number;
   visualPrompt: string;
   motionPrompt: string;
+  baseImageUrl: string;
   startedAt: number;
 }
+
+const MAX_AUTO_RETRIES = 2;
+const DL_RETRIES = 3;
+const DL_RETRY_DELAY_MS = 15_000;
 
 let running = false;
 let pollTimer: ReturnType<typeof setTimeout> | null = null;
 
 const activeTabs = new Map<number, TabEntry>();
+const clipRetryCount = new Map<string, number>();
 const session = { done: 0, failed: 0, startedAt: null as number | null };
 const failedClips: FailedClipEntry[] = [];
 let selectorError: WorkerState["selectorError"] = null;
@@ -118,6 +124,7 @@ async function openClipTab(clip: ClaimedClip, settings: ExtensionSettings): Prom
     sceneIndex: clip.sceneIndex,
     visualPrompt: clip.visualPrompt,
     motionPrompt: clip.motionPrompt,
+    baseImageUrl: clip.baseImageUrl,
     startedAt: Date.now(),
   });
   broadcastState();
@@ -187,14 +194,53 @@ async function sendClipToTab(
   });
 }
 
+// ── Error handling with auto-retry ────────────────────────────────────────────
+// retryable=false is used for user-initiated tab closes to avoid re-processing.
+
 async function handleTabError(
   tabId: number,
   clipId: string,
   error: string,
+  retryable = true,
 ): Promise<void> {
   const entry = activeTabs.get(tabId);
   activeTabs.delete(tabId);
+  closeTab(tabId);
 
+  const retryCount = clipRetryCount.get(clipId) ?? 0;
+
+  if (retryable && retryCount < MAX_AUTO_RETRIES && entry) {
+    clipRetryCount.set(clipId, retryCount + 1);
+    const delayMs = 10_000 * (retryCount + 1); // 10 s, then 20 s
+    console.log(
+      `[SW] Auto-retrying clip ${clipId} in ${delayMs / 1000}s ` +
+        `(attempt ${retryCount + 1}/${MAX_AUTO_RETRIES}): ${error}`,
+    );
+
+    setTimeout(() => {
+      if (!running) return;
+      void getSettings().then((settings) =>
+        openClipTab(
+          {
+            id: entry.clipId,
+            videoId: entry.videoId,
+            sceneIndex: entry.sceneIndex,
+            visualPrompt: entry.visualPrompt,
+            motionPrompt: entry.motionPrompt,
+            baseImageUrl: entry.baseImageUrl,
+          },
+          settings,
+        ),
+      );
+    }, delayMs);
+
+    broadcastState();
+    schedulePoll(500);
+    return;
+  }
+
+  // Exhausted retries (or not retryable) — permanently fail.
+  clipRetryCount.delete(clipId);
   await failClip(clipId, error).catch(() => {});
 
   session.failed++;
@@ -205,12 +251,12 @@ async function handleTabError(
       sceneIndex: entry.sceneIndex,
       visualPrompt: entry.visualPrompt,
       motionPrompt: entry.motionPrompt,
+      baseImageUrl: entry.baseImageUrl,
       errorMessage: error,
       failedAt: Date.now(),
     });
   }
 
-  closeTab(tabId);
   broadcastState();
   schedulePoll(500);
 }
@@ -285,6 +331,7 @@ async function start(): Promise<void> {
   session.startedAt = Date.now();
   failedClips.length = 0;
   selectorError = null;
+  clipRetryCount.clear();
   connected = await checkHealth();
   broadcastState();
   void poll();
@@ -340,6 +387,8 @@ chrome.runtime.onMessage.addListener(
         const entry = idx !== -1 ? failedClips[idx] : undefined;
         if (entry) {
           failedClips.splice(idx, 1);
+          // Reset auto-retry counter so manual retries get the full budget again.
+          clipRetryCount.delete(entry.clipId);
           void getSettings().then((settings) => {
             void openClipTab(
               {
@@ -348,7 +397,7 @@ chrome.runtime.onMessage.addListener(
                 sceneIndex: entry.sceneIndex,
                 visualPrompt: entry.visualPrompt,
                 motionPrompt: entry.motionPrompt,
-                baseImageUrl: "",
+                baseImageUrl: entry.baseImageUrl,
               },
               settings,
             );
@@ -379,6 +428,7 @@ chrome.runtime.onMessage.addListener(
     switch (message.type) {
       case "CLIP_DONE": {
         activeTabs.delete(tabId);
+        clipRetryCount.delete(message.clipId);
         session.done++;
         closeTab(tabId);
         broadcastState();
@@ -432,23 +482,43 @@ chrome.runtime.onMessage.addListener(
               data: { uploadUrl: string; gcsPath: string };
             };
 
-            // 2. Download video in MAIN world (Origin = grok.com, cookies attached).
-            //    Return raw bytes to SW — the SW does the GCS PUT so CORS is not an issue.
-            const dlResults = await chrome.scripting.executeScript({
-              target: { tabId },
-              world: "MAIN",
-              func: async (vUrl: string): Promise<Uint8Array> => {
-                const videoRes = await fetch(vUrl, { credentials: "include" });
-                if (!videoRes.ok)
-                  throw new Error(`Video download failed: ${videoRes.status}`);
-                return new Uint8Array(await videoRes.arrayBuffer());
-              },
-              args: [videoUrl],
-            });
+            // 2. Download video with retries — Grok may still be finalising the file
+            //    when the content script first detects the video element (e.g. at 10%).
+            let videoBytes: Uint8Array | undefined;
 
-            const videoBytes = dlResults[0]?.result;
+            for (let dlAttempt = 0; dlAttempt < DL_RETRIES; dlAttempt++) {
+              if (dlAttempt > 0) {
+                console.log(
+                  `[SW] Retrying video download in ${DL_RETRY_DELAY_MS / 1000}s ` +
+                    `(attempt ${dlAttempt + 1}/${DL_RETRIES})`,
+                );
+                await new Promise((r) => setTimeout(r, DL_RETRY_DELAY_MS));
+              }
+
+              const dlResults = await chrome.scripting.executeScript({
+                target: { tabId },
+                world: "MAIN",
+                func: async (vUrl: string): Promise<Uint8Array> => {
+                  const videoRes = await fetch(vUrl, { credentials: "include" });
+                  if (!videoRes.ok)
+                    throw new Error(`Video download failed: ${videoRes.status}`);
+                  return new Uint8Array(await videoRes.arrayBuffer());
+                },
+                args: [videoUrl],
+              });
+
+              const result = dlResults[0]?.result;
+              if (result && result.byteLength > 0) {
+                videoBytes = result;
+                console.log(`[SW] Video downloaded — ${videoBytes.byteLength} bytes`);
+                break;
+              }
+
+              console.warn(`[SW] Download attempt ${dlAttempt + 1} returned empty bytes`);
+            }
+
             if (!videoBytes || videoBytes.byteLength === 0)
-              throw new Error("Video download returned empty bytes");
+              throw new Error("Video download returned empty bytes after retries");
 
             // 3. PUT to GCS from the SW. Extension host_permissions for
             //    storage.googleapis.com bypass the CORS preflight check.
@@ -488,6 +558,7 @@ chrome.runtime.onMessage.addListener(
 
             // 5. Clean up tab — same as CLIP_DONE.
             activeTabs.delete(tabId);
+            clipRetryCount.delete(clipId);
             session.done++;
             closeTab(tabId);
             broadcastState();
@@ -602,24 +673,12 @@ chrome.runtime.onMessage.addListener(
 );
 
 // ── Tab crash detection ───────────────────────────────────────────────────────
+// retryable=false: user manually closed the tab — don't re-open it.
 
 chrome.tabs.onRemoved.addListener((tabId) => {
-  const entry = activeTabs.get(tabId);
-  if (!entry) return;
-  activeTabs.delete(tabId);
-  session.failed++;
-  failedClips.push({
-    clipId: entry.clipId,
-    videoId: entry.videoId,
-    sceneIndex: entry.sceneIndex,
-    visualPrompt: entry.visualPrompt,
-    motionPrompt: entry.motionPrompt,
-    errorMessage: "Tab closed unexpectedly",
-    failedAt: Date.now(),
-  });
-  void failClip(entry.clipId, "Tab closed unexpectedly").catch(() => {});
-  broadcastState();
-  schedulePoll(500);
+  if (!activeTabs.has(tabId)) return;
+  const clipId = activeTabs.get(tabId)!.clipId;
+  void handleTabError(tabId, clipId, "Tab closed unexpectedly", false);
 });
 
 // Initial state ping.
