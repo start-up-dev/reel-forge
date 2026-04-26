@@ -577,8 +577,6 @@ export const FOOTER = {
   copyright: `© ${new Date().getFullYear()} ReelForge. All rights reserved.`,
   links: [
     { label: "Privacy Policy", href: "#" },
-    { label: "Terms of Service", href: "#" },
-    { label: "Contact", href: "#" },
   ],
   platforms: ["TikTok", "Instagram", "YouTube Shorts", "Facebook Reels"],
 };

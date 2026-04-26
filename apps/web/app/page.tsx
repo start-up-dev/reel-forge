@@ -1294,9 +1294,19 @@ function FooterSection() {
           </div>
         </div>
         <div className="mt-16 flex flex-col items-start justify-between gap-10 border-t border-white/5 pt-12 md:flex-row md:items-center">
-          <p className="text-[14px] font-bold text-[var(--text-muted)] tracking-tight">
-            {FOOTER.copyright}
-          </p>
+          <div className="flex flex-col gap-2">
+            <p className="text-[14px] font-bold text-[var(--text-muted)] tracking-tight">
+              {FOOTER.copyright}
+            </p>
+            <Link 
+              href="https://makereal.io" 
+              target="_blank" 
+              rel="noopener noreferrer"
+              className="text-[12px] font-black uppercase tracking-widest text-[var(--text-muted)] hover:text-[var(--accent-primary)] transition-colors"
+            >
+              Powered by Make Real
+            </Link>
+          </div>
           <div className="flex flex-wrap gap-3">
             {FOOTER.platforms.map((p) => (
               <span
