@@ -220,6 +220,7 @@ Tasks are ordered by dependency. Each phase can largely begin after the previous
 - [x] Implement FAQ accordion
 - [x] Implement final CTA section
 - [x] Implement footer
+- [x] Create Privacy Policy page (`/privacy`) and link from footer
 - [x] Ensure fully responsive (mobile, tablet, desktop)
 
 ### 4.2 Onboarding Modal

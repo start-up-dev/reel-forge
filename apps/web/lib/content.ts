@@ -575,6 +575,6 @@ export const FINAL_CTA = {
 
 export const FOOTER = {
   copyright: `© ${new Date().getFullYear()} ReelForge. All rights reserved.`,
-  links: [{ label: "Privacy Policy", href: "#" }],
+  links: [{ label: "Privacy Policy", href: "/privacy" }],
   platforms: ["TikTok", "Instagram", "YouTube Shorts", "Facebook Reels"],
 };
