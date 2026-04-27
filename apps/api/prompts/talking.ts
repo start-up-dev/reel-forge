@@ -99,6 +99,7 @@ Rules:
 - motionPrompt: describe lipsync delivery style, head/body movement, and camera movement
 - durationHintSeconds: integer 1–6, all scenes sum to exactly ${audioDurationSeconds}
 - The "scenes" field must be a JSON array, not a stringified JSON value.
+- STYLE LOCK: In scene 0, commit to ONE color grade, ONE lighting setup, and ONE character appearance. Every subsequent scene must use the exact same visual style — only the framing and expression change. The viewer must feel this is one coherent video.
 
 CRITICAL: Every scene MUST show the character speaking. Mouth open. Eye contact with camera. No B-roll. No abstract visuals.`,
   };

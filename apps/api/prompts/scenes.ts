@@ -233,6 +233,7 @@ Rules:
 - motionPrompt: 2–3 sentences covering exactly what the system prompt specifies for this style
 - durationHintSeconds: integer 1–6, all scenes sum to exactly ${audioDurationSeconds}
 - The "scenes" field must be a JSON array, not a stringified JSON value.
+- STYLE LOCK: In scene 0, commit to ONE color grade, ONE lighting approach, and ONE overall palette. Every subsequent scene must use those exact same choices — only the subject, camera angle, and composition change between scenes. A viewer must feel they are watching one coherent video, not a collage.
 ${isTalkingStyle ? "\nCRITICAL: This is a TALKING video. Characters MUST face camera, speak the textExcerpt with visible mouth movement and natural lipsync. Do NOT use cinematic B-roll rules." : renderStyle && renderStyle !== "cinematic" ? `\nCRITICAL: You are working in ${renderStyle.replace(/_/g, " ").toUpperCase()} style. Every single scene must strictly follow that style — do NOT use cinematic B-roll, do NOT use photorealistic photography, do NOT deviate from the style instructions.` : "\nGo bold. Make every frame scroll-stopping."}`,
   };
 }

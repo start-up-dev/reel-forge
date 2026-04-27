@@ -95,65 +95,43 @@ async function processScenes(
       )
       .returning();
 
-    // Generate base images — cartoon/mascot use sequential processing so scene 0
-    // can become the character reference for all subsequent scenes.
-    const isCharacterStyle = renderStyle === "cartoon" || renderStyle === "mascot";
+    // All styles use sequential processing: scene 0 generates normally and its
+    // result becomes the visual reference for every subsequent scene.
+    const [videoRow] = await db
+      .select({ characterBaseGcsPath: videos.characterBaseGcsPath })
+      .from(videos)
+      .where(eq(videos.id, videoId))
+      .limit(1);
+    let charBase: string | null = videoRow?.characterBaseGcsPath ?? null;
+    let charBaseSignedUrl: string | null = charBase
+      ? await generateSignedReadUrl(charBase, ASSET_URL_TTL_MINUTES)
+      : null;
 
-    if (isCharacterStyle) {
-      const [videoRow] = await db
-        .select({ characterBaseGcsPath: videos.characterBaseGcsPath })
-        .from(videos)
-        .where(eq(videos.id, videoId))
-        .limit(1);
-      let charBase: string | null = videoRow?.characterBaseGcsPath ?? null;
-      let charBaseSignedUrl: string | null = charBase
-        ? await generateSignedReadUrl(charBase, ASSET_URL_TTL_MINUTES)
-        : null;
-
-      const sorted = [...inserted].sort((a, b) => a.sceneIndex - b.sceneIndex);
-      for (const scene of sorted) {
-        try {
-          const useRef = charBaseSignedUrl !== null && scene.sceneIndex > 0;
-          const imageBuffer = useRef
-            ? await generateImageFromReference(scene.visualPrompt, charBaseSignedUrl!)
-            : await generateImage(scene.visualPrompt);
-          const imagePath = `videos/${videoId}/scenes/${scene.sceneIndex}/base_image.jpg`;
-          await uploadBuffer(imagePath, imageBuffer, "image/jpeg");
-          const imageUrl = await generateSignedReadUrl(imagePath, ASSET_URL_TTL_MINUTES);
+    const sorted = [...inserted].sort((a, b) => a.sceneIndex - b.sceneIndex);
+    for (const scene of sorted) {
+      try {
+        const useRef = charBaseSignedUrl !== null && scene.sceneIndex > 0;
+        const imageBuffer = useRef
+          ? await generateImageFromReference(scene.visualPrompt, charBaseSignedUrl!)
+          : await generateImage(scene.visualPrompt);
+        const imagePath = `videos/${videoId}/scenes/${scene.sceneIndex}/base_image.jpg`;
+        await uploadBuffer(imagePath, imageBuffer, "image/jpeg");
+        const imageUrl = await generateSignedReadUrl(imagePath, ASSET_URL_TTL_MINUTES);
+        await db
+          .update(scenes)
+          .set({ baseImageUrl: imageUrl, baseImagePath: imagePath, updatedAt: new Date() })
+          .where(eq(scenes.id, scene.id));
+        if (scene.sceneIndex === 0 && !charBase) {
+          charBase = imagePath;
+          charBaseSignedUrl = imageUrl;
           await db
-            .update(scenes)
-            .set({ baseImageUrl: imageUrl, baseImagePath: imagePath, updatedAt: new Date() })
-            .where(eq(scenes.id, scene.id));
-          // Scene 0's image becomes the character base when none was pre-generated.
-          if (scene.sceneIndex === 0 && !charBase) {
-            charBase = imagePath;
-            charBaseSignedUrl = imageUrl;
-            await db
-              .update(videos)
-              .set({ characterBaseGcsPath: imagePath, updatedAt: new Date() })
-              .where(eq(videos.id, videoId));
-          }
-        } catch (err) {
-          console.error(`[processScenes] image failed for scene ${scene.sceneIndex} (video ${videoId}):`, err);
+            .update(videos)
+            .set({ characterBaseGcsPath: imagePath, updatedAt: new Date() })
+            .where(eq(videos.id, videoId));
         }
+      } catch (err) {
+        console.error(`[processScenes] image failed for scene ${scene.sceneIndex} (video ${videoId}):`, err);
       }
-    } else {
-      await Promise.allSettled(
-        inserted.map(async (scene) => {
-          try {
-            const imageBuffer = await generateImage(scene.visualPrompt);
-            const imagePath = `videos/${videoId}/scenes/${scene.sceneIndex}/base_image.jpg`;
-            await uploadBuffer(imagePath, imageBuffer, "image/jpeg");
-            const imageUrl = await generateSignedReadUrl(imagePath, ASSET_URL_TTL_MINUTES);
-            await db
-              .update(scenes)
-              .set({ baseImageUrl: imageUrl, baseImagePath: imagePath, updatedAt: new Date() })
-              .where(eq(scenes.id, scene.id));
-          } catch (err) {
-            console.error(`[processScenes] image generation failed for scene ${scene.sceneIndex} (video ${videoId}):`, err);
-          }
-        }),
-      );
     }
 
     await db
