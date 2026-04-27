@@ -49,8 +49,8 @@ export const HERO = {
 // ─── Video Showcase ───────────────────────────────────────────────────────────
 
 export const SHOWCASE = {
-  label: "Built with ReelForge",
-  headline: "Videos creators are\nposting right now.",
+  label: "ReelForge Studio",
+  headline: "Built with ReelForge",
   subheadline:
     "Every video below was generated through the ReelForge pipeline — script to finished MP4.",
   videos: [
@@ -575,8 +575,6 @@ export const FINAL_CTA = {
 
 export const FOOTER = {
   copyright: `© ${new Date().getFullYear()} ReelForge. All rights reserved.`,
-  links: [
-    { label: "Privacy Policy", href: "#" },
-  ],
+  links: [{ label: "Privacy Policy", href: "#" }],
   platforms: ["TikTok", "Instagram", "YouTube Shorts", "Facebook Reels"],
 };

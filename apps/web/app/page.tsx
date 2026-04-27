@@ -202,7 +202,11 @@ function HeroSection() {
         <FadeIn delay={0.4}>
           <div className="flex flex-col items-center gap-6 sm:flex-row sm:justify-center">
             <div className="flex w-full flex-col items-center gap-3 sm:w-auto">
-              <PrimaryButton href={HERO.primaryCta.href} size="lg" className="w-full sm:w-auto justify-center">
+              <PrimaryButton
+                href={HERO.primaryCta.href}
+                size="lg"
+                className="w-full sm:w-auto justify-center"
+              >
                 {HERO.primaryCta.label}
               </PrimaryButton>
               <div className="flex items-center gap-1.5 px-3 py-1 rounded-full bg-white/[0.03] border border-white/5">
@@ -253,34 +257,6 @@ function HeroSection() {
           </div>
         </FadeIn>
       </div>
-
-      <ScaleIn
-        delay={0.7}
-        className="relative mx-auto mt-16 md:mt-24 w-full max-w-6xl px-6"
-      >
-        <div className="absolute -inset-1 rounded-[2rem] md:rounded-[2.5rem] bg-gradient-to-b from-[var(--accent-primary)]/20 to-transparent blur-md -z-10" />
-        <div className="relative overflow-hidden rounded-[1.5rem] md:rounded-[2rem] border-2 border-white/10 shadow-[0_40px_100px_rgba(0,0,0,0.8)] bg-[#0c0c0e] min-h-[300px] md:min-h-[600px]">
-          {/* Mock UI for Hero Preview */}
-          <div className="absolute inset-0 flex flex-col">
-            <div className="h-10 md:h-12 border-b border-white/5 bg-white/[0.02] flex items-center px-4 gap-2">
-              <div className="flex gap-1.5">
-                <div className="w-2 h-2 md:w-2.5 md:h-2.5 rounded-full bg-white/10" />
-                <div className="w-2 h-2 md:w-2.5 md:h-2.5 rounded-full bg-white/10" />
-                <div className="w-2 h-2 md:w-2.5 md:h-2.5 rounded-full bg-white/10" />
-              </div>
-              <div className="mx-auto h-5 md:h-6 w-32 md:w-48 rounded-lg bg-white/5" />
-            </div>
-            <div className="flex-1 p-4 md:p-8 grid grid-cols-2 md:grid-cols-4 gap-4 md:gap-6">
-              {[1, 2, 3, 4, 5, 6, 7, 8].map((i) => (
-                <div key={i} className="aspect-[9/16] rounded-xl bg-white/[0.03] border border-white/5 animate-pulse flex flex-col justify-end p-3 gap-2">
-                  <div className="h-2 w-full bg-white/10 rounded" />
-                  <div className="h-2 w-2/3 bg-white/5 rounded" />
-                </div>
-              ))}
-            </div>
-          </div>
-        </div>
-      </ScaleIn>
     </section>
   );
 }
@@ -515,7 +491,10 @@ function ProblemSection() {
         </FadeIn>
       </div>
 
-      <StaggerContainer delay={0.4} className="grid gap-4 md:gap-6 md:grid-cols-3">
+      <StaggerContainer
+        delay={0.4}
+        className="grid gap-4 md:gap-6 md:grid-cols-3"
+      >
         {PROBLEM.cards.map((card) => {
           const k = card.iconKey as keyof typeof icons;
           const Icon = icons[k];
@@ -527,7 +506,10 @@ function ProblemSection() {
                   style={{ background: colors[k] }}
                 />
                 <div className="mb-5 md:mb-6 inline-flex h-12 w-12 md:h-14 md:w-14 items-center justify-center rounded-[0.8rem] md:rounded-[1rem] bg-white/[0.03] border border-white/5 shadow-2xl group-hover:scale-110 group-hover:rotate-3 transition-all duration-500">
-                  <Icon className="h-6 w-6 md:h-7 md:w-7" style={{ color: colors[k] }} />
+                  <Icon
+                    className="h-6 w-6 md:h-7 md:w-7"
+                    style={{ color: colors[k] }}
+                  />
                 </div>
                 <h3 className="mb-2 md:mb-3 text-[18px] md:text-[20px] font-black text-[var(--text-primary)] leading-tight">
                   {card.title}
@@ -1298,9 +1280,9 @@ function FooterSection() {
             <p className="text-[14px] font-bold text-[var(--text-muted)] tracking-tight">
               {FOOTER.copyright}
             </p>
-            <Link 
-              href="https://makereal.io" 
-              target="_blank" 
+            <Link
+              href="https://makereal.io"
+              target="_blank"
               rel="noopener noreferrer"
               className="text-[12px] font-black uppercase tracking-widest text-[var(--text-muted)] hover:text-[var(--accent-primary)] transition-colors"
             >
