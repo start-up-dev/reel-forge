@@ -1,5 +1,5 @@
 import Fastify from "fastify";
-import { eq, or } from "drizzle-orm";
+import { eq } from "drizzle-orm";
 import { env } from "./env.js";
 import { db, videos } from "./db.js";
 import { assembleVideo } from "./assemble.js";
@@ -53,6 +53,16 @@ withRetry(() => drainPendingVideos(), 5, 3000).catch((err) =>
   app.log.error({ err }, "[startup] drainPendingVideos failed after retries"),
 );
 
+// Poll every 60 s for ASSEMBLY_PENDING videos that arrived after startup
+// (e.g. manually set in DB, or HTTP trigger was lost).
+// The atomic claim in assembleVideo prevents duplicates across instances.
+const POLL_INTERVAL_MS = 60_000;
+setInterval(() => {
+  pickUpPendingVideos().catch((err) =>
+    app.log.error({ err }, "[poll] pickUpPendingVideos failed"),
+  );
+}, POLL_INTERVAL_MS);
+
 async function withRetry<T>(
   fn: () => Promise<T>,
   attempts: number,
@@ -68,6 +78,23 @@ async function withRetry<T>(
     }
   }
   throw new Error("unreachable");
+}
+
+// Lightweight periodic check — no PROCESSING reset (startup-only concern).
+async function pickUpPendingVideos(): Promise<void> {
+  const pending = await db
+    .select({ id: videos.id })
+    .from(videos)
+    .where(eq(videos.status, "ASSEMBLY_PENDING"));
+
+  if (pending.length === 0) return;
+
+  app.log.info(`[poll] Dispatching ${pending.length} ASSEMBLY_PENDING video(s)`);
+  for (const { id } of pending) {
+    assembleVideo(id).catch((err) =>
+      app.log.error({ videoId: id, err }, "[poll] Assembly failed"),
+    );
+  }
 }
 
 async function drainPendingVideos(): Promise<void> {
@@ -87,7 +114,7 @@ async function drainPendingVideos(): Promise<void> {
   const pending = await db
     .select({ id: videos.id })
     .from(videos)
-    .where(or(eq(videos.status, "ASSEMBLY_PENDING")));
+    .where(eq(videos.status, "ASSEMBLY_PENDING"));
 
   if (pending.length === 0) return;
 

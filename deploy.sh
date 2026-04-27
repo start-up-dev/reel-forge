@@ -40,7 +40,7 @@ deploy_worker() {
     --image $WORKER_IMAGE \
     --region $REGION \
     --service-account $SERVICE_ACCOUNT \
-    --cpu 2 --memory 4Gi \
+    --cpu 4 --memory 8Gi \
     --timeout 3600 \
     --no-cpu-throttling \
     --min-instances 1 \

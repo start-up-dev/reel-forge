@@ -3,6 +3,8 @@ import { join } from "node:path";
 import { downloadToFile } from "./storage.js";
 import type { SceneRow, VideoRow } from "./db.js";
 
+const DOWNLOAD_CONCURRENCY = 8;
+
 export interface DownloadedAssets {
   dir: string;
   audioPath: string;
@@ -32,20 +34,25 @@ export async function downloadAssetsFromGCS(
 
   const sortedScenes = [...scenes].sort((a, b) => a.sceneIndex - b.sceneIndex);
 
-  const clipPaths = await Promise.all(
-    sortedScenes.map(async (scene) => {
-      if (!scene.clipPath) {
-        throw new Error(`Scene ${scene.sceneIndex} has no clip path`);
-      }
-      const localPath = join(clipsDir, `clip_${scene.sceneIndex}.mp4`);
-      await downloadToFile(scene.clipPath, localPath).catch((err) => {
-        throw new Error(
-          `Failed to download clip for scene ${scene.sceneIndex}: ${(err as Error).message}`,
-        );
-      });
-      return { sceneIndex: scene.sceneIndex, path: localPath, durationHint: scene.durationHintSeconds };
-    }),
-  );
+  const clipPaths: DownloadedAssets["clipPaths"] = [];
+  for (let i = 0; i < sortedScenes.length; i += DOWNLOAD_CONCURRENCY) {
+    const batch = sortedScenes.slice(i, i + DOWNLOAD_CONCURRENCY);
+    const batchResults = await Promise.all(
+      batch.map(async (scene) => {
+        if (!scene.clipPath) {
+          throw new Error(`Scene ${scene.sceneIndex} has no clip path`);
+        }
+        const localPath = join(clipsDir, `clip_${scene.sceneIndex}.mp4`);
+        await downloadToFile(scene.clipPath, localPath).catch((err) => {
+          throw new Error(
+            `Failed to download clip for scene ${scene.sceneIndex}: ${(err as Error).message}`,
+          );
+        });
+        return { sceneIndex: scene.sceneIndex, path: localPath, durationHint: scene.durationHintSeconds };
+      }),
+    );
+    clipPaths.push(...batchResults);
+  }
 
   return { dir, audioPath, wordTimestampsPath, clipPaths };
 }

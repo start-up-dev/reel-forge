@@ -1,6 +1,6 @@
 import { rm } from "node:fs/promises";
 import { readFile } from "node:fs/promises";
-import { eq } from "drizzle-orm";
+import { eq, and } from "drizzle-orm";
 import { db, videos, scenes, users } from "./db.js";
 import { downloadAssetsFromGCS } from "./download.js";
 import { normalizeAllClips, concatenateClips, mixAudio, burnSubtitles, probeDuration } from "./ffmpeg.js";
@@ -19,20 +19,23 @@ export async function assembleVideo(videoId: string): Promise<void> {
     const [video] = await db.select().from(videos).where(eq(videos.id, videoId));
     if (!video) throw new Error(`Video ${videoId} not found`);
 
-    // Idempotency guard
     if (video.status === "COMPLETE") {
       console.log(`[assemble] Video ${videoId} already complete — skipping`);
       return;
     }
-    if (video.status !== "ASSEMBLY_PENDING") {
-      throw new Error(`Video ${videoId} is in unexpected status: ${video.status}`);
-    }
 
-    // ── Mark as processing ────────────────────────────────────────────────────
-    await db
+    // Atomic claim: only this worker proceeds if it wins the PENDING→PROCESSING race.
+    // Prevents duplicate assembly when multiple Cloud Run instances drain on startup.
+    const [claimed] = await db
       .update(videos)
       .set({ status: "ASSEMBLY_PROCESSING", updatedAt: new Date() })
-      .where(eq(videos.id, videoId));
+      .where(and(eq(videos.id, videoId), eq(videos.status, "ASSEMBLY_PENDING")))
+      .returning({ id: videos.id });
+
+    if (!claimed) {
+      console.log(`[assemble] Video ${videoId} already claimed by another worker — skipping`);
+      return;
+    }
 
     // ── Fetch scenes ──────────────────────────────────────────────────────────
     const sceneRows = await db

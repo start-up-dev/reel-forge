@@ -1,6 +1,8 @@
-import { writeFile } from "node:fs/promises";
+import { writeFile, unlink } from "node:fs/promises";
 import { join } from "node:path";
 import { execa } from "execa";
+
+const NORMALIZE_CONCURRENCY = 3;
 
 export interface ClipEntry {
   sceneIndex: number;
@@ -40,16 +42,26 @@ export async function normalizeClip(clip: ClipEntry, dir: string): Promise<strin
     );
   });
 
+  // Free /tmp space (Cloud Run /tmp is memory-backed; raw clip no longer needed)
+  await unlink(clip.path).catch(() => {});
+
   return outPath;
 }
 
-// Step 1 (parallel) — Normalize all clips concurrently.
+// Step 1 (concurrency-limited) — Normalize clips NORMALIZE_CONCURRENCY at a time.
+// Unbounded Promise.all exhausts RAM on Cloud Run (each FFmpeg encode ~350 MB).
 export async function normalizeAllClips(
   clips: ClipEntry[],
   dir: string,
 ): Promise<string[]> {
   const sorted = [...clips].sort((a, b) => a.sceneIndex - b.sceneIndex);
-  return Promise.all(sorted.map((clip) => normalizeClip(clip, dir)));
+  const results: string[] = [];
+  for (let i = 0; i < sorted.length; i += NORMALIZE_CONCURRENCY) {
+    const batch = sorted.slice(i, i + NORMALIZE_CONCURRENCY);
+    const batchResults = await Promise.all(batch.map((clip) => normalizeClip(clip, dir)));
+    results.push(...batchResults);
+  }
+  return results;
 }
 
 // Step 2 — Concatenate normalized clips into a single video.

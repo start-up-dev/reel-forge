@@ -566,8 +566,8 @@ Tasks are ordered by dependency. Each phase can largely begin after the previous
 ### 9.5 Worker Containerization & Deployment
 
 - [x] Write `apps/worker/Dockerfile`: use `jrottenberg/ffmpeg:latest` as base image, install Node.js, copy app
-- [ ] Configure Cloud Run service: min instances 1, 4GB RAM, 2 vCPU, 60min request timeout
-- [ ] Deploy to GCP Cloud Run dev environment
+- [x] Configure Cloud Run service: min instances 1, 4GB RAM, 2 vCPU, 60min request timeout
+- [x] Deploy to GCP Cloud Run dev environment
 - [x] Write Cloud Tasks dispatcher in `apps/api/lib/cloud-tasks.ts`: `dispatchAssemblyTask(videoId)` — already done in Phase 7
 - [x] Wire `dispatchAssemblyTask` call into `POST /api/operator/clips/:id/complete` when all clips done — already done in Phase 7
 
