@@ -8,8 +8,10 @@ import type {
   RenderStyle,
   Scene,
   SubtitleStyle,
+  TalkingSubtype,
   User,
   Video,
+  VideoType,
 } from "@repo/types";
 
 export interface VoiceInfo {
@@ -182,8 +184,11 @@ export function createApiClient(getToken: () => Promise<string | null>) {
             | "voiceId"
             | "targetDurationSeconds"
             | "renderStyle"
+            | "videoType"
+            | "talkingSubtype"
+            | "voiceSpeed"
           >
-        > & { renderStyle?: RenderStyle | null }
+        > & { renderStyle?: RenderStyle | null; videoType?: VideoType; talkingSubtype?: TalkingSubtype | null }
       ): Promise<ApiResponse<Video>> {
         return authedRequest(`/api/videos/${id}`, {
           method: "PATCH",

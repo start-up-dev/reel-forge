@@ -3,7 +3,7 @@
 import { useState, useEffect, useRef } from "react";
 import { ChevronDown, ChevronUp, Check, Loader2, Play, Square } from "lucide-react";
 import { toast } from "sonner";
-import { RenderStyle, VideoStatus } from "@repo/types";
+import { RenderStyle, TalkingSubtype, VideoStatus, VideoType } from "@repo/types";
 import type { Project } from "@repo/types";
 import { Button } from "@repo/ui/button";
 import { useApiClient, withToast } from "@/lib/api-client";
@@ -14,7 +14,7 @@ interface Step1IdeaProps {
   video: VideoDetail;
   project: Project | null;
   onVideoUpdate: (v: VideoDetail) => void;
-  onScheduleSave: (data: { idea?: string; voiceId?: string | null; targetDurationSeconds?: number; renderStyle?: RenderStyle | null }) => void;
+  onScheduleSave: (data: { idea?: string; voiceId?: string | null; targetDurationSeconds?: number; renderStyle?: RenderStyle | null; videoType?: VideoType; talkingSubtype?: TalkingSubtype | null }) => void;
   onAdvance: () => void;
 }
 
@@ -40,6 +40,14 @@ const VIDEO_STYLE_OPTIONS: { value: RenderStyle; label: string; emoji: string }[
   { value: RenderStyle.Cinematic,     label: "Cinematic",      emoji: "🎬" },
   { value: RenderStyle.StockFootage,  label: "Stock Footage",  emoji: "📷" },
   { value: RenderStyle.Whiteboard,    label: "Whiteboard",     emoji: "📋" },
+];
+
+const TALKING_SUBTYPE_OPTIONS: { value: TalkingSubtype; label: string; emoji: string; hint: string }[] = [
+  { value: TalkingSubtype.UGC,        label: "UGC",          emoji: "📱", hint: "Casual creator-style, direct to camera" },
+  { value: TalkingSubtype.ShortFilm,  label: "Short Film",   emoji: "🎥", hint: "Scripted narrative, cinematic feel" },
+  { value: TalkingSubtype.Interview,  label: "Interview",    emoji: "🎙️", hint: "Conversational, documentary style" },
+  { value: TalkingSubtype.Explainer,  label: "Explainer",    emoji: "🧠", hint: "Educational, character explains clearly" },
+  { value: TalkingSubtype.PodcastClip,label: "Podcast Clip", emoji: "🎧", hint: "Minimal set, relaxed talking head" },
 ];
 
 const TIPS = [
@@ -71,8 +79,14 @@ export function Step1Idea({
   // Video length
   const [targetDuration, setTargetDuration] = useState(video.targetDurationSeconds ?? 30);
 
+  // Video type (generated vs talking)
+  const [videoType, setVideoType] = useState<VideoType>(video.videoType ?? VideoType.Generated);
+  const [talkingSubtype, setTalkingSubtype] = useState<TalkingSubtype | null>(video.talkingSubtype ?? null);
+
   // Render style
   const [renderStyle, setRenderStyle] = useState<RenderStyle | null>(video.renderStyle ?? null);
+
+  const isTalking = videoType === VideoType.Talking;
 
   // Voice selection
   const [voices, setVoices] = useState<VoiceInfo[]>([]);
@@ -155,11 +169,15 @@ export function Step1Idea({
   }
 
   async function handleUseIdea(idea: IdeaCard) {
-    if (!renderStyle) {
+    if (isTalking && !talkingSubtype) {
+      toast.error("Select a talking video subtype before continuing");
+      return;
+    }
+    if (!isTalking && !renderStyle) {
       toast.error("Select a video style before continuing");
       return;
     }
-    if (!selectedVoiceId) {
+    if (!isTalking && !selectedVoiceId) {
       toast.error("Select a voice before continuing");
       return;
     }
@@ -183,11 +201,15 @@ export function Step1Idea({
       toast.error("Enter your idea first");
       return;
     }
-    if (!renderStyle) {
+    if (isTalking && !talkingSubtype) {
+      toast.error("Select a talking video subtype before continuing");
+      return;
+    }
+    if (!isTalking && !renderStyle) {
       toast.error("Select a video style before continuing");
       return;
     }
-    if (!selectedVoiceId) {
+    if (!isTalking && !selectedVoiceId) {
       toast.error("Select a voice before continuing");
       return;
     }
@@ -242,7 +264,86 @@ export function Step1Idea({
         </div>
       </div>
 
-      {/* Video Style */}
+      {/* Video Type */}
+      <div className="mb-6">
+        <p className="mb-2 text-xs font-medium uppercase tracking-widest text-[var(--text-muted)]">
+          Video Type
+        </p>
+        <div className="grid grid-cols-2 gap-3">
+          {([
+            {
+              value: VideoType.Generated,
+              label: "Generated Video",
+              emoji: "🎬",
+              hint: "AI clips with ElevenLabs voiceover",
+            },
+            {
+              value: VideoType.Talking,
+              label: "Talking Video",
+              emoji: "🗣️",
+              hint: "UGC, short films, lipsync — voice from Grok",
+            },
+          ] as const).map((opt) => (
+            <button
+              key={opt.value}
+              type="button"
+              onClick={() => {
+                setVideoType(opt.value);
+                onScheduleSave({ videoType: opt.value });
+              }}
+              className={cn(
+                "flex flex-col items-start rounded-xl border p-3 text-left transition-all",
+                videoType === opt.value
+                  ? "border-[var(--accent-primary)] bg-[var(--accent-primary)]/10"
+                  : "border-[var(--bg-border)] bg-[var(--bg-elevated)] hover:border-[var(--text-muted)]"
+              )}
+            >
+              <span className="mb-1 text-lg">{opt.emoji}</span>
+              <span className="text-sm font-semibold text-[var(--text-primary)]">{opt.label}</span>
+              <span className="text-xs text-[var(--text-muted)]">{opt.hint}</span>
+            </button>
+          ))}
+        </div>
+      </div>
+
+      {/* Talking subtype picker (talking videos only) */}
+      {isTalking && (
+        <div className="mb-6">
+          <p className="mb-2 text-xs font-medium uppercase tracking-widest text-[var(--text-muted)]">
+            Content Type
+          </p>
+          <div className="flex flex-wrap gap-2">
+            {TALKING_SUBTYPE_OPTIONS.map((opt) => (
+              <button
+                key={opt.value}
+                type="button"
+                title={opt.hint}
+                onClick={() => {
+                  setTalkingSubtype(opt.value);
+                  onScheduleSave({ talkingSubtype: opt.value });
+                }}
+                className={cn(
+                  "flex items-center gap-1.5 rounded-full border px-3 py-1.5 text-sm font-medium transition-all",
+                  talkingSubtype === opt.value
+                    ? "border-[var(--accent-primary)] bg-[var(--accent-primary)]/10 text-[var(--text-primary)]"
+                    : "border-[var(--bg-border)] bg-[var(--bg-elevated)] text-[var(--text-secondary)] hover:border-[var(--text-muted)]"
+                )}
+              >
+                <span>{opt.emoji}</span>
+                <span>{opt.label}</span>
+              </button>
+            ))}
+          </div>
+          {!talkingSubtype && (
+            <p className="mt-2 text-xs text-[var(--accent-warning)]">
+              Select a content type to continue
+            </p>
+          )}
+        </div>
+      )}
+
+      {/* Video Style (generated videos only) */}
+      {!isTalking && (
       <div className="mb-6">
         <p className="mb-2 text-xs font-medium uppercase tracking-widest text-[var(--text-muted)]">
           Video Style
@@ -274,6 +375,7 @@ export function Step1Idea({
           </p>
         )}
       </div>
+      )}
 
       {/* Mode toggle */}
       <div className="mb-6 inline-flex rounded-lg border border-[var(--bg-border)] bg-[var(--bg-elevated)] p-1">
@@ -407,7 +509,16 @@ export function Step1Idea({
         </div>
       )}
 
-      {/* ── Voice section ── */}
+      {/* ── Voice section (generated videos only) ── */}
+      {isTalking && (
+        <div className="mt-8 rounded-xl border border-[var(--bg-border)] bg-[var(--bg-elevated)] p-4">
+          <p className="text-sm font-medium text-[var(--text-primary)]">🎙️ Voice via Grok Imagine</p>
+          <p className="mt-1 text-sm text-[var(--text-secondary)]">
+            Your character&apos;s voice is generated directly by Grok Imagine with accurate lipsync during clip generation — no separate voice selection needed.
+          </p>
+        </div>
+      )}
+      {!isTalking && (
       <div className="mt-8">
         <div className="mb-3 flex items-center justify-between">
           <p className="text-xs font-medium uppercase tracking-widest text-[var(--text-muted)]">
@@ -484,6 +595,7 @@ export function Step1Idea({
           </p>
         )}
       </div>
+      )}
 
       {/* Tips */}
       <div className="mt-8">

@@ -5,6 +5,7 @@ import {
   integer,
   pgEnum,
   pgTable,
+  real,
   text,
   timestamp,
   uuid,
@@ -34,7 +35,14 @@ export const subtitleStyleEnum = pgEnum("subtitle_style", [
   "word_highlight",
   "minimal",
   "cinematic",
+  "neon_glow",
+  "oversized_pop",
+  "grouped_bold",
+  "grouped_cinematic",
+  "karaoke",
 ]);
+
+export const videoTypeEnum = pgEnum("video_type", ["generated", "talking"]);
 
 export const users = pgTable("users", {
   id: text("id").primaryKey(),
@@ -52,7 +60,10 @@ export const videos = pgTable("videos", {
   subtitleStyle: subtitleStyleEnum("subtitle_style").notNull().default("bold_pop"),
   bgmEnabled: boolean("bgm_enabled").notNull().default(false),
   bgmAssetId: text("bgm_asset_id"),
-  bgmVolume: integer("bgm_volume").notNull().default(30),
+  bgmVolume: integer("bgm_volume").notNull().default(15),
+  videoType: videoTypeEnum("video_type").notNull().default("generated"),
+  voiceSpeed: real("voice_speed").notNull().default(1.0),
+  characterBaseGcsPath: text("character_base_gcs_path"),
   outputUrl: text("output_url"),
   durationSeconds: integer("duration_seconds"),
   error: text("error"),

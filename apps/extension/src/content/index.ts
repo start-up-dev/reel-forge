@@ -18,6 +18,8 @@ interface ProcessClipMsg {
   selectors: DomSelectors;
   backendUrl: string;
   operatorSecret: string;
+  textExcerpt: string | null;
+  videoType: string | null;
 }
 
 const DELAY_RANGES: Record<ExtensionSettings["clickDelayMode"], [number, number]> = {
@@ -56,6 +58,11 @@ async function processClip(msg: ProcessClipMsg): Promise<void> {
   const imageBytes: Uint8Array | null =
     msg.imageBytes && msg.imageBytes.length > 0 ? new Uint8Array(msg.imageBytes) : null;
 
+  // For talking videos, prepend the exact spoken words so Grok generates accurate
+  // lipsync. The character must visibly say these words in the generated clip.
+  const isTalking = msg.videoType === "talking";
+  const basePrompt = clip.motionPrompt || clip.visualPrompt;
+
   // 1. Wait for the prompt input to appear (Grok SPA needs time to hydrate).
   await waitForResolved<HTMLElement>(
     () => resolvePromptInput(selectors.promptInput),
@@ -91,9 +98,14 @@ async function processClip(msg: ProcessClipMsg): Promise<void> {
   // 5. Clear any existing text first, then set our prompt.
   //    This prevents Grok from auto-submitting with stale text when the image
   //    is attached (image + pre-existing prompt can trigger auto-generation).
+  const promptText =
+    isTalking && msg.textExcerpt
+      ? `SAY EXACTLY: "${msg.textExcerpt}"\n\n${basePrompt}`
+      : basePrompt;
+
   setReactValue(freshPromptEl, "");
   await sleep(200);
-  setReactValue(freshPromptEl, clip.motionPrompt || clip.visualPrompt);
+  setReactValue(freshPromptEl, promptText);
 
   // Brief pause — give Grok time to react to the input events before we check
   // whether generation has already started.

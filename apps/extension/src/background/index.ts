@@ -27,6 +27,8 @@ interface TabEntry {
   visualPrompt: string;
   motionPrompt: string;
   baseImageUrl: string;
+  textExcerpt: string | null;
+  videoType: string | null;
   startedAt: number;
 }
 
@@ -125,6 +127,8 @@ async function openClipTab(clip: ClaimedClip, settings: ExtensionSettings): Prom
     visualPrompt: clip.visualPrompt,
     motionPrompt: clip.motionPrompt,
     baseImageUrl: clip.baseImageUrl,
+    textExcerpt: clip.textExcerpt ?? null,
+    videoType: clip.videoType ?? null,
     startedAt: Date.now(),
   });
   broadcastState();
@@ -182,6 +186,8 @@ async function sendClipToTab(
     selectors: settings.selectors,
     backendUrl: settings.backendUrl,
     operatorSecret: settings.operatorSecret,
+    textExcerpt: clip.textExcerpt ?? null,
+    videoType: clip.videoType ?? null,
   };
 
   chrome.tabs.sendMessage(tabId, msg).catch(() => {
@@ -228,6 +234,8 @@ async function handleTabError(
             visualPrompt: entry.visualPrompt,
             motionPrompt: entry.motionPrompt,
             baseImageUrl: entry.baseImageUrl,
+            textExcerpt: entry.textExcerpt,
+            videoType: entry.videoType,
           },
           settings,
         ),
@@ -252,6 +260,8 @@ async function handleTabError(
       visualPrompt: entry.visualPrompt,
       motionPrompt: entry.motionPrompt,
       baseImageUrl: entry.baseImageUrl,
+      textExcerpt: entry.textExcerpt,
+      videoType: entry.videoType,
       errorMessage: error,
       failedAt: Date.now(),
     });
@@ -398,6 +408,8 @@ chrome.runtime.onMessage.addListener(
                 visualPrompt: entry.visualPrompt,
                 motionPrompt: entry.motionPrompt,
                 baseImageUrl: entry.baseImageUrl,
+                textExcerpt: entry.textExcerpt,
+                videoType: entry.videoType,
               },
               settings,
             );

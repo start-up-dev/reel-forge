@@ -188,25 +188,29 @@ function charsToWords(
   const words: WordTimestamp[] = [];
   let word = "";
   let wordStart = 0;
+  let lastEnd = 0;
 
   for (let i = 0; i < chars.length; i++) {
     const ch = chars[i]!;
+    const s = starts[i];
+    const e = ends[i];
+
+    // Skip characters with missing timestamps — avoids phantom words at t=0
+    if (s === undefined || e === undefined) continue;
+
     if (ch === " " || ch === "\n") {
       if (word) {
-        words.push({
-          word,
-          start: wordStart,
-          end: ends[i - 1] ?? ends[i] ?? 0,
-        });
+        words.push({ word, start: wordStart, end: lastEnd });
         word = "";
       }
     } else {
-      if (!word) wordStart = starts[i] ?? 0;
+      if (!word) wordStart = s;
       word += ch;
+      lastEnd = e;
     }
   }
   if (word) {
-    words.push({ word, start: wordStart, end: ends[chars.length - 1] ?? 0 });
+    words.push({ word, start: wordStart, end: lastEnd });
   }
   return words;
 }

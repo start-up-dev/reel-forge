@@ -10,6 +10,7 @@ import sensible from "@fastify/sensible";
 import Fastify from "fastify";
 import { env } from "../lib/env.js";
 import { requireAuth } from "../lib/auth.js";
+import { adminRoutes } from "../routes/admin.js";
 import { assetsRoutes } from "../routes/assets.js";
 import { billingRoutes } from "../routes/billing.js";
 import { jobsRoutes } from "../routes/jobs.js";
@@ -85,6 +86,9 @@ await app.register(billingRoutes, { prefix: "/api/billing" });
 
 // User sync webhook (Clerk) + /me routes (auth via preHandler inside plugin)
 await app.register(usersRoutes, { prefix: "/api/users" });
+
+// Admin — operator-secret-gated, no Clerk JWT required
+await app.register(adminRoutes, { prefix: "/api" });
 
 // Operator queue — validated by X-Operator-Secret header (not Clerk JWT)
 await app.register(operatorRoutes, { prefix: "/api" });

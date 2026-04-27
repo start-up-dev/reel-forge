@@ -10,28 +10,56 @@ export interface ClipEntry {
   durationHint: number | null;
 }
 
+// Probe whether a file has at least one audio stream.
+export async function probeHasAudio(filePath: string): Promise<boolean> {
+  const result = await execa(
+    "ffprobe",
+    [
+      "-v", "error",
+      "-select_streams", "a:0",
+      "-show_entries", "stream=codec_type",
+      "-of", "default=noprint_wrappers=1:nokey=1",
+      filePath,
+    ],
+    { reject: false },
+  );
+  return result.stdout.trim() === "audio";
+}
+
 // Step 1 — Normalize a single clip to 1080×1920 at 30fps, trimmed to durationHint.
-// Returns the path of the normalized output file.
+// Clips without an audio track (common for Grok generated clips) get a silent audio stream
+// so that concatenation and mixing always work with a consistent stream layout.
 export async function normalizeClip(clip: ClipEntry, dir: string): Promise<string> {
   const outPath = join(dir, "clips", `clip_${clip.sceneIndex}_norm.mp4`);
+  const hasAudio = await probeHasAudio(clip.path);
 
-  const args = [
-    "-y",
-    "-i", clip.path,
-    // Scale to fit 1080×1920, pad if needed
+  const args: string[] = ["-y", "-i", clip.path];
+
+  if (!hasAudio) {
+    // Inject a silent audio source; -shortest stops it when the video stream ends
+    args.push("-f", "lavfi", "-i", "anullsrc=r=44100:cl=stereo");
+  }
+
+  args.push(
     "-vf", "scale=1080:1920:force_original_aspect_ratio=increase,crop=1080:1920",
     "-r", "30",
     "-c:v", "libx264",
     "-crf", "23",
     "-preset", "fast",
+    "-map", "0:v:0",
+    "-map", hasAudio ? "0:a:0" : "1:a:0",
     "-c:a", "aac",
     "-b:a", "192k",
     "-ar", "44100",
     "-pix_fmt", "yuv420p",
-  ];
+  );
 
   if (clip.durationHint !== null && clip.durationHint > 0) {
     args.push("-t", String(clip.durationHint));
+  }
+
+  if (!hasAudio) {
+    args.push("-shortest");
   }
 
   args.push(outPath);
@@ -87,13 +115,38 @@ export async function concatenateClips(
   return outPath;
 }
 
-// Step 3 — Mix voiceover over clip audio (at 30% as BGM) onto the concatenated video.
+// Step 2.5 (generated only) — Speed up or slow down voiceover audio via atempo filter.
+// atempo is limited to 0.5–2.0 per filter, which matches our allowed range exactly,
+// so a single filter instance is always sufficient.
+export async function speedAudio(inputPath: string, speed: number, dir: string): Promise<string> {
+  if (speed === 1.0) return inputPath;
+  const outPath = join(dir, "audio_sped.mp3");
+  await execa(
+    "ffmpeg",
+    [
+      "-y",
+      "-i", inputPath,
+      "-filter:a", `atempo=${speed}`,
+      "-c:a", "libmp3lame",
+      "-b:a", "192k",
+      outPath,
+    ],
+    { stderr: "pipe" },
+  ).catch((err) => {
+    throw new Error(`FFmpeg speed audio failed: ${(err as Error).message}`);
+  });
+  return outPath;
+}
+
+// Step 3 (generated only) — Mix voiceover over clip audio (at bgmVolume as BGM) onto concatenated video.
 // audioDurationSeconds is authoritative — output is trimmed to exactly this length.
+// bgmVolume is a fraction in [0, 1]; e.g. 0.15 = 15% clip audio level.
 export async function mixAudio(
   videoPath: string,
   audioPath: string,
   audioDurationSeconds: number,
   dir: string,
+  bgmVolume = 0.15,
 ): Promise<string> {
   const outPath = join(dir, "mixed.mp4");
 
@@ -104,7 +157,7 @@ export async function mixAudio(
       "-i", videoPath,
       "-i", audioPath,
       "-filter_complex",
-      "[0:a]volume=0.30[clipbgm];[1:a]volume=1.0[voice];[clipbgm][voice]amix=inputs=2:duration=longest:dropout_transition=0:normalize=0[aout]",
+      `[0:a]volume=${bgmVolume}[clipbgm];[1:a]volume=1.0[voice];[clipbgm][voice]amix=inputs=2:duration=longest:dropout_transition=0:normalize=0[aout]`,
       "-map", "0:v",
       "-map", "[aout]",
       "-c:v", "copy",
@@ -177,6 +230,42 @@ export async function burnSubtitles(
     }
   }
 
+  return outPath;
+}
+
+// Extract audio track from a video file as MP3 — used for Whisper transcription.
+export async function extractAudio(videoPath: string, dir: string): Promise<string> {
+  const outPath = join(dir, "concat_audio.mp3");
+  await execa(
+    "ffmpeg",
+    ["-y", "-i", videoPath, "-vn", "-c:a", "libmp3lame", "-b:a", "192k", outPath],
+    { stderr: "pipe" },
+  ).catch((err) => {
+    throw new Error(`FFmpeg audio extract failed: ${(err as Error).message}`);
+  });
+  return outPath;
+}
+
+// Final encode pass for talking videos (no subtitle filter needed).
+// Adds movflags faststart for streaming compatibility.
+export async function encodeVideoFinal(inputPath: string, dir: string): Promise<string> {
+  const outPath = join(dir, "final.mp4");
+  await execa(
+    "ffmpeg",
+    [
+      "-y",
+      "-i", inputPath,
+      "-c:v", "libx264",
+      "-crf", "23",
+      "-preset", "fast",
+      "-c:a", "copy",
+      "-movflags", "+faststart",
+      outPath,
+    ],
+    { stderr: "pipe" },
+  ).catch((err) => {
+    throw new Error(`FFmpeg final encode failed: ${(err as Error).message}`);
+  });
   return outPath;
 }
 

@@ -48,6 +48,11 @@ export enum SubtitleStyle {
   WordHighlight = "word_highlight",
   Minimal = "minimal",
   Cinematic = "cinematic",
+  NeonGlow = "neon_glow",
+  OversizedPop = "oversized_pop",
+  GroupedBold = "grouped_bold",
+  GroupedCinematic = "grouped_cinematic",
+  Karaoke = "karaoke",
 }
 
 // PRD §7.3 state machine — includes ASSEMBLY_PROCESSING
@@ -73,6 +78,19 @@ export enum ClipRequestStatus {
   Processing = "processing",
   Done = "done",
   Failed = "failed",
+}
+
+export enum VideoType {
+  Generated = "generated",
+  Talking = "talking",
+}
+
+export enum TalkingSubtype {
+  UGC = "ugc",
+  ShortFilm = "short_film",
+  Interview = "interview",
+  Explainer = "explainer",
+  PodcastClip = "podcast_clip",
 }
 
 // ─── Domain Types ─────────────────────────────────────────────────────────────
@@ -139,8 +157,12 @@ export interface Video {
   subtitleStyle: SubtitleStyle;
   bgmEnabled: boolean;
   bgmAssetId: string | null;
-  bgmVolume: number;                // integer 0–100, default 30
+  bgmVolume: number;                // integer 0–100, default 15 (15% BGM mix)
   targetDurationSeconds: number;    // 15 | 30 | 45 | 60
+  videoType: VideoType;             // "generated" | "talking"
+  talkingSubtype: TalkingSubtype | null; // only set when videoType === "talking"
+  voiceSpeed: number;               // 0.5–2.0; default 1.0; applied via FFmpeg atempo
+  characterBaseGcsPath: string | null; // GCS path of the base character image (cartoon/mascot only)
   renderStyle: RenderStyle | null;  // visual/render style for script + scene prompts
   voiceId: string | null;           // overrides project voiceId when set
   outputUrl: string | null;

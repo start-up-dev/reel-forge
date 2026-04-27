@@ -48,22 +48,30 @@ export async function operatorRoutes(fastify: FastifyInstance): Promise<void> {
       );
 
       const result = await db.execute(sql`
-        UPDATE clip_requests
-        SET status = 'processing', claimed_at = NOW()
-        WHERE id IN (
-          SELECT id FROM clip_requests
-          WHERE status = 'queued'
-          ORDER BY queued_at ASC
-          LIMIT ${batchSize}
-          FOR UPDATE SKIP LOCKED
+        WITH updated AS (
+          UPDATE clip_requests
+          SET status = 'processing', claimed_at = NOW()
+          WHERE id IN (
+            SELECT id FROM clip_requests
+            WHERE status = 'queued'
+            ORDER BY queued_at ASC
+            LIMIT ${batchSize}
+            FOR UPDATE SKIP LOCKED
+          )
+          RETURNING id, video_id, scene_index, visual_prompt, motion_prompt, base_image_url
         )
-        RETURNING
-          id,
-          video_id   AS "videoId",
-          scene_index AS "sceneIndex",
-          visual_prompt AS "visualPrompt",
-          motion_prompt AS "motionPrompt",
-          base_image_url AS "baseImageUrl"
+        SELECT
+          u.id,
+          u.video_id        AS "videoId",
+          u.scene_index     AS "sceneIndex",
+          u.visual_prompt   AS "visualPrompt",
+          u.motion_prompt   AS "motionPrompt",
+          u.base_image_url  AS "baseImageUrl",
+          s.text_excerpt    AS "textExcerpt",
+          v.video_type      AS "videoType"
+        FROM updated u
+        LEFT JOIN scenes s ON s.video_id = u.video_id AND s.scene_index = u.scene_index
+        LEFT JOIN videos v ON v.id = u.video_id
       `);
 
       const claimed = result.rows as {
@@ -73,6 +81,8 @@ export async function operatorRoutes(fastify: FastifyInstance): Promise<void> {
         visualPrompt: string;
         motionPrompt: string;
         baseImageUrl: string;
+        textExcerpt: string | null;
+        videoType: string | null;
       }[];
 
       // Transition videos from CLIPS_QUEUED → CLIPS_PROCESSING on first claim.

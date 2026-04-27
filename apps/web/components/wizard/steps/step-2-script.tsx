@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { RefreshCw } from "lucide-react";
-import { VideoStatus } from "@repo/types";
+import { VideoStatus, VideoType } from "@repo/types";
 import { estimateScriptDuration } from "@repo/utils";
 import { Button } from "@repo/ui/button";
 import { ConfirmDialog } from "@repo/ui/confirm-dialog";
@@ -85,18 +85,29 @@ export function Step2Script({
 
   async function handleApprove() {
     setApproving(true);
-    // Save the final script then trigger voice generation
     await withToast(
       () => api.videos.patch(video.id, { script }),
       "Failed to save script"
     );
-    const result = await withToast(
-      () => api.videos.generateVoice(video.id),
-      "Failed to start voice generation"
-    );
-    if (result?.data) {
-      onVideoUpdate({ ...video, ...result.data, scenes: video.scenes });
-      onAdvance();
+    if (video.videoType === VideoType.Talking) {
+      // Talking videos skip ElevenLabs — go straight to scene generation
+      const result = await withToast(
+        () => api.videos.generateScenes(video.id),
+        "Failed to start scene generation"
+      );
+      if (result) {
+        onVideoUpdate({ ...video, status: VideoStatus.ScenesPending, scenes: [] });
+        onAdvance();
+      }
+    } else {
+      const result = await withToast(
+        () => api.videos.generateVoice(video.id),
+        "Failed to start voice generation"
+      );
+      if (result?.data) {
+        onVideoUpdate({ ...video, ...result.data, scenes: video.scenes });
+        onAdvance();
+      }
     }
     setApproving(false);
   }

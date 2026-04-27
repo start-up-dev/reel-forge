@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import Script from "next/script";
 import { Inter, JetBrains_Mono } from "next/font/google";
 import { ClerkProvider } from "@clerk/nextjs";
+
 import "./globals.css";
 
 const inter = Inter({
@@ -28,7 +29,13 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <ClerkProvider>
+    <ClerkProvider
+      appearance={{
+        variables: {
+          colorPrimary: "#f55c2a",
+        },
+      }}
+    >
       <html lang="en" className="dark">
         <body
           className={`${inter.variable} ${jetbrainsMono.variable} font-sans`}

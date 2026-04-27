@@ -8,7 +8,7 @@ import {
   Rewind,
   SkipForward,
 } from "lucide-react";
-import { VideoStatus } from "@repo/types";
+import { VideoStatus, VideoType } from "@repo/types";
 import { formatDuration } from "@repo/utils";
 import { Button } from "@repo/ui/button";
 import { useApiClient, withToast } from "@/lib/api-client";
@@ -22,7 +22,12 @@ interface Step3VoiceProps {
   onAdvance: () => void;
 }
 
-const SPEEDS = [0.75, 1, 1.25, 1.5] as const;
+const SPEEDS = [0.5, 0.75, 1, 1.25, 1.5, 2] as const;
+type Speed = (typeof SPEEDS)[number];
+
+function isValidSpeed(s: number): s is Speed {
+  return (SPEEDS as readonly number[]).includes(s);
+}
 
 export function Step3Voice({ video, onVideoUpdate, onBack, onAdvance }: Step3VoiceProps) {
   const api = useApiClient();
@@ -30,7 +35,8 @@ export function Step3Voice({ video, onVideoUpdate, onBack, onAdvance }: Step3Voi
   const [playing, setPlaying] = useState(false);
   const [currentTime, setCurrentTime] = useState(0);
   const [duration, setDuration] = useState(video.durationSeconds ?? 0);
-  const [speed, setSpeed] = useState<(typeof SPEEDS)[number]>(1);
+  const initialSpeed: Speed = isValidSpeed(video.voiceSpeed) ? video.voiceSpeed : 1;
+  const [speed, setSpeed] = useState<Speed>(initialSpeed);
   const [approving, setApproving] = useState(false);
   const [regenerating, setRegenerating] = useState(false);
   const [audioError, setAudioError] = useState<string | null>(null);
@@ -49,10 +55,12 @@ export function Step3Voice({ video, onVideoUpdate, onBack, onAdvance }: Step3Voi
     if (video.durationSeconds) setDuration(video.durationSeconds);
   }, [video.durationSeconds]);
 
-  // Auto-start generation when arriving at this step with an approved script
+  // Auto-start generation when arriving at this step with an approved script.
+  // Talking videos skip ElevenLabs entirely — voice comes from Grok lipsync.
   const autoStartedRef = useRef(false);
   useEffect(() => {
     if (autoStartedRef.current || video.status !== VideoStatus.ScriptReady) return;
+    if (video.videoType === VideoType.Talking) return;
     autoStartedRef.current = true;
     onVideoUpdate({ ...video, status: VideoStatus.VoicePending });
     void api.videos.generateVoice(video.id).catch(() => {
@@ -93,9 +101,14 @@ export function Step3Voice({ video, onVideoUpdate, onBack, onAdvance }: Step3Voi
     );
   }
 
-  function setPlaybackSpeed(s: (typeof SPEEDS)[number]) {
+  function setPlaybackSpeed(s: Speed) {
     setSpeed(s);
     if (audioRef.current) audioRef.current.playbackRate = s;
+    // Auto-save to DB so the worker applies the same speed at render time
+    void withToast(
+      () => api.videos.patch(video.id, { voiceSpeed: s }),
+      "Failed to save voice speed",
+    );
   }
 
   async function handleRegenerate() {
@@ -133,6 +146,32 @@ export function Step3Voice({ video, onVideoUpdate, onBack, onAdvance }: Step3Voi
         <Button onClick={handleRegenerate} loading={regenerating}>
           Retry Voice Generation
         </Button>
+      </div>
+    );
+  }
+
+  // Talking videos skip ElevenLabs — voice comes from Grok Imagine lipsync
+  if (video.videoType === VideoType.Talking) {
+    return (
+      <div className="mx-auto w-full max-w-xl px-4 py-10">
+        <h1 className="mb-2 text-2xl font-bold text-[var(--text-primary)]">
+          Voice via Grok Imagine
+        </h1>
+        <p className="mb-8 text-sm text-[var(--text-secondary)]">
+          Talking videos generate voice directly inside each clip with accurate lipsync — no separate voiceover is needed.
+        </p>
+        <div className="rounded-xl border border-[var(--bg-border)] bg-[var(--bg-elevated)] p-6">
+          <p className="text-sm font-medium text-[var(--text-primary)]">What happens next</p>
+          <ul className="mt-3 space-y-2 text-sm text-[var(--text-secondary)]">
+            <li className="flex gap-2"><span className="text-[var(--accent-primary)]">→</span> Grok Imagine generates each scene clip with your character speaking the script</li>
+            <li className="flex gap-2"><span className="text-[var(--accent-primary)]">→</span> Lipsync and voice are baked directly into the video clip</li>
+            <li className="flex gap-2"><span className="text-[var(--accent-primary)]">→</span> Whisper transcribes the clip audio for subtitle sync</li>
+          </ul>
+        </div>
+        <div className="mt-8 flex gap-3">
+          <Button variant="secondary" onClick={onBack}>← Back</Button>
+          <Button onClick={handleApprove} loading={approving} className="flex-1">Continue to Scenes →</Button>
+        </div>
       </div>
     );
   }

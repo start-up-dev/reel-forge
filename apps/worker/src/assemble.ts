@@ -3,7 +3,16 @@ import { readFile } from "node:fs/promises";
 import { eq, and } from "drizzle-orm";
 import { db, videos, scenes, users } from "./db.js";
 import { downloadAssetsFromGCS } from "./download.js";
-import { normalizeAllClips, concatenateClips, mixAudio, burnSubtitles, probeDuration } from "./ffmpeg.js";
+import {
+  normalizeAllClips,
+  concatenateClips,
+  mixAudio,
+  speedAudio,
+  extractAudio,
+  burnSubtitles,
+  probeDuration,
+} from "./ffmpeg.js";
+import { transcribeAudio } from "./transcribe.js";
 import { generateSubtitles, type WordTimestamp } from "./subtitles.js";
 import { uploadFile, generateSignedReadUrl, deleteObject, listObjects } from "./storage.js";
 import { sendVideoReadyEmail, sendVideoFailedEmail } from "./notify.js";
@@ -25,7 +34,6 @@ export async function assembleVideo(videoId: string): Promise<void> {
     }
 
     // Atomic claim: only this worker proceeds if it wins the PENDING→PROCESSING race.
-    // Prevents duplicate assembly when multiple Cloud Run instances drain on startup.
     const [claimed] = await db
       .update(videos)
       .set({ status: "ASSEMBLY_PROCESSING", updatedAt: new Date() })
@@ -46,7 +54,7 @@ export async function assembleVideo(videoId: string): Promise<void> {
     if (sceneRows.length === 0) throw new Error(`No scenes found for video ${videoId}`);
 
     // ── Download assets from GCS ──────────────────────────────────────────────
-    console.log(`[assemble] Downloading assets for video ${videoId}`);
+    console.log(`[assemble] Downloading assets for video ${videoId} (type: ${video.videoType})`);
     const assets = await downloadAssetsFromGCS(video, sceneRows);
     workDir = assets.dir;
 
@@ -58,30 +66,80 @@ export async function assembleVideo(videoId: string): Promise<void> {
     console.log("[assemble] Concatenating clips");
     const concatenatedPath = await concatenateClips(normalizedPaths, assets.dir);
 
-    // ── Step 3: Mix audio ────────────────────────────────────────────────────
-    console.log("[assemble] Mixing audio");
-    if (!video.durationSeconds) throw new Error(`Video ${videoId} has no durationSeconds — voice generation must complete first`);
-    const mixedPath = await mixAudio(
-      concatenatedPath,
-      assets.audioPath,
-      video.durationSeconds,
-      assets.dir,
-    );
+    let finalPath: string;
+    let durationSeconds: number;
 
-    // ── Step 4: Generate subtitles ───────────────────────────────────────────
-    console.log("[assemble] Generating subtitles");
-    const wordTimestamps = JSON.parse(
-      await readFile(assets.wordTimestampsPath, "utf-8"),
-    ) as WordTimestamp[];
-    const subtitlesPath = await generateSubtitles(
-      wordTimestamps,
-      video.subtitleStyle,
-      assets.dir,
-    );
+    if (video.videoType === "talking") {
+      // ── Talking video: lipsync voice baked into clips; Whisper for subtitles ─
+      console.log("[assemble] Talking video — extracting audio for Whisper");
+      const talkingAudioPath = await extractAudio(concatenatedPath, assets.dir);
 
-    // ── Step 5: Burn subtitles ───────────────────────────────────────────────
-    console.log("[assemble] Burning subtitles");
-    const finalPath = await burnSubtitles(mixedPath, subtitlesPath, assets.dir);
+      console.log("[assemble] Transcribing with Whisper");
+      const whisperTimestamps = await transcribeAudio(talkingAudioPath);
+
+      console.log("[assemble] Generating subtitles from Whisper timestamps");
+      const subtitlesPath = await generateSubtitles(
+        whisperTimestamps,
+        video.subtitleStyle,
+        assets.dir,
+      );
+
+      console.log("[assemble] Burning subtitles");
+      finalPath = await burnSubtitles(concatenatedPath, subtitlesPath, assets.dir);
+      durationSeconds = await probeDuration(finalPath);
+    } else {
+      // ── Generated video: ElevenLabs voiceover + clip audio as BGM ─────────
+      if (!video.durationSeconds) {
+        throw new Error(`Video ${videoId} has no durationSeconds — voice generation must complete first`);
+      }
+
+      let voiceAudioPath = assets.audioPath!;
+      let audioDurationSeconds = video.durationSeconds;
+
+      // Apply voice speed if user changed it from 1.0
+      if (video.voiceSpeed !== 1.0) {
+        console.log(`[assemble] Applying voice speed ${video.voiceSpeed}x`);
+        voiceAudioPath = await speedAudio(voiceAudioPath, video.voiceSpeed, assets.dir);
+        audioDurationSeconds = await probeDuration(voiceAudioPath);
+      }
+
+      // ── Step 3: Mix audio ────────────────────────────────────────────────
+      console.log("[assemble] Mixing audio");
+      const mixedPath = await mixAudio(
+        concatenatedPath,
+        voiceAudioPath,
+        audioDurationSeconds,
+        assets.dir,
+        video.bgmVolume / 100,
+      );
+
+      // ── Step 4: Generate subtitles ───────────────────────────────────────
+      console.log("[assemble] Generating subtitles");
+      let wordTimestamps = JSON.parse(
+        await readFile(assets.wordTimestampsPath!, "utf-8"),
+      ) as WordTimestamp[];
+
+      // Scale timestamps if voice speed was changed
+      if (video.voiceSpeed !== 1.0) {
+        const invSpeed = 1 / video.voiceSpeed;
+        wordTimestamps = wordTimestamps.map((w) => ({
+          ...w,
+          start: w.start * invSpeed,
+          end: w.end * invSpeed,
+        }));
+      }
+
+      const subtitlesPath = await generateSubtitles(
+        wordTimestamps,
+        video.subtitleStyle,
+        assets.dir,
+      );
+
+      // ── Step 5: Burn subtitles ───────────────────────────────────────────
+      console.log("[assemble] Burning subtitles");
+      finalPath = await burnSubtitles(mixedPath, subtitlesPath, assets.dir);
+      durationSeconds = await probeDuration(finalPath);
+    }
 
     // ── Step 6: Upload and notify ────────────────────────────────────────────
     const outputGcsPath = `videos/${videoId}/output.mp4`;
@@ -89,7 +147,6 @@ export async function assembleVideo(videoId: string): Promise<void> {
     await uploadFile(outputGcsPath, finalPath, "video/mp4");
 
     const outputUrl = await generateSignedReadUrl(outputGcsPath, OUTPUT_URL_TTL_MINUTES);
-    const durationSeconds = await probeDuration(finalPath);
 
     await db
       .update(videos)

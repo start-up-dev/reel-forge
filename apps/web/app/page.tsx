@@ -33,7 +33,6 @@ import {
 import { StickyNav } from "@/components/landing/sticky-nav";
 import {
   FadeIn,
-  ScaleIn,
   StaggerContainer,
   StaggerItem,
 } from "@/components/landing/animate";

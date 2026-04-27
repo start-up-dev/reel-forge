@@ -17,26 +17,86 @@ interface Step5StyleProps {
   onRequestPayment: () => void;
 }
 
-const SUBTITLE_STYLES: { value: SubtitleStyle; label: string; desc: string }[] = [
+interface StyleOption {
+  value: SubtitleStyle;
+  label: string;
+  desc: string;
+  preview: string;
+  previewClass: string;
+}
+
+const SINGLE_WORD_STYLES: StyleOption[] = [
   {
     value: SubtitleStyle.BoldPop,
     label: "Bold Pop",
-    desc: "Large bold text, one word at a time. High-energy.",
+    desc: "One word at a time, large and bold. High-energy.",
+    preview: "BOLD",
+    previewClass: "text-xl font-black text-white drop-shadow-lg",
   },
   {
     value: SubtitleStyle.WordHighlight,
     label: "Word Highlight",
-    desc: "Each word highlights as it's spoken. Engaging & clear.",
+    desc: "Each word pops with a purple outline as it's spoken.",
+    preview: "Word",
+    previewClass: "text-base font-bold text-white [text-shadow:0_0_0_3px_#7C5CFC]",
   },
+  {
+    value: SubtitleStyle.NeonGlow,
+    label: "Neon Glow",
+    desc: "White text with a thick glowing purple outline. Bold energy.",
+    preview: "GLOW",
+    previewClass: "text-xl font-black text-white [text-shadow:0_0_12px_#7C5CFC,0_0_24px_#7C5CFC]",
+  },
+  {
+    value: SubtitleStyle.OversizedPop,
+    label: "Oversized Pop",
+    desc: "Massive single word, centered in the frame. Maximum impact.",
+    preview: "BIG",
+    previewClass: "text-3xl font-black text-white drop-shadow-xl tracking-tight",
+  },
+];
+
+const MULTI_WORD_STYLES: StyleOption[] = [
   {
     value: SubtitleStyle.Minimal,
     label: "Minimal",
-    desc: "Clean small text, sentence by sentence. Professional.",
+    desc: "5-word groups, small clean text. Professional.",
+    preview: "Clean and simple subtitle",
+    previewClass: "text-xs font-medium text-white/80",
   },
   {
     value: SubtitleStyle.Cinematic,
     label: "Cinematic",
-    desc: "Centered italic phrases with subtle fade. Dramatic.",
+    desc: "4-word italic phrases. Warm, story-driven.",
+    preview: "A cinematic moment",
+    previewClass: "text-sm italic font-light text-white/90 tracking-wide",
+  },
+  {
+    value: SubtitleStyle.GroupedBold,
+    label: "Grouped Bold",
+    desc: "3 words per line, bold. Standard social media captions.",
+    preview: "Three bold words",
+    previewClass: "text-base font-bold text-white drop-shadow",
+  },
+  {
+    value: SubtitleStyle.GroupedCinematic,
+    label: "Grouped Cinematic",
+    desc: "4-word italic groups, heavy shadow. Low-key and dramatic.",
+    preview: "Four cinematic words here",
+    previewClass: "text-sm italic font-light text-[#F8F4F4] [text-shadow:0_2px_8px_rgba(0,0,0,0.9)]",
+  },
+  {
+    value: SubtitleStyle.Karaoke,
+    label: "Karaoke",
+    desc: "4-word group stays visible; active word lights up in purple.",
+    preview: (
+      <span>
+        Hello{" "}
+        <span className="text-[#7C5CFC] font-bold">World</span>{" "}
+        Right Now
+      </span>
+    ) as unknown as string,
+    previewClass: "text-sm font-bold text-white",
   },
 ];
 
@@ -83,65 +143,54 @@ export function Step5Style({
     setSubmitting(false);
   }
 
+  function renderStyleCard(opt: StyleOption) {
+    const isSelected = subtitleStyle === opt.value;
+    return (
+      <button
+        key={opt.value}
+        type="button"
+        onClick={() => handleSubtitleChange(opt.value)}
+        className={cn(
+          "rounded-xl border p-4 text-left transition-all hover:border-[var(--accent-primary)]/60",
+          isSelected
+            ? "border-[var(--accent-primary)] bg-[var(--accent-primary)]/10 shadow-[0_0_0_1px_var(--accent-primary)]"
+            : "border-[var(--bg-border)] bg-[var(--bg-elevated)]"
+        )}
+      >
+        <div className={cn("mb-3 flex h-14 items-center justify-center rounded-lg bg-black/60 px-3", isSelected && "bg-black/80")}>
+          <span className={cn("text-center leading-tight", opt.previewClass)}>
+            {opt.preview as string}
+          </span>
+        </div>
+        <p className="font-semibold text-[var(--text-primary)] text-sm">{opt.label}</p>
+        <p className="mt-0.5 text-xs text-[var(--text-secondary)]">{opt.desc}</p>
+      </button>
+    );
+  }
+
   return (
     <div className="mx-auto w-full max-w-2xl px-4 py-10">
       <h1 className="mb-8 text-2xl font-bold text-[var(--text-primary)]">
         Choose your style
       </h1>
 
-      {/* Subtitle style picker */}
-      <section className="mb-10">
-        <h2 className="mb-4 text-sm font-semibold uppercase tracking-wider text-[var(--text-muted)]">
-          Subtitle Style
+      {/* Single Word styles */}
+      <section className="mb-8">
+        <h2 className="mb-3 text-xs font-semibold uppercase tracking-wider text-[var(--text-muted)]">
+          Single Word
         </h2>
         <div className="grid grid-cols-2 gap-3">
-          {SUBTITLE_STYLES.map(({ value, label, desc }) => {
-            const isSelected = subtitleStyle === value;
-            return (
-              <button
-                key={value}
-                type="button"
-                onClick={() => handleSubtitleChange(value)}
-                className={cn(
-                  "rounded-xl border p-4 text-left transition-all hover:border-[var(--accent-primary)]/60",
-                  isSelected
-                    ? "border-[var(--accent-primary)] bg-[var(--accent-primary)]/10 shadow-[0_0_0_1px_var(--accent-primary)]"
-                    : "border-[var(--bg-border)] bg-[var(--bg-elevated)]"
-                )}
-              >
-                {/* Style preview mock */}
-                <div
-                  className={cn(
-                    "mb-3 flex h-16 items-end justify-center rounded-lg bg-[var(--bg-base)] px-3 pb-2",
-                    isSelected && "bg-black/40"
-                  )}
-                >
-                  <span
-                    className={cn(
-                      "text-center leading-tight",
-                      value === SubtitleStyle.BoldPop &&
-                        "text-xl font-black text-white drop-shadow-lg",
-                      value === SubtitleStyle.WordHighlight &&
-                        "text-base font-bold text-[var(--accent-primary)]",
-                      value === SubtitleStyle.Minimal &&
-                        "text-xs font-medium text-white/80",
-                      value === SubtitleStyle.Cinematic &&
-                        "text-sm italic font-light text-white/90 tracking-wide"
-                    )}
-                  >
-                    {value === SubtitleStyle.BoldPop && "BOLD"}
-                    {value === SubtitleStyle.WordHighlight && "Word by Word"}
-                    {value === SubtitleStyle.Minimal && "Clean & simple subtitle text"}
-                    {value === SubtitleStyle.Cinematic && "A cinematic moment"}
-                  </span>
-                </div>
-                <p className="font-semibold text-[var(--text-primary)] text-sm">
-                  {label}
-                </p>
-                <p className="mt-0.5 text-xs text-[var(--text-secondary)]">{desc}</p>
-              </button>
-            );
-          })}
+          {SINGLE_WORD_STYLES.map(renderStyleCard)}
+        </div>
+      </section>
+
+      {/* Multi Word styles */}
+      <section className="mb-10">
+        <h2 className="mb-3 text-xs font-semibold uppercase tracking-wider text-[var(--text-muted)]">
+          Multi Word
+        </h2>
+        <div className="grid grid-cols-2 gap-3">
+          {MULTI_WORD_STYLES.map(renderStyleCard)}
         </div>
       </section>
 

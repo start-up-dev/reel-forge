@@ -32,8 +32,13 @@ export function AppSidebar() {
   const { user } = useUser();
 
   const showUpgrade = !user || user.plan === "none" || user.plan === "try_out";
-  const showUsage = user && (user.plan === "starter" || user.plan === "pro") && user.dailyLimit > 0;
-  const usagePct = showUsage ? Math.min((user.videosToday / user.dailyLimit) * 100, 100) : 0;
+  const showUsage =
+    user &&
+    (user.plan === "starter" || user.plan === "pro") &&
+    user.dailyLimit > 0;
+  const usagePct = showUsage
+    ? Math.min((user.videosToday / user.dailyLimit) * 100, 100)
+    : 0;
   const usageWarning = usagePct >= 80;
 
   return (
@@ -79,7 +84,13 @@ export function AppSidebar() {
           <div className="rounded-lg border border-[var(--bg-border)] bg-[var(--bg-elevated)] p-3">
             <div className="mb-1.5 flex items-center justify-between text-xs">
               <span className="text-[var(--text-muted)]">Today</span>
-              <span className={usageWarning ? "text-[var(--accent-warning)]" : "text-[var(--text-secondary)]"}>
+              <span
+                className={
+                  usageWarning
+                    ? "text-[var(--accent-warning)]"
+                    : "text-[var(--text-secondary)]"
+                }
+              >
                 {user.videosToday}/{user.dailyLimit} videos
               </span>
             </div>
@@ -87,7 +98,9 @@ export function AppSidebar() {
               <div
                 className={cn(
                   "h-full rounded-full transition-all",
-                  usageWarning ? "bg-[var(--accent-warning)]" : "bg-[var(--accent-primary)]"
+                  usageWarning
+                    ? "bg-[var(--accent-warning)]"
+                    : "bg-[var(--accent-primary)]",
                 )}
                 style={{ width: `${usagePct}%` }}
               />
@@ -114,9 +127,20 @@ export function AppSidebar() {
 
       {/* Branding footer */}
       <div className="p-4 border-t border-[var(--bg-border)]">
-        <p className="text-[10px] font-medium text-[var(--text-muted)]">ReelForge</p>
+        <p className="text-[10px] font-medium text-[var(--text-muted)]">
+          ReelForge
+        </p>
         <p className="text-[10px] text-[var(--text-muted)] opacity-60">
-          by makereal.io · © {new Date().getFullYear()}
+          by{" "}
+          <a
+            href="https://makereal.io"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="underline hover:text-[var(--accent-primary)] transition-colors"
+          >
+            makereal.io
+          </a>{" "}
+          · © {new Date().getFullYear()}
         </p>
       </div>
     </aside>

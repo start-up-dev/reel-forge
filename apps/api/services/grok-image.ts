@@ -32,3 +32,46 @@ export async function generateImage(prompt: string): Promise<Buffer> {
   if (!b64) throw new Error("Grok image API returned no image data.");
   return Buffer.from(b64, "base64");
 }
+
+// Image-to-image generation using a reference image for character consistency.
+// Falls back to standard generateImage if the Grok API does not support the
+// image_url parameter (e.g. the model variant doesn't offer img2img).
+export async function generateImageFromReference(
+  prompt: string,
+  referenceImageUrl: string,
+  strength = 0.7,
+): Promise<Buffer> {
+  try {
+    const response = await fetch("https://api.x.ai/v1/images/generations", {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${env.XAI_API_KEY}`,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        model: GROK_IMAGE_MODEL,
+        prompt,
+        n: 1,
+        aspect_ratio: "9:16",
+        response_format: "b64_json",
+        image_url: referenceImageUrl,
+        strength,
+      }),
+    });
+
+    if (!response.ok) {
+      throw new Error(`Grok img2img error ${response.status}: ${await response.text()}`);
+    }
+
+    const data = (await response.json()) as GrokImageResponse;
+    const b64 = data.data[0]?.b64_json;
+    if (!b64) throw new Error("Grok image API returned no image data.");
+    return Buffer.from(b64, "base64");
+  } catch (err) {
+    console.warn(
+      "[generateImageFromReference] falling back to standard generation:",
+      err instanceof Error ? err.message : err,
+    );
+    return generateImage(prompt);
+  }
+}

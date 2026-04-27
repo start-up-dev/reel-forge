@@ -11,6 +11,8 @@ export interface ClaimedClip {
   visualPrompt: string;
   motionPrompt: string;
   baseImageUrl: string;
+  textExcerpt: string | null;
+  videoType: string | null;
 }
 
 async function loadSettings(): Promise<Pick<ExtensionSettings, "backendUrl" | "operatorSecret">> {

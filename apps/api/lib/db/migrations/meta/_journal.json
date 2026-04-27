@@ -43,6 +43,34 @@
       "when": 1745625600000,
       "tag": "0005_render_style",
       "breakpoints": true
+    },
+    {
+      "idx": 6,
+      "version": "7",
+      "when": 1777161600000,
+      "tag": "0006_video_type_talking",
+      "breakpoints": true
+    },
+    {
+      "idx": 7,
+      "version": "7",
+      "when": 1777248000000,
+      "tag": "0007_voice_speed",
+      "breakpoints": true
+    },
+    {
+      "idx": 8,
+      "version": "7",
+      "when": 1777334400000,
+      "tag": "0008_subtitle_styles",
+      "breakpoints": true
+    },
+    {
+      "idx": 9,
+      "version": "7",
+      "when": 1777420800000,
+      "tag": "0009_character_base",
+      "breakpoints": true
     }
   ]
 }

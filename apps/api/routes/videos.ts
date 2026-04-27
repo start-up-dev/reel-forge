@@ -9,9 +9,9 @@ import {
   generateSignedUploadUrl,
   uploadBuffer,
 } from "../lib/storage.js";
-import { generateIdeas, generateScript, splitScenes } from "../services/claude.js";
+import { generateCharacterSheet, generateIdeas, generateScript, splitScenes } from "../services/claude.js";
 import { generateVoiceover } from "../services/elevenlabs.js";
-import { generateImage } from "../services/grok-image.js";
+import { generateImage, generateImageFromReference } from "../services/grok-image.js";
 
 const createVideoBody = z.object({
   title: z.string().min(1).max(200).default("Untitled Video"),
@@ -71,10 +71,12 @@ async function processScenes(
   videoId: string,
   script: string,
   durationSeconds: number,
+  videoType: string,
   renderStyle?: string | null,
+  talkingSubtype?: string | null,
 ): Promise<void> {
   try {
-    const sceneList = await splitScenes(script, durationSeconds, renderStyle ?? undefined);
+    const sceneList = await splitScenes(script, durationSeconds, videoType, renderStyle, talkingSubtype);
 
     // Replace existing scenes (supports idempotent re-generation)
     await db.delete(scenes).where(eq(scenes.videoId, videoId));
@@ -93,11 +95,28 @@ async function processScenes(
       )
       .returning();
 
-    // Generate base images in parallel — per-scene failures are non-fatal
-    await Promise.allSettled(
-      inserted.map(async (scene) => {
+    // Generate base images — cartoon/mascot use sequential processing so scene 0
+    // can become the character reference for all subsequent scenes.
+    const isCharacterStyle = renderStyle === "cartoon" || renderStyle === "mascot";
+
+    if (isCharacterStyle) {
+      const [videoRow] = await db
+        .select({ characterBaseGcsPath: videos.characterBaseGcsPath })
+        .from(videos)
+        .where(eq(videos.id, videoId))
+        .limit(1);
+      let charBase: string | null = videoRow?.characterBaseGcsPath ?? null;
+      let charBaseSignedUrl: string | null = charBase
+        ? await generateSignedReadUrl(charBase, ASSET_URL_TTL_MINUTES)
+        : null;
+
+      const sorted = [...inserted].sort((a, b) => a.sceneIndex - b.sceneIndex);
+      for (const scene of sorted) {
         try {
-          const imageBuffer = await generateImage(scene.visualPrompt);
+          const useRef = charBaseSignedUrl !== null && scene.sceneIndex > 0;
+          const imageBuffer = useRef
+            ? await generateImageFromReference(scene.visualPrompt, charBaseSignedUrl!)
+            : await generateImage(scene.visualPrompt);
           const imagePath = `videos/${videoId}/scenes/${scene.sceneIndex}/base_image.jpg`;
           await uploadBuffer(imagePath, imageBuffer, "image/jpeg");
           const imageUrl = await generateSignedReadUrl(imagePath, ASSET_URL_TTL_MINUTES);
@@ -105,11 +124,37 @@ async function processScenes(
             .update(scenes)
             .set({ baseImageUrl: imageUrl, baseImagePath: imagePath, updatedAt: new Date() })
             .where(eq(scenes.id, scene.id));
+          // Scene 0's image becomes the character base when none was pre-generated.
+          if (scene.sceneIndex === 0 && !charBase) {
+            charBase = imagePath;
+            charBaseSignedUrl = imageUrl;
+            await db
+              .update(videos)
+              .set({ characterBaseGcsPath: imagePath, updatedAt: new Date() })
+              .where(eq(videos.id, videoId));
+          }
         } catch (err) {
-          console.error(`[processScenes] image generation failed for scene ${scene.sceneIndex} (video ${videoId}):`, err);
+          console.error(`[processScenes] image failed for scene ${scene.sceneIndex} (video ${videoId}):`, err);
         }
-      }),
-    );
+      }
+    } else {
+      await Promise.allSettled(
+        inserted.map(async (scene) => {
+          try {
+            const imageBuffer = await generateImage(scene.visualPrompt);
+            const imagePath = `videos/${videoId}/scenes/${scene.sceneIndex}/base_image.jpg`;
+            await uploadBuffer(imagePath, imageBuffer, "image/jpeg");
+            const imageUrl = await generateSignedReadUrl(imagePath, ASSET_URL_TTL_MINUTES);
+            await db
+              .update(scenes)
+              .set({ baseImageUrl: imageUrl, baseImagePath: imagePath, updatedAt: new Date() })
+              .where(eq(scenes.id, scene.id));
+          } catch (err) {
+            console.error(`[processScenes] image generation failed for scene ${scene.sceneIndex} (video ${videoId}):`, err);
+          }
+        }),
+      );
+    }
 
     await db
       .update(videos)
@@ -373,7 +418,7 @@ export async function videosRoutes(fastify: FastifyInstance): Promise<void> {
         idea: z.string().optional(),
         script: z.string().optional(),
         subtitleStyle: z
-          .enum(["bold_pop", "word_highlight", "minimal", "cinematic"])
+          .enum(["bold_pop", "word_highlight", "minimal", "cinematic", "neon_glow", "oversized_pop", "grouped_bold", "grouped_cinematic", "karaoke"])
           .optional(),
         bgmEnabled: z.boolean().optional(),
         bgmAssetId: z.string().nullable().optional(),
@@ -386,6 +431,12 @@ export async function videosRoutes(fastify: FastifyInstance): Promise<void> {
           .enum(["mascot", "cartoon", "animation_2d", "motion_graphics", "cinematic", "stock_footage", "whiteboard"])
           .nullable()
           .optional(),
+        videoType: z.enum(["generated", "talking"]).optional(),
+        talkingSubtype: z
+          .enum(["ugc", "short_film", "interview", "explainer", "podcast_clip"])
+          .nullable()
+          .optional(),
+        voiceSpeed: z.number().min(0.5).max(2.0).optional(),
       });
 
       const parsed = patchBody.safeParse(request.body);
@@ -568,6 +619,15 @@ export async function videosRoutes(fastify: FastifyInstance): Promise<void> {
           error: { code: "NOT_FOUND", message: "Video not found." },
         });
       }
+      if (video.videoType === "talking") {
+        return reply.status(400).send({
+          error: {
+            code: "NOT_APPLICABLE",
+            message: "Talking videos generate voice via Grok Imagine lipsync — ElevenLabs voiceover is not used.",
+          },
+        });
+      }
+
       // Allow rolling back to voice from any post-voice state (including stuck SCENES_PENDING)
       const voiceAllowedStates = ["SCRIPT_READY", "VOICE_READY", "SCENES_PENDING", "SCENES_READY", "FAILED"];
       if (!voiceAllowedStates.includes(video.status)) {
@@ -629,13 +689,16 @@ export async function videosRoutes(fastify: FastifyInstance): Promise<void> {
           error: { code: "NOT_FOUND", message: "Video not found." },
         });
       }
-      // Allow retry from FAILED or stuck SCENES_PENDING in addition to the happy-path VOICE_READY
-      const scenesAllowedStates = ["VOICE_READY", "SCENES_PENDING", "SCENES_READY", "FAILED"];
+      // Talking videos skip voice (no ElevenLabs) so they arrive here from SCRIPT_READY.
+      // Generated videos require VOICE_READY (ElevenLabs completed).
+      const scenesAllowedStates = video.videoType === "talking"
+        ? ["SCRIPT_READY", "SCENES_PENDING", "SCENES_READY", "FAILED"]
+        : ["VOICE_READY", "SCENES_PENDING", "SCENES_READY", "FAILED"];
       if (!scenesAllowedStates.includes(video.status)) {
         return reply.status(409).send({
           error: {
             code: "INVALID_STATE",
-            message: `Video must be in VOICE_READY or a retryable state to generate scenes (currently: ${video.status}).`,
+            message: `Video must be in the correct state to generate scenes (currently: ${video.status}).`,
           },
         });
       }
@@ -644,7 +707,12 @@ export async function videosRoutes(fastify: FastifyInstance): Promise<void> {
           error: { code: "NO_SCRIPT", message: "Video has no script." },
         });
       }
-      if (!video.durationSeconds) {
+
+      // Talking videos have no ElevenLabs duration; use targetDurationSeconds as the scene-split budget.
+      const effectiveDuration = video.videoType === "talking"
+        ? video.targetDurationSeconds
+        : video.durationSeconds;
+      if (!effectiveDuration) {
         return reply.status(409).send({
           error: { code: "NO_DURATION", message: "Video duration not yet set — voice must complete first." },
         });
@@ -656,7 +724,7 @@ export async function videosRoutes(fastify: FastifyInstance): Promise<void> {
         .where(eq(videos.id, id));
 
       // Fire and forget — client polls status via SSE
-      void processScenes(id, video.script, video.durationSeconds, video.renderStyle);
+      void processScenes(id, video.script, effectiveDuration, video.videoType, video.renderStyle, video.talkingSubtype);
 
       return reply.status(202).send({ data: { videoId: id, status: "SCENES_PENDING" } });
     },
@@ -945,6 +1013,63 @@ export async function videosRoutes(fastify: FastifyInstance): Promise<void> {
 
       await poll();
       intervalId = setInterval(() => { void poll(); }, 2000);
+    },
+  );
+
+  // POST /api/videos/:id/generate-character — generate a base character image for cartoon/mascot videos
+  fastify.post<{ Params: { id: string } }>(
+    "/videos/:id/generate-character",
+    async (request, reply) => {
+      const user = request.currentUser!;
+      const { id } = request.params;
+
+      const [video] = await db
+        .select()
+        .from(videos)
+        .where(and(eq(videos.id, id), eq(videos.userId, user.id), isNull(videos.deletedAt)))
+        .limit(1);
+
+      if (!video) {
+        return reply.status(404).send({ error: { code: "NOT_FOUND", message: "Video not found." } });
+      }
+
+      if (video.renderStyle !== "cartoon" && video.renderStyle !== "mascot") {
+        return reply.status(400).send({
+          error: {
+            code: "INVALID_STYLE",
+            message: "Character generation is only available for cartoon and mascot render styles.",
+          },
+        });
+      }
+
+      const [project] = await db
+        .select()
+        .from(projects)
+        .where(eq(projects.id, video.projectId))
+        .limit(1);
+
+      if (!project) {
+        return reply.status(404).send({ error: { code: "NOT_FOUND", message: "Project not found." } });
+      }
+
+      try {
+        const characterPrompt = await generateCharacterSheet(project, video.renderStyle as "cartoon" | "mascot");
+        const imageBuffer = await generateImage(characterPrompt);
+        const gcsPath = `videos/${id}/character_base.png`;
+        await uploadBuffer(gcsPath, imageBuffer, "image/png");
+        const characterBaseUrl = await generateSignedReadUrl(gcsPath, ASSET_URL_TTL_MINUTES);
+
+        const [updated] = await db
+          .update(videos)
+          .set({ characterBaseGcsPath: gcsPath, updatedAt: new Date() })
+          .where(eq(videos.id, id))
+          .returning();
+
+        return reply.send({ data: { characterBaseUrl, characterBaseGcsPath: gcsPath, video: updated } });
+      } catch (err) {
+        const message = err instanceof Error ? err.message : "Character generation failed";
+        return reply.status(500).send({ error: { code: "GENERATION_ERROR", message } });
+      }
     },
   );
 

@@ -4,6 +4,7 @@ import {
   integer,
   pgEnum,
   pgTable,
+  real,
   text,
   timestamp,
   uuid,
@@ -38,6 +39,11 @@ export const subtitleStyleEnum = pgEnum("subtitle_style", [
   "word_highlight",
   "minimal",
   "cinematic",
+  "neon_glow",
+  "oversized_pop",
+  "grouped_bold",
+  "grouped_cinematic",
+  "karaoke",
 ]);
 
 // PRD §7.3 — added ASSEMBLY_PROCESSING between ASSEMBLY_PENDING and COMPLETE
@@ -73,6 +79,16 @@ export const renderStyleEnum = pgEnum("render_style", [
   "cinematic",
   "stock_footage",
   "whiteboard",
+]);
+
+export const videoTypeEnum = pgEnum("video_type", ["generated", "talking"]);
+
+export const talkingSubtypeEnum = pgEnum("talking_subtype", [
+  "ugc",
+  "short_film",
+  "interview",
+  "explainer",
+  "podcast_clip",
 ]);
 
 // ─── Tables ───────────────────────────────────────────────────────────────────
@@ -171,8 +187,12 @@ export const videos = pgTable(
       .default("bold_pop"),
     bgmEnabled: boolean("bgm_enabled").notNull().default(false),
     bgmAssetId: text("bgm_asset_id"),
-    bgmVolume: integer("bgm_volume").notNull().default(30),   // Fixed: integer 0–100
+    bgmVolume: integer("bgm_volume").notNull().default(15),   // integer 0–100; 15 = 15% BGM mix
     targetDurationSeconds: integer("target_duration_seconds").notNull().default(30),
+    videoType: videoTypeEnum("video_type").notNull().default("generated"),
+    talkingSubtype: talkingSubtypeEnum("talking_subtype"),
+    voiceSpeed: real("voice_speed").notNull().default(1.0),  // 0.5–2.0; applied via FFmpeg atempo at render
+    characterBaseGcsPath: text("character_base_gcs_path"),   // GCS path of the character reference image (cartoon/mascot only)
     renderStyle: renderStyleEnum("render_style"),
     voiceId: text("voice_id"),
     outputUrl: text("output_url"),
