@@ -133,9 +133,14 @@ async function processClip(msg: ProcessClipMsg): Promise<void> {
     removeHighlight(generateBtn);
   }
 
-  // 8. Wait for a BRAND-NEW video element to appear (up to 8 minutes for Grok).
-  //    We explicitly exclude anything that was in the DOM before step 2.
-  const videoEl = await waitForNewVideo(preExistingVideoSrcs, 8 * 60 * 1000, clip.id, selectors.outputVideo);
+  // 8. Refresh the pre-existing snapshot to exclude any demo/preview videos that
+  //    Grok loaded during image upload and prompt setup. We wait 1 s so React
+  //    finishes reacting to the button click before we capture the new baseline.
+  await sleep(1000);
+  const refreshedVideoSrcs = snapshotVideoSrcs();
+  const allPreExisting = new Set([...preExistingVideoSrcs, ...refreshedVideoSrcs]);
+
+  const videoEl = await waitForNewVideo(allPreExisting, 8 * 60 * 1000, clip.id, selectors.outputVideo);
 
   // 9. Wait for the video to be fully generated before capturing the src.
   //    Grok shows a video element early (even at ~10% generation progress) with a

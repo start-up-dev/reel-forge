@@ -27,7 +27,12 @@ const PLAN_LABEL: Record<string, string> = {
   pro: "Pro",
 };
 
-export function AppSidebar() {
+interface AppSidebarProps {
+  isOpen: boolean;
+  onClose: () => void;
+}
+
+export function AppSidebar({ isOpen, onClose }: AppSidebarProps) {
   const pathname = usePathname();
   const { user } = useUser();
 
@@ -42,7 +47,20 @@ export function AppSidebar() {
   const usageWarning = usagePct >= 80;
 
   return (
-    <aside className="flex w-60 flex-col border-r border-[var(--bg-border)] bg-[var(--bg-surface)]">
+    <>
+      {/* Mobile backdrop */}
+      {isOpen && (
+        <div
+          className="fixed inset-0 z-40 bg-black/50 md:hidden"
+          onClick={onClose}
+          aria-hidden="true"
+        />
+      )}
+      <aside
+        className={`fixed inset-y-0 left-0 z-50 flex w-60 flex-col border-r border-[var(--bg-border)] bg-[var(--bg-surface)] transition-transform duration-300 md:relative md:translate-x-0 md:flex ${
+          isOpen ? "translate-x-0" : "-translate-x-full"
+        }`}
+      >
       {/* Logo */}
       <div className="flex h-16 items-center gap-2 px-5 border-b border-[var(--bg-border)]">
         <Zap className="h-5 w-5 text-[var(--accent-primary)]" />
@@ -143,6 +161,7 @@ export function AppSidebar() {
           · © {new Date().getFullYear()}
         </p>
       </div>
-    </aside>
+      </aside>
+    </>
   );
 }

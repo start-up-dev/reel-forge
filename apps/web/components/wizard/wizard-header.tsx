@@ -99,7 +99,7 @@ export function WizardHeader({
                     setEditingTitle(false);
                   }
                 }}
-                className="w-48 rounded border border-[var(--accent-primary)] bg-[var(--bg-elevated)] px-2 py-0.5 text-sm text-[var(--text-primary)] outline-none"
+                className="w-32 sm:w-48 max-w-full rounded border border-[var(--accent-primary)] bg-[var(--bg-elevated)] px-2 py-0.5 text-sm text-[var(--text-primary)] outline-none"
                 maxLength={100}
               />
             ) : (

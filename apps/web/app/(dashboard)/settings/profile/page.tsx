@@ -60,7 +60,7 @@ export default function ProfileSettingsPage() {
           </div>
 
           {/* Name fields */}
-          <div className="grid grid-cols-2 gap-3">
+          <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
             <div className="space-y-1.5">
               <label className="text-xs font-medium text-[var(--text-secondary)]">
                 First Name

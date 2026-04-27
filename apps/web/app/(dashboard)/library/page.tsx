@@ -107,7 +107,7 @@ export default function LibraryPage() {
   return (
     <div>
       {/* Header */}
-      <div className="mb-6 flex items-center justify-between gap-4">
+      <div className="mb-6 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <div>
           <h2 className="text-2xl font-semibold text-[var(--text-primary)]">
             My Videos
@@ -206,7 +206,7 @@ export default function LibraryPage() {
 
       {/* List view */}
       {!loading && videos.length > 0 && viewMode === "list" && (
-        <div className="overflow-hidden rounded-xl border border-[var(--bg-border)]">
+        <div className="overflow-x-auto rounded-xl border border-[var(--bg-border)]">
           <table className="w-full">
             <thead className="border-b border-[var(--bg-border)] bg-[var(--bg-elevated)]">
               <tr>

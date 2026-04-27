@@ -74,6 +74,7 @@ export const scenes = pgTable("scenes", {
   id: uuid("id").primaryKey().defaultRandom(),
   videoId: uuid("video_id").notNull(),
   sceneIndex: integer("scene_index").notNull(),
+  textExcerpt: text("text_excerpt"),
   durationHintSeconds: integer("duration_hint_seconds"),
   clipPath: text("clip_path"),
   updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),

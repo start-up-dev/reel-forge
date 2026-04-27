@@ -179,7 +179,7 @@ export function Step5Style({
         <h2 className="mb-3 text-xs font-semibold uppercase tracking-wider text-[var(--text-muted)]">
           Single Word
         </h2>
-        <div className="grid grid-cols-2 gap-3">
+        <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 md:grid-cols-4">
           {SINGLE_WORD_STYLES.map(renderStyleCard)}
         </div>
       </section>
@@ -189,7 +189,7 @@ export function Step5Style({
         <h2 className="mb-3 text-xs font-semibold uppercase tracking-wider text-[var(--text-muted)]">
           Multi Word
         </h2>
-        <div className="grid grid-cols-2 gap-3">
+        <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 md:grid-cols-4">
           {MULTI_WORD_STYLES.map(renderStyleCard)}
         </div>
       </section>

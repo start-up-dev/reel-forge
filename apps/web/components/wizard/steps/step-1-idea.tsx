@@ -241,7 +241,7 @@ export function Step1Idea({
         <p className="mb-2 text-xs font-medium uppercase tracking-widest text-[var(--text-muted)]">
           Video Length
         </p>
-        <div className="flex gap-2">
+        <div className="flex flex-wrap gap-2">
           {DURATION_OPTIONS.map((opt) => (
             <button
               key={opt.value}

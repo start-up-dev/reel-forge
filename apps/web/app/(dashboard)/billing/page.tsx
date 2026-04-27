@@ -238,7 +238,7 @@ function BillingContent() {
         <h3 className="mb-4 text-base font-semibold text-[var(--text-primary)]">
           Available Plans
         </h3>
-        <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
+        <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
           {plans.map((plan) => {
             const isCurrent = plan.planType === currentPlan;
             return (

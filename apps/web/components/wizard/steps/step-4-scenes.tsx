@@ -196,7 +196,7 @@ export function Step4Scenes({ video, onVideoUpdate, onBack, onAdvance }: Step4Sc
 
   return (
     <div className="mx-auto w-full max-w-4xl px-4 py-10">
-      <div className="mb-6 flex items-center justify-between gap-4">
+      <div className="mb-6 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         <div>
           <h1 className="text-2xl font-bold text-[var(--text-primary)]">
             Review your scenes
@@ -420,7 +420,7 @@ export function Step4Scenes({ video, onVideoUpdate, onBack, onAdvance }: Step4Sc
               </div>
 
               {/* Action buttons */}
-              <div className="flex gap-1 px-4 py-3">
+              <div className="flex flex-wrap gap-1 px-4 py-3">
                 <button
                   type="button"
                   onClick={() => regenerateScene(scene.sceneIndex)}

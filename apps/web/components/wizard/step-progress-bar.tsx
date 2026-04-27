@@ -60,7 +60,7 @@ export function StepProgressBar({
             >
               <div
                 className={cn(
-                  "flex h-9 w-9 items-center justify-center rounded-full border-2 transition-all duration-300",
+                  "flex h-7 w-7 sm:h-9 sm:w-9 items-center justify-center rounded-full border-2 transition-all duration-300",
                   isActive && [
                     "scale-110 border-[var(--accent-primary)] bg-[var(--accent-primary)]/15",
                     "shadow-[0_0_0_4px_rgba(124,92,252,0.12),0_0_20px_rgba(124,92,252,0.45)]",
@@ -73,7 +73,7 @@ export function StepProgressBar({
               >
                 <Icon
                   className={cn(
-                    "h-[17px] w-[17px] transition-colors",
+                    "h-[14px] w-[14px] sm:h-[17px] sm:w-[17px] transition-colors",
                     isActive && "text-[var(--accent-primary)]",
                     isCompleted && "text-white",
                     isPending && "text-[var(--text-muted)]",
@@ -96,7 +96,7 @@ export function StepProgressBar({
 
             {/* Connector — flex-1 so it fills available space between steps */}
             {!isLast && (
-              <div className="mx-1.5 mt-[18px] h-px flex-1 overflow-hidden rounded-full bg-[var(--bg-border)]">
+              <div className="mx-1 sm:mx-1.5 mt-[14px] sm:mt-[18px] h-px flex-1 overflow-hidden rounded-full bg-[var(--bg-border)]">
                 <div
                   className={cn(
                     "h-full bg-gradient-to-r from-[var(--accent-primary)] to-[var(--accent-secondary)] transition-all duration-500 ease-out",

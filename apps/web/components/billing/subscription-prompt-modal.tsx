@@ -70,7 +70,7 @@ export function SubscriptionPromptModal({ onClose }: SubscriptionPromptModalProp
           </p>
         </div>
 
-        <div className="mt-6 grid grid-cols-2 gap-3">
+        <div className="mt-6 grid grid-cols-1 gap-3 sm:grid-cols-2">
           {PLANS.map(({ key, label, price, icon: Icon, perks, highlight }) => (
             <div
               key={key}

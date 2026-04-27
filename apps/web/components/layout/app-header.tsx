@@ -1,6 +1,7 @@
 "use client";
 
 import { usePathname } from "next/navigation";
+import { Menu } from "lucide-react";
 import { UserButton } from "@clerk/nextjs";
 import { PlanType } from "@repo/types";
 import { useUser } from "@/lib/hooks/use-user";
@@ -20,7 +21,11 @@ function getTitle(pathname: string) {
   return "ReelForge";
 }
 
-export function AppHeader() {
+interface AppHeaderProps {
+  onMenuToggle?: () => void;
+}
+
+export function AppHeader({ onMenuToggle }: AppHeaderProps) {
   const pathname = usePathname();
   const { user } = useUser();
 
@@ -32,14 +37,23 @@ export function AppHeader() {
   const dailyLimit = hasActivePlan && !isTryOut ? (user?.dailyLimit ?? 0) : 0;
 
   return (
-    <header className="flex h-16 shrink-0 items-center justify-between border-b border-[var(--bg-border)] bg-[var(--bg-surface)] px-6">
-      <h1 className="text-base font-semibold text-[var(--text-primary)]">
-        {getTitle(pathname)}
-      </h1>
+    <header className="flex h-16 shrink-0 items-center justify-between border-b border-[var(--bg-border)] bg-[var(--bg-surface)] px-4 sm:px-6">
+      <div className="flex items-center gap-3">
+        <button
+          onClick={onMenuToggle}
+          className="flex h-9 w-9 items-center justify-center rounded-lg text-[var(--text-secondary)] hover:bg-[var(--bg-elevated)] hover:text-[var(--text-primary)] transition-colors md:hidden"
+          aria-label="Toggle menu"
+        >
+          <Menu className="h-5 w-5" />
+        </button>
+        <h1 className="text-base font-semibold text-[var(--text-primary)]">
+          {getTitle(pathname)}
+        </h1>
+      </div>
 
-      <div className="flex items-center gap-5">
+      <div className="flex items-center gap-3 sm:gap-5">
         {hasActivePlan && (
-          <div className="flex items-center gap-3">
+          <div className="hidden items-center gap-3 sm:flex">
             {isTryOut ? (
               <>
                 <div className="flex items-center gap-2">

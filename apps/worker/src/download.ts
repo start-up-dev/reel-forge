@@ -10,7 +10,7 @@ export interface DownloadedAssets {
   audioPath: string | null;          // null for talking videos (no ElevenLabs audio)
   wordTimestampsPath: string | null; // null for talking videos
   characterBasePath: string | null;  // null unless cartoon/mascot with a pre-generated character sheet
-  clipPaths: { sceneIndex: number; path: string; durationHint: number | null }[];
+  clipPaths: { sceneIndex: number; path: string; durationHint: number | null; textExcerpt: string | null }[];
 }
 
 export async function downloadAssetsFromGCS(
@@ -69,7 +69,7 @@ export async function downloadAssetsFromGCS(
             `Failed to download clip for scene ${scene.sceneIndex}: ${(err as Error).message}`,
           );
         });
-        return { sceneIndex: scene.sceneIndex, path: localPath, durationHint: scene.durationHintSeconds };
+        return { sceneIndex: scene.sceneIndex, path: localPath, durationHint: scene.durationHintSeconds, textExcerpt: scene.textExcerpt ?? null };
       }),
     );
     clipPaths.push(...batchResults);

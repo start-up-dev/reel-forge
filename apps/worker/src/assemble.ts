@@ -20,6 +20,40 @@ import { env } from "./env.js";
 
 const OUTPUT_URL_TTL_MINUTES = 60 * 24 * 7; // 7 days (GCS v4 signed URL maximum)
 
+// Derives each scene's clip duration from ElevenLabs word timestamps so visual
+// cuts align with the voiceover rather than Claude's rough durationHint estimates.
+// Scenes are processed in order; word counts are consumed sequentially.
+function computeSceneDurationsFromTimestamps(
+  clipPaths: { sceneIndex: number; durationHint: number | null; textExcerpt: string | null }[],
+  wordTimestamps: WordTimestamp[],
+): Map<number, number> {
+  const durations = new Map<number, number>();
+  const sorted = [...clipPaths].sort((a, b) => a.sceneIndex - b.sceneIndex);
+  let cursor = 0;
+
+  for (const clip of sorted) {
+    if (!clip.textExcerpt || cursor >= wordTimestamps.length) {
+      if (clip.durationHint !== null) durations.set(clip.sceneIndex, clip.durationHint);
+      continue;
+    }
+
+    const wordCount = clip.textExcerpt.trim().split(/\s+/).filter(Boolean).length;
+    const take = Math.min(wordCount, wordTimestamps.length - cursor);
+    if (take === 0) {
+      if (clip.durationHint !== null) durations.set(clip.sceneIndex, clip.durationHint);
+      continue;
+    }
+
+    const slice = wordTimestamps.slice(cursor, cursor + take);
+    const start = slice[0]!.start;
+    const end = slice[slice.length - 1]!.end;
+    durations.set(clip.sceneIndex, Math.max(1, end - start));
+    cursor += take;
+  }
+
+  return durations;
+}
+
 export async function assembleVideo(videoId: string): Promise<void> {
   let workDir: string | null = null;
 
@@ -58,19 +92,23 @@ export async function assembleVideo(videoId: string): Promise<void> {
     const assets = await downloadAssetsFromGCS(video, sceneRows);
     workDir = assets.dir;
 
-    // ── Step 1: Normalize clips (parallel) ───────────────────────────────────
-    console.log(`[assemble] Normalizing ${assets.clipPaths.length} clips`);
-    const normalizedPaths = await normalizeAllClips(assets.clipPaths, assets.dir);
-
-    // ── Step 2: Concatenate ──────────────────────────────────────────────────
-    console.log("[assemble] Concatenating clips");
-    const concatenatedPath = await concatenateClips(normalizedPaths, assets.dir);
-
     let finalPath: string;
     let durationSeconds: number;
 
     if (video.videoType === "talking") {
       // ── Talking video: lipsync voice baked into clips; Whisper for subtitles ─
+
+      // Step 1: Normalize — don't trim talking clips. The lipsync voice is baked
+      // into each Grok clip, so the character finishes speaking at the natural
+      // end of the clip. Trimming to Claude's estimate would cut them off mid-word.
+      const untrimmedClips = assets.clipPaths.map((c) => ({ ...c, durationHint: null }));
+      console.log(`[assemble] Normalizing ${untrimmedClips.length} clips (talking, no trim)`);
+      const normalizedPaths = await normalizeAllClips(untrimmedClips, assets.dir);
+
+      // Step 2: Concatenate
+      console.log("[assemble] Concatenating clips");
+      const concatenatedPath = await concatenateClips(normalizedPaths, assets.dir);
+
       console.log("[assemble] Talking video — extracting audio for Whisper");
       const talkingAudioPath = await extractAudio(concatenatedPath, assets.dir);
 
@@ -88,39 +126,25 @@ export async function assembleVideo(videoId: string): Promise<void> {
       finalPath = await burnSubtitles(concatenatedPath, subtitlesPath, assets.dir);
       durationSeconds = await probeDuration(finalPath);
     } else {
-      // ── Generated video: ElevenLabs voiceover + clip audio as BGM ─────────
+      // ── Generated video: ElevenLabs voiceover; Grok clips are visuals only ──
       if (!video.durationSeconds) {
         throw new Error(`Video ${videoId} has no durationSeconds — voice generation must complete first`);
       }
 
-      let voiceAudioPath = assets.audioPath!;
-      let audioDurationSeconds = video.durationSeconds;
-
-      // Apply voice speed if user changed it from 1.0
-      if (video.voiceSpeed !== 1.0) {
-        console.log(`[assemble] Applying voice speed ${video.voiceSpeed}x`);
-        voiceAudioPath = await speedAudio(voiceAudioPath, video.voiceSpeed, assets.dir);
-        audioDurationSeconds = await probeDuration(voiceAudioPath);
-      }
-
-      // ── Step 3: Mix audio ────────────────────────────────────────────────
-      console.log("[assemble] Mixing audio");
-      const mixedPath = await mixAudio(
-        concatenatedPath,
-        voiceAudioPath,
-        audioDurationSeconds,
-        assets.dir,
-        video.bgmVolume / 100,
-      );
-
-      // ── Step 4: Generate subtitles ───────────────────────────────────────
-      console.log("[assemble] Generating subtitles");
+      // Load word timestamps first — they drive clip durations so cuts align
+      // with the voiceover, not Claude's rough estimates.
+      console.log("[assemble] Loading word timestamps");
       let wordTimestamps = JSON.parse(
         await readFile(assets.wordTimestampsPath!, "utf-8"),
       ) as WordTimestamp[];
 
-      // Scale timestamps if voice speed was changed
+      let voiceAudioPath = assets.audioPath!;
+      let audioDurationSeconds = video.durationSeconds;
+
       if (video.voiceSpeed !== 1.0) {
+        console.log(`[assemble] Applying voice speed ${video.voiceSpeed}x`);
+        voiceAudioPath = await speedAudio(voiceAudioPath, video.voiceSpeed, assets.dir);
+        audioDurationSeconds = await probeDuration(voiceAudioPath);
         const invSpeed = 1 / video.voiceSpeed;
         wordTimestamps = wordTimestamps.map((w) => ({
           ...w,
@@ -129,13 +153,42 @@ export async function assembleVideo(videoId: string): Promise<void> {
         }));
       }
 
+      // Compute per-scene clip durations from word timestamps so visual cuts
+      // align with the actual voiceover pacing, not Claude's estimates.
+      const sceneDurations = computeSceneDurationsFromTimestamps(assets.clipPaths, wordTimestamps);
+      const timedClips = assets.clipPaths.map((clip) => ({
+        ...clip,
+        durationHint: sceneDurations.get(clip.sceneIndex) ?? clip.durationHint,
+      }));
+
+      // Step 1: Normalize — each clip trimmed to its timestamp-derived duration
+      console.log(`[assemble] Normalizing ${timedClips.length} clips (generated)`);
+      const normalizedPaths = await normalizeAllClips(timedClips, assets.dir);
+
+      // Step 2: Concatenate
+      console.log("[assemble] Concatenating clips");
+      const concatenatedPath = await concatenateClips(normalizedPaths, assets.dir);
+
+      // Step 3: Mix ElevenLabs voice over video; Grok clip audio fully muted —
+      // the clip audio contains AI-generated ambient noise we don't want.
+      console.log("[assemble] Mixing audio");
+      const mixedPath = await mixAudio(
+        concatenatedPath,
+        voiceAudioPath,
+        audioDurationSeconds,
+        assets.dir,
+        0,
+      );
+
+      // Step 4: Generate subtitles
+      console.log("[assemble] Generating subtitles");
       const subtitlesPath = await generateSubtitles(
         wordTimestamps,
         video.subtitleStyle,
         assets.dir,
       );
 
-      // ── Step 5: Burn subtitles ───────────────────────────────────────────
+      // Step 5: Burn subtitles
       console.log("[assemble] Burning subtitles");
       finalPath = await burnSubtitles(mixedPath, subtitlesPath, assets.dir);
       durationSeconds = await probeDuration(finalPath);

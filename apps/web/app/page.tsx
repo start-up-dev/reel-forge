@@ -1046,7 +1046,7 @@ function PricingSection() {
 
         <StaggerContainer
           delay={0.3}
-          className="grid gap-6 md:grid-cols-3 items-stretch"
+          className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3 items-stretch"
         >
           {PRICING.plans.map((plan) => (
             <StaggerItem key={plan.name} className="h-full">
@@ -1262,7 +1262,7 @@ function FooterSection() {
               {SITE.name}
             </span>
           </div>
-          <div className="flex flex-wrap gap-10">
+          <div className="flex flex-wrap gap-6 sm:gap-10">
             {FOOTER.links.map((link) => (
               <Link
                 key={link.label}
