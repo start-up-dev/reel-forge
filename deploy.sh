@@ -21,7 +21,7 @@ WORKER_IMAGE="${REGISTRY}/worker:latest"
 WEB_IMAGE="${REGISTRY}/web:latest"
 
 # Exact URLs and Keys from the manual guide
-CLERK_PUB_KEY="pk_test_YXNzdXJlZC1zaHJpbXAtNTIuY2xlcmsuYWNjb3VudHMuZGV2JA"
+CLERK_PUB_KEY="pk_live_Y2xlcmsudmlyYWxzaG9ydGFpLmFwcCQ"
 API_URL="https://reelforge-api-517804710320.us-central1.run.app"
 WEB_URL="https://viralshortai.app"
 WORKER_URL="https://reelforge-worker-517804710320.us-central1.run.app"
