@@ -132,6 +132,18 @@ function tryParseArray(s: string): unknown[] | null {
   return null;
 }
 
+function isValidScene(s: unknown): s is SceneSplit {
+  if (!s || typeof s !== "object") return false;
+  const o = s as Record<string, unknown>;
+  return (
+    typeof o.sceneIndex === "number" &&
+    typeof o.textExcerpt === "string" && o.textExcerpt.length > 0 &&
+    typeof o.visualPrompt === "string" && o.visualPrompt.length > 0 &&
+    typeof o.motionPrompt === "string" && o.motionPrompt.length > 0 &&
+    typeof o.durationHintSeconds === "number"
+  );
+}
+
 function extractScenes(rawInput: unknown): SceneSplit[] | null {
   const input = rawInput as { scenes?: unknown };
   let candidate = input.scenes;
@@ -141,7 +153,8 @@ function extractScenes(rawInput: unknown): SceneSplit[] | null {
   }
 
   if (!Array.isArray(candidate) || candidate.length === 0) return null;
-  return candidate as SceneSplit[];
+  if (!candidate.every(isValidScene)) return null;
+  return candidate;
 }
 
 async function callSplitScenes(
@@ -160,7 +173,7 @@ async function callSplitScenes(
 
   const message = await client.messages.create({
     model: "claude-sonnet-4-6",
-    max_tokens: 16000,
+    max_tokens: 32000,
     system,
     tools: [
       {
