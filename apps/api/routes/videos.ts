@@ -67,6 +67,10 @@ async function processVoice(videoId: string, script: string, voiceId: string): P
 
 // ─── Background: scene generation ────────────────────────────────────────────
 
+function withCharacterNote(visualPrompt: string, characterNote?: string | null): string {
+  return characterNote ? `${characterNote}. ${visualPrompt}` : visualPrompt;
+}
+
 async function processScenes(
   videoId: string,
   script: string,
@@ -74,9 +78,10 @@ async function processScenes(
   videoType: string,
   renderStyle?: string | null,
   talkingSubtype?: string | null,
+  characterNote?: string | null,
 ): Promise<void> {
   try {
-    const sceneList = await splitScenes(script, durationSeconds, videoType, renderStyle, talkingSubtype);
+    const sceneList = await splitScenes(script, durationSeconds, videoType, renderStyle, talkingSubtype, characterNote);
 
     // Replace existing scenes (supports idempotent re-generation)
     await db.delete(scenes).where(eq(scenes.videoId, videoId));
@@ -110,10 +115,11 @@ async function processScenes(
     const sorted = [...inserted].sort((a, b) => a.sceneIndex - b.sceneIndex);
     for (const scene of sorted) {
       try {
+        const imagePrompt = withCharacterNote(scene.visualPrompt, characterNote);
         const useRef = charBaseSignedUrl !== null && scene.sceneIndex > 0;
         const imageBuffer = useRef
-          ? await generateImageFromReference(scene.visualPrompt, charBaseSignedUrl!)
-          : await generateImage(scene.visualPrompt);
+          ? await generateImageFromReference(imagePrompt, charBaseSignedUrl!)
+          : await generateImage(imagePrompt);
         const imagePath = `videos/${videoId}/scenes/${scene.sceneIndex}/base_image.jpg`;
         await uploadBuffer(imagePath, imageBuffer, "image/jpeg");
         const imageUrl = await generateSignedReadUrl(imagePath, ASSET_URL_TTL_MINUTES);
@@ -701,8 +707,14 @@ export async function videosRoutes(fastify: FastifyInstance): Promise<void> {
         .set({ status: "SCENES_PENDING", updatedAt: new Date() })
         .where(eq(videos.id, id));
 
+      const [proj] = await db
+        .select({ claudeSystemPrompt: projects.claudeSystemPrompt })
+        .from(projects)
+        .where(eq(projects.id, video.projectId))
+        .limit(1);
+
       // Fire and forget — client polls status via SSE
-      void processScenes(id, video.script, effectiveDuration, video.videoType, video.renderStyle, video.talkingSubtype);
+      void processScenes(id, video.script, effectiveDuration, video.videoType, video.renderStyle, video.talkingSubtype, proj?.claudeSystemPrompt ?? null);
 
       return reply.status(202).send({ data: { videoId: id, status: "SCENES_PENDING" } });
     },
@@ -717,7 +729,7 @@ export async function videosRoutes(fastify: FastifyInstance): Promise<void> {
       const sceneIndex = parseInt(indexStr, 10);
 
       const [video] = await db
-        .select({ id: videos.id })
+        .select({ id: videos.id, projectId: videos.projectId })
         .from(videos)
         .where(
           and(eq(videos.id, id), eq(videos.userId, user.id), isNull(videos.deletedAt)),
@@ -743,7 +755,13 @@ export async function videosRoutes(fastify: FastifyInstance): Promise<void> {
       }
 
       try {
-        const imageBuffer = await generateImage(scene.visualPrompt);
+        const [regenProj] = await db
+          .select({ claudeSystemPrompt: projects.claudeSystemPrompt })
+          .from(projects)
+          .where(eq(projects.id, video.projectId))
+          .limit(1);
+        const regenPrompt = withCharacterNote(scene.visualPrompt, regenProj?.claudeSystemPrompt ?? null);
+        const imageBuffer = await generateImage(regenPrompt);
         const imagePath = `videos/${id}/scenes/${sceneIndex}/base_image.jpg`;
         await uploadBuffer(imagePath, imageBuffer, "image/jpeg");
         const imageUrl = await generateSignedReadUrl(imagePath, ASSET_URL_TTL_MINUTES);

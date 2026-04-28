@@ -100,6 +100,7 @@ export function buildTalkingSceneMessages(
   audioDurationSeconds: number,
   targetCount: number,
   subtype?: string,
+  characterNote?: string | null,
 ): PromptPair {
   const modifier = subtype
     ? (TALKING_SUBTYPE_MODIFIERS[subtype] ?? null)
@@ -118,6 +119,7 @@ ${script}
 
 Total audio duration: ${audioDurationSeconds} seconds
 Required scene count: exactly ${targetCount}
+${characterNote ? `\nCHARACTER & STYLE NOTE — use this to define the character anchor in scene 0 and carry it through every scene:\n${characterNote}\n` : ""}
 
 Output rules:
 - EXACTLY ${targetCount} scene${targetCount === 1 ? "" : "s"} — no more, no fewer

@@ -89,6 +89,8 @@ export function WizardClient({ videoId }: { videoId: string }) {
   const [showSubscriptionModal, setShowSubscriptionModal] = useState(false);
   const saveTimerRef = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
   const savedTimerRef = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
+  // Accumulates all pending field changes so debounced saves never drop earlier selections.
+  const pendingSaveRef = useRef<Parameters<typeof api.videos.patch>[1]>({});
 
   // Load video and user in parallel on mount
   useEffect(() => {
@@ -181,15 +183,25 @@ export function WizardClient({ videoId }: { videoId: string }) {
     }
   }
 
-  // Debounced auto-save
+  // Debounced auto-save — accumulates all pending changes so no field is ever dropped.
+  // Also applies an optimistic update immediately so local state is always consistent.
   const scheduleSave = useCallback(
     (data: Parameters<typeof api.videos.patch>[1]) => {
+      // Merge new data into the pending accumulator
+      pendingSaveRef.current = { ...pendingSaveRef.current, ...data };
+
+      // Optimistic update: reflect the change in local state right away so
+      // subsequent code (handleApprove, etc.) always sees the correct values.
+      setVideo((prev) => (prev ? { ...prev, ...data } : prev));
+
       clearTimeout(saveTimerRef.current);
       clearTimeout(savedTimerRef.current);
       setSaveState("saving");
       saveTimerRef.current = setTimeout(async () => {
+        const toSave = { ...pendingSaveRef.current };
+        pendingSaveRef.current = {};
         const result = await withToast(
-          () => api.videos.patch(videoId, data),
+          () => api.videos.patch(videoId, toSave),
           "Failed to save draft"
         );
         if (result?.data) {

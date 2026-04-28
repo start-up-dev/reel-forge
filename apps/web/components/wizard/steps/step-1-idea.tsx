@@ -190,7 +190,16 @@ export function Step1Idea({
       "Failed to start script generation"
     );
     if (result?.data) {
-      onVideoUpdate({ ...video, ...result.data, scenes: video.scenes });
+      // Preserve the locally-selected videoType/talkingSubtype/renderStyle — the server
+      // response may reflect a stale DB value if the debounced save is still in flight.
+      onVideoUpdate({
+        ...video,
+        ...result.data,
+        videoType,
+        talkingSubtype,
+        renderStyle,
+        scenes: video.scenes,
+      });
       onAdvance();
     }
     setSubmitting(false);
@@ -220,7 +229,15 @@ export function Step1Idea({
       "Failed to start script generation"
     );
     if (result?.data) {
-      onVideoUpdate({ ...video, ...result.data, scenes: video.scenes });
+      // Preserve the locally-selected videoType/talkingSubtype/renderStyle — same reason as above.
+      onVideoUpdate({
+        ...video,
+        ...result.data,
+        videoType,
+        talkingSubtype,
+        renderStyle,
+        scenes: video.scenes,
+      });
       onAdvance();
     }
     setSubmitting(false);

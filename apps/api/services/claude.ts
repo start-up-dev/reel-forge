@@ -151,11 +151,12 @@ async function callSplitScenes(
   videoType: string,
   renderStyle?: string,
   talkingSubtype?: string,
+  characterNote?: string | null,
 ): Promise<unknown> {
   const { system, user } =
     videoType === "talking"
-      ? buildTalkingSceneMessages(script, audioDurationSeconds, targetCount, talkingSubtype)
-      : buildScenesMessages(script, audioDurationSeconds, targetCount, renderStyle);
+      ? buildTalkingSceneMessages(script, audioDurationSeconds, targetCount, talkingSubtype, characterNote)
+      : buildScenesMessages(script, audioDurationSeconds, targetCount, renderStyle, characterNote);
 
   const message = await client.messages.create({
     model: "claude-sonnet-4-6",
@@ -235,6 +236,7 @@ export async function splitScenes(
   videoType: string,
   renderStyle?: string | null,
   talkingSubtype?: string | null,
+  characterNote?: string | null,
 ): Promise<SceneSplit[]> {
   const minScenes = Math.ceil(audioDurationSeconds / 6);
   const targetCount = Math.max(minScenes, Math.round(audioDurationSeconds / 5));
@@ -247,6 +249,7 @@ export async function splitScenes(
       videoType,
       renderStyle ?? undefined,
       talkingSubtype ?? undefined,
+      characterNote,
     );
     const scenes = extractScenes(raw);
     if (scenes) return scenes;

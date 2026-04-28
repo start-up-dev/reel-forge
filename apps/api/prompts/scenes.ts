@@ -208,6 +208,7 @@ export function buildScenesMessages(
   audioDurationSeconds: number,
   targetCount: number,
   renderStyle?: string,
+  characterNote?: string | null,
 ): PromptPair {
   const system =
     renderStyle && renderStyle !== "cinematic"
@@ -225,7 +226,7 @@ ${script}
 
 Total audio duration: ${audioDurationSeconds} seconds
 Required scene count: exactly ${targetCount}
-
+${characterNote ? `\nCHARACTER & STYLE NOTE — embed this into every scene's visualPrompt verbatim:\n${characterNote}\n` : ""}
 Rules:
 - EXACTLY ${targetCount} scene${targetCount === 1 ? "" : "s"} — no more, no fewer
 - textExcerpt: exact words from the script this scene covers

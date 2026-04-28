@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useRef, useMemo } from "react";
 import { toast } from "sonner";
-import { Check, ChevronDown, Loader2, Play, Pause, Search } from "lucide-react";
+import { Check, ChevronDown, Loader2, Search } from "lucide-react";
 import {
   Dialog,
   DialogContent,
@@ -13,7 +13,6 @@ import {
 import type { Project } from "@repo/types";
 import { Platform, VideoStyle, Tone } from "@repo/types";
 import { useApiClient, withToast } from "@/lib/api-client";
-import type { VoiceInfo } from "@/lib/api-client";
 import { cn } from "@repo/ui/utils";
 
 interface CreateProjectModalProps {
@@ -169,7 +168,6 @@ type FormData = {
   targetAudience: string;
   videoStyle: VideoStyle;
   tone: Tone;
-  voiceId: string;
   claudeSystemPrompt: string;
 };
 
@@ -181,7 +179,6 @@ const defaultForm: FormData = {
   targetAudience: "",
   videoStyle: VideoStyle.Educational,
   tone: Tone.Casual,
-  voiceId: "",
   claudeSystemPrompt: "",
 };
 
@@ -290,106 +287,6 @@ function Combobox({
   );
 }
 
-// ─── Voice picker ─────────────────────────────────────────────────────────────
-
-function VoicePicker({
-  language,
-  value,
-  onChange,
-}: {
-  language: string;
-  value: string;
-  onChange: (id: string) => void;
-}) {
-  const api = useApiClient();
-  const [voices, setVoices] = useState<VoiceInfo[]>([]);
-  const [loading, setLoading] = useState(false);
-  const [playingId, setPlayingId] = useState<string | null>(null);
-  const audioRef = useRef<HTMLAudioElement | null>(null);
-
-  useEffect(() => {
-    setLoading(true);
-    api.assets.voices(language).then((res) => {
-      if (res?.data) setVoices(res.data);
-    }).catch(() => {}).finally(() => setLoading(false));
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [language]);
-
-  async function togglePreview(voiceId: string) {
-    if (playingId === voiceId) {
-      audioRef.current?.pause();
-      setPlayingId(null);
-      return;
-    }
-    if (audioRef.current) {
-      audioRef.current.pause();
-    }
-    setPlayingId(voiceId);
-    try {
-      const blobUrl = await api.assets.voicePreviewBlobUrl(voiceId, language);
-      const audio = new Audio(blobUrl);
-      audioRef.current = audio;
-      audio.onended = () => setPlayingId(null);
-      await audio.play();
-    } catch {
-      setPlayingId(null);
-    }
-  }
-
-  if (loading) {
-    return (
-      <div className="flex items-center gap-2 text-xs text-[var(--text-muted)]">
-        <Loader2 className="h-3 w-3 animate-spin" /> Loading voices…
-      </div>
-    );
-  }
-
-  if (voices.length === 0) {
-    return <p className="text-xs text-[var(--text-muted)]">No voices available for {language}.</p>;
-  }
-
-  return (
-    <div className="grid grid-cols-2 gap-2">
-      {voices.map((v) => {
-        const selected = value === v.id;
-        const previewing = playingId === v.id;
-        return (
-          <button
-            key={v.id}
-            type="button"
-            onClick={() => onChange(selected ? "" : v.id)}
-            className={cn(
-              "flex items-center gap-2 rounded-lg border px-3 py-2 text-left text-sm transition-all",
-              selected
-                ? "border-[var(--accent-primary)] bg-[var(--accent-primary)]/10 text-[var(--text-primary)]"
-                : "border-[var(--bg-border)] bg-[var(--bg-elevated)] text-[var(--text-secondary)] hover:border-[var(--text-muted)]"
-            )}
-          >
-            <button
-              type="button"
-              onClick={(e) => { e.stopPropagation(); void togglePreview(v.id); }}
-              className={cn(
-                "shrink-0 rounded-full p-1 transition-colors",
-                previewing ? "bg-[var(--accent-primary)] text-white" : "hover:bg-[var(--bg-border)]"
-              )}
-              title={previewing ? "Stop preview" : "Preview voice"}
-            >
-              {previewing
-                ? <Pause className="h-3 w-3" />
-                : <Play className="h-3 w-3" />}
-            </button>
-            <div className="min-w-0">
-              <p className="truncate text-xs font-medium">{v.name}</p>
-              {v.gender && <p className="text-[10px] text-[var(--text-muted)] capitalize">{v.gender}</p>}
-            </div>
-            {selected && <Check className="ml-auto h-3 w-3 shrink-0 text-[var(--accent-primary)]" />}
-          </button>
-        );
-      })}
-    </div>
-  );
-}
-
 // ─── Main modal ───────────────────────────────────────────────────────────────
 
 export function CreateProjectModal({
@@ -413,7 +310,6 @@ export function CreateProjectModal({
         targetAudience: project.targetAudience,
         videoStyle: project.videoStyle,
         tone: project.tone,
-        voiceId: project.voiceId ?? "",
         claudeSystemPrompt: project.claudeSystemPrompt ?? "",
       });
     } else {
@@ -453,7 +349,6 @@ export function CreateProjectModal({
       targetAudience: form.targetAudience,
       videoStyle: form.videoStyle,
       tone: form.tone,
-      voiceId: form.voiceId || undefined,
       claudeSystemPrompt: form.claudeSystemPrompt.trim() || null,
     };
 
@@ -602,15 +497,6 @@ export function CreateProjectModal({
                 );
               })}
             </div>
-          </Field>
-
-          {/* Voice */}
-          <Field label="Default Voice" hint="Optional — can be changed per video">
-            <VoicePicker
-              language={form.language}
-              value={form.voiceId}
-              onChange={(id) => set("voiceId", id)}
-            />
           </Field>
 
           {/* Character / Style Notes */}
