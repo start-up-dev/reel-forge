@@ -171,9 +171,9 @@ async function callSplitScenes(
       ? buildTalkingSceneMessages(script, audioDurationSeconds, targetCount, talkingSubtype, characterNote)
       : buildScenesMessages(script, audioDurationSeconds, targetCount, renderStyle, characterNote);
 
-  const message = await client.messages.create({
+  const message = await client.messages.stream({
     model: "claude-sonnet-4-6",
-    max_tokens: 32000,
+    max_tokens: 12000,
     system,
     tools: [
       {
@@ -230,7 +230,7 @@ async function callSplitScenes(
     ],
     tool_choice: { type: "tool", name: "submit_scenes" },
     messages: [{ role: "user", content: user }],
-  });
+  }).finalMessage();
 
   if (message.stop_reason === "max_tokens") {
     throw new Error("Scene split response was truncated (max_tokens). Reduce scene count or prompt length.");
