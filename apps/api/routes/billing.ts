@@ -245,6 +245,31 @@ async function handleStripeEvent(event: Stripe.Event): Promise<void> {
             updatedAt: new Date(),
           })
           .where(eq(users.id, userId));
+      } else if (session.mode === "subscription" && session.subscription) {
+        // Subscription checkout — associate customer and activate plan immediately.
+        // customer.subscription.created will also fire, but stripeCustomerId must
+        // be saved here first so that event's lookup by customer ID succeeds.
+        const sub = await stripe.subscriptions.retrieve(
+          session.subscription as string,
+        );
+        const priceId = sub.items.data[0]?.price.id;
+        const config = priceId ? PLAN_CONFIG[priceId] : undefined;
+        const isActive = sub.status === "active" || sub.status === "trialing";
+
+        await db
+          .update(users)
+          .set({
+            stripeCustomerId: session.customer as string | null,
+            ...(config && isActive
+              ? {
+                  plan: config.plan,
+                  dailyLimit: config.dailyLimit,
+                  monthlyLimit: config.monthlyLimit,
+                }
+              : {}),
+            updatedAt: new Date(),
+          })
+          .where(eq(users.id, userId));
       }
       break;
     }
