@@ -36,16 +36,16 @@ const SINGLE_WORD_STYLES: StyleOption[] = [
   {
     value: SubtitleStyle.WordHighlight,
     label: "Word Highlight",
-    desc: "Each word pops with a purple outline as it's spoken.",
+    desc: "Each word pops with an orange outline as it's spoken.",
     preview: "Word",
-    previewClass: "text-base font-bold text-white [text-shadow:0_0_0_3px_#7C5CFC]",
+    previewClass: "text-base font-bold text-white [text-shadow:0_0_0_3px_#f55c2a]",
   },
   {
     value: SubtitleStyle.NeonGlow,
     label: "Neon Glow",
-    desc: "White text with a thick glowing purple outline. Bold energy.",
+    desc: "White text with a thick glowing orange outline. Bold energy.",
     preview: "GLOW",
-    previewClass: "text-xl font-black text-white [text-shadow:0_0_12px_#7C5CFC,0_0_24px_#7C5CFC]",
+    previewClass: "text-xl font-black text-white [text-shadow:0_0_12px_#f55c2a,0_0_24px_#f55c2a]",
   },
   {
     value: SubtitleStyle.OversizedPop,
@@ -88,11 +88,11 @@ const MULTI_WORD_STYLES: StyleOption[] = [
   {
     value: SubtitleStyle.Karaoke,
     label: "Karaoke",
-    desc: "4-word group stays visible; active word lights up in purple.",
+    desc: "4-word group stays visible; active word lights up in orange.",
     preview: (
       <span>
         Hello{" "}
-        <span className="text-[#7C5CFC] font-bold">World</span>{" "}
+        <span className="text-[#f55c2a] font-bold">World</span>{" "}
         Right Now
       </span>
     ) as unknown as string,

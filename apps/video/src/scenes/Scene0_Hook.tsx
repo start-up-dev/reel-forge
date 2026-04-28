@@ -6,7 +6,7 @@ export const Scene0_Hook: React.FC = () => {
   return (
     <AbsoluteFill
       style={{
-        background: "#0A0A0F",
+        background: "#09090b",
         display: "flex",
         flexDirection: "column",
         alignItems: "center",
@@ -20,7 +20,7 @@ export const Scene0_Hook: React.FC = () => {
           position: "absolute",
           inset: 0,
           background:
-            "radial-gradient(ellipse 900px 400px at 50% 50%, rgba(124,92,252,0.07), transparent)",
+            "radial-gradient(ellipse 900px 400px at 50% 50%, rgba(245,92,42,0.07), transparent)",
           pointerEvents: "none",
         }}
       />

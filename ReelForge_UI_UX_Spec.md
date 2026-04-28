@@ -41,18 +41,18 @@ ReelForge is a tool for serious content creators. The visual language should fee
 
 | Token | Value | Usage |
 |-------|-------|-------|
-| `--bg-base` | `#0A0A0F` | Page background |
-| `--bg-surface` | `#13131A` | Cards, panels, sidebars |
-| `--bg-elevated` | `#1C1C27` | Modals, dropdowns, hover states |
-| `--bg-border` | `#2A2A3A` | Dividers, card borders |
-| `--accent-primary` | `#7C5CFC` | Primary CTA buttons, active states, highlights |
-| `--accent-secondary` | `#5B8DEF` | Secondary actions, links, progress indicators |
+| `--bg-base` | `#09090b` | Page background |
+| `--bg-surface` | `#111113` | Cards, panels, sidebars |
+| `--bg-elevated` | `#1a1a1e` | Modals, dropdowns, hover states |
+| `--bg-border` | `#27272a` | Dividers, card borders |
+| `--accent-primary` | `#f55c2a` | Primary CTA buttons, active states, highlights |
+| `--accent-secondary` | `#4a90e2` | Secondary actions, links, progress indicators |
 | `--accent-success` | `#34D399` | Success states, "done" badges |
 | `--accent-warning` | `#FBBF24` | Queue position badges, warnings |
 | `--accent-danger` | `#F87171` | Error states, failed status |
 | `--text-primary` | `#F4F4F8` | Headings, primary content |
-| `--text-secondary` | `#9898B0` | Labels, captions, helper text |
-| `--text-muted` | `#5A5A72` | Placeholder text, disabled states |
+| `--text-secondary` | `#a1a1aa` | Labels, captions, helper text |
+| `--text-muted` | `#52525b` | Placeholder text, disabled states |
 
 ### Typography
 

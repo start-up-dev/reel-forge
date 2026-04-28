@@ -41,7 +41,7 @@ export const GlowButton: React.FC<GlowButtonProps> = ({
     >
       <div
         style={{
-          background: "#7C5CFC",
+          background: "#f55c2a",
           color: "#FFFFFF",
           padding: "22px 52px",
           borderRadius: 60,
@@ -51,7 +51,7 @@ export const GlowButton: React.FC<GlowButtonProps> = ({
           display: "flex",
           alignItems: "center",
           gap: 14,
-          boxShadow: `0 0 ${glowSize}px rgba(124,92,252,${glowOpacity}), 0 20px 40px rgba(124,92,252,0.3)`,
+          boxShadow: `0 0 ${glowSize}px rgba(245,92,42,${glowOpacity}), 0 20px 40px rgba(245,92,42,0.3)`,
           letterSpacing: "-0.01em",
         }}
       >
@@ -62,7 +62,7 @@ export const GlowButton: React.FC<GlowButtonProps> = ({
         <div
           style={{
             fontSize: 13,
-            color: "#5A5A72",
+            color: "#52525b",
             fontWeight: 500,
             fontFamily: "'Inter', sans-serif",
           }}

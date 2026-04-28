@@ -52,7 +52,7 @@ export const PipelineNode: React.FC<PipelineNodeProps> = ({
     : 0;
 
   const circleGlow = isActive
-    ? `0 0 ${32 * activation}px rgba(124,92,252,0.55)`
+    ? `0 0 ${32 * activation}px rgba(245,92,42,0.55)`
     : "none";
 
   return (
@@ -80,7 +80,7 @@ export const PipelineNode: React.FC<PipelineNodeProps> = ({
               height: size,
               transform: `translate(-50%, -50%) scale(${ringScale})`,
               borderRadius: "50%",
-              border: "2px solid #7C5CFC",
+              border: "2px solid #f55c2a",
               opacity: ringOpacity,
               pointerEvents: "none",
             }}
@@ -96,13 +96,13 @@ export const PipelineNode: React.FC<PipelineNodeProps> = ({
             height: size,
             borderRadius: "50%",
             background: isActive
-              ? "radial-gradient(circle, rgba(124,92,252,0.28), rgba(124,92,252,0.06))"
+              ? "radial-gradient(circle, rgba(245,92,42,0.28), rgba(245,92,42,0.06))"
               : "rgba(255,255,255,0.03)",
-            border: `2px solid ${isActive ? "#7C5CFC" : "rgba(255,255,255,0.1)"}`,
+            border: `2px solid ${isActive ? "#f55c2a" : "rgba(255,255,255,0.1)"}`,
             display: "flex",
             alignItems: "center",
             justifyContent: "center",
-            color: isActive ? "#7C5CFC" : "#5A5A72",
+            color: isActive ? "#f55c2a" : "#52525b",
             boxShadow: circleGlow,
             transition: "color 0.2s, border-color 0.2s",
           }}
@@ -118,7 +118,7 @@ export const PipelineNode: React.FC<PipelineNodeProps> = ({
           fontSize: 13,
           fontWeight: 600,
           fontFamily: "'Inter', sans-serif",
-          color: "#9898B0",
+          color: "#a1a1aa",
           whiteSpace: "nowrap",
           opacity: labelOpacity,
           textAlign: "center",

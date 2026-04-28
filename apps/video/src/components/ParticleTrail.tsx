@@ -19,7 +19,7 @@ export const ParticleTrail: React.FC<ParticleTrailProps> = ({
   x2,
   y2,
   count = 10,
-  color = "#7C5CFC",
+  color = "#f55c2a",
   startFrame = 0,
   endFrame = 60,
   size = 7,

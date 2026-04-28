@@ -11,7 +11,7 @@ interface PhoneMockupProps {
 export const PhoneMockup: React.FC<PhoneMockupProps> = ({
   delay = 0,
   children,
-  glowColor = "#7C5CFC",
+  glowColor = "#f55c2a",
   width = 210,
 }) => {
   const frame = useCurrentFrame();
@@ -36,7 +36,7 @@ export const PhoneMockup: React.FC<PhoneMockupProps> = ({
         height,
         borderRadius: 30,
         border: "3px solid rgba(255,255,255,0.14)",
-        background: "#0A0A0F",
+        background: "#09090b",
         overflow: "hidden",
         position: "relative",
         flexShrink: 0,
@@ -54,7 +54,7 @@ export const PhoneMockup: React.FC<PhoneMockupProps> = ({
           transform: "translateX(-50%)",
           width: 10,
           height: 10,
-          background: "#0A0A0F",
+          background: "#09090b",
           border: "1.5px solid rgba(255,255,255,0.12)",
           borderRadius: "50%",
           zIndex: 10,

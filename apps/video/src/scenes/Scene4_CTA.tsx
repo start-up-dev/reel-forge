@@ -53,14 +53,14 @@ export const Scene4_CTA: React.FC = () => {
   });
 
   return (
-    <AbsoluteFill style={{ background: "#0A0A0F" }}>
+    <AbsoluteFill style={{ background: "#09090b" }}>
       {/* radial glow */}
       <div
         style={{
           position: "absolute",
           inset: 0,
           background:
-            "radial-gradient(ellipse 900px 600px at 50% 45%, rgba(124,92,252,0.14), transparent)",
+            "radial-gradient(ellipse 900px 600px at 50% 45%, rgba(245,92,42,0.14), transparent)",
           pointerEvents: "none",
         }}
       />
@@ -110,7 +110,7 @@ export const Scene4_CTA: React.FC = () => {
                   fontFamily: "'Inter', sans-serif",
                   fontSize: 12,
                   fontWeight: 600,
-                  color: "#9898B0",
+                  color: "#a1a1aa",
                   textTransform: "uppercase",
                   letterSpacing: "0.15em",
                   marginTop: 10,
@@ -139,7 +139,7 @@ export const Scene4_CTA: React.FC = () => {
                 fontFamily: "'Inter', sans-serif",
                 fontSize: 12,
                 fontWeight: 600,
-                color: "#9898B0",
+                color: "#a1a1aa",
                 textTransform: "uppercase",
                 letterSpacing: "0.15em",
                 marginTop: 10,
@@ -196,7 +196,7 @@ export const Scene4_CTA: React.FC = () => {
             style={{
               fontFamily: "'JetBrains Mono', 'Courier New', monospace",
               fontSize: 22,
-              color: "#5A5A72",
+              color: "#52525b",
               letterSpacing: "0.04em",
               opacity: interpolate(frame, [168, 178], [0, 1], {
                 extrapolateLeft: "clamp",
@@ -211,7 +211,7 @@ export const Scene4_CTA: React.FC = () => {
                   display: "inline-block",
                   width: 2,
                   height: "1.1em",
-                  background: "#7C5CFC",
+                  background: "#f55c2a",
                   marginLeft: 3,
                   verticalAlign: "middle",
                 }}

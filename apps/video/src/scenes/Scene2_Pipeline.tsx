@@ -126,25 +126,25 @@ export const Scene2_Pipeline: React.FC = () => {
       <div
         style={{
           fontFamily: "'JetBrains Mono', monospace",
-          color: "#7C5CFC",
+          color: "#f55c2a",
           marginBottom: 2,
         }}
       >
         0:00
       </div>
-      <div style={{ color: "#9898B0", marginBottom: 8 }}>
+      <div style={{ color: "#a1a1aa", marginBottom: 8 }}>
         In the neon-lit alleys of Tokyo...
       </div>
       <div
         style={{
           fontFamily: "'JetBrains Mono', monospace",
-          color: "#7C5CFC",
+          color: "#f55c2a",
           marginBottom: 2,
         }}
       >
         0:15
       </div>
-      <div style={{ color: "#9898B0" }}>coffee isn't just a drink.</div>
+      <div style={{ color: "#a1a1aa" }}>coffee isn't just a drink.</div>
     </div>
   );
 
@@ -154,7 +154,7 @@ export const Scene2_Pipeline: React.FC = () => {
       barCount={18}
       maxHeight={44}
       minHeight={5}
-      color="#7C5CFC"
+      color="#f55c2a"
       speed={0.14}
     />
   );
@@ -167,8 +167,8 @@ export const Scene2_Pipeline: React.FC = () => {
         width: 44,
         height: 76,
         borderRadius: 10,
-        border: "2px solid rgba(124,92,252,0.55)",
-        background: "rgba(124,92,252,0.08)",
+        border: "2px solid rgba(245,92,42,0.55)",
+        background: "rgba(245,92,42,0.08)",
         display: "flex",
         alignItems: "center",
         justifyContent: "center",
@@ -203,7 +203,7 @@ export const Scene2_Pipeline: React.FC = () => {
   ];
 
   return (
-    <AbsoluteFill style={{ background: "#0A0A0F" }}>
+    <AbsoluteFill style={{ background: "#09090b" }}>
       {/* dot-grid texture */}
       <div
         style={{
@@ -243,7 +243,7 @@ export const Scene2_Pipeline: React.FC = () => {
             fontFamily: "'Inter', sans-serif",
             fontSize: 11,
             fontWeight: 700,
-            color: "#7C5CFC",
+            color: "#f55c2a",
             textTransform: "uppercase",
             letterSpacing: "0.18em",
             marginBottom: 12,
@@ -305,11 +305,11 @@ export const Scene2_Pipeline: React.FC = () => {
               y1={ln.y}
               x2={ln.x2}
               y2={ln.y}
-              stroke="#7C5CFC"
+              stroke="#f55c2a"
               strokeWidth={2.5}
               strokeDasharray={LINE_LEN}
               strokeDashoffset={LINE_LEN * (1 - progress)}
-              style={{ filter: "drop-shadow(0 0 4px #7C5CFC)" }}
+              style={{ filter: "drop-shadow(0 0 4px #f55c2a)" }}
             />
           );
         })}
@@ -327,9 +327,9 @@ export const Scene2_Pipeline: React.FC = () => {
                 cx={bx}
                 cy={by}
                 r={3 + (i % 3)}
-                fill="#7C5CFC"
+                fill="#f55c2a"
                 opacity={opacity}
-                style={{ filter: "drop-shadow(0 0 5px #7C5CFC)" }}
+                style={{ filter: "drop-shadow(0 0 5px #f55c2a)" }}
               />
             );
           })}
@@ -344,7 +344,7 @@ export const Scene2_Pipeline: React.FC = () => {
           x2={ln.x2}
           y2={ln.y}
           count={9}
-          color="#7C5CFC"
+          color="#f55c2a"
           startFrame={ACTIVATE[i] + 4}
           endFrame={ACTIVATE[i + 1]}
           size={7}
@@ -381,12 +381,12 @@ export const Scene2_Pipeline: React.FC = () => {
             fontFamily: "'Inter', sans-serif",
             fontSize: 20,
             fontWeight: 600,
-            color: "#5A5A72",
+            color: "#52525b",
             letterSpacing: "0.04em",
           }}
         >
           Zero manual effort.{" "}
-          <span style={{ color: "#9898B0" }}>Fully automated.</span>
+          <span style={{ color: "#a1a1aa" }}>Fully automated.</span>
         </span>
       </div>
     </AbsoluteFill>

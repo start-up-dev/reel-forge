@@ -12,7 +12,7 @@ interface WaveformBarsProps {
 
 export const WaveformBars: React.FC<WaveformBarsProps> = ({
   barCount = 20,
-  color = "#7C5CFC",
+  color = "#f55c2a",
   maxHeight = 48,
   minHeight = 6,
   speed = 0.12,

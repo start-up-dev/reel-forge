@@ -517,14 +517,14 @@ async function runTeachMode(): Promise<void> {
     await chrome.storage.local.set(captured);
   }
 
-  showBannerRaw(banner, "✓ Selectors saved! Close this tab and reload extension options.", "#34D399", "#0A0A0F");
+  showBannerRaw(banner, "✓ Selectors saved! Close this tab and reload extension options.", "#34D399", "#09090b");
   setTimeout(() => host.remove(), 5000);
 }
 
 function pickElement(shadow: ShadowRoot): Promise<string | null> {
   return new Promise<string | null>((resolve) => {
     let hovered: Element | null = null;
-    const OUTLINE = "3px solid #7C5CFC";
+    const OUTLINE = "3px solid #f55c2a";
 
     function applyOutline(el: Element, v: string): void {
       if (el instanceof HTMLElement) { el.style.outline = v; el.style.outlineOffset = "2px"; }
@@ -580,7 +580,7 @@ function showBanner(
 ): void {
   const pct = Math.round((idx / total) * 100);
   banner.innerHTML = `
-    <div style="background:#7C5CFC;color:#fff;padding:10px 16px;display:flex;align-items:center;justify-content:space-between;gap:12px;box-shadow:0 2px 12px rgba(0,0,0,.5);pointer-events:all;font-family:system-ui,sans-serif">
+    <div style="background:#f55c2a;color:#fff;padding:10px 16px;display:flex;align-items:center;justify-content:space-between;gap:12px;box-shadow:0 2px 12px rgba(0,0,0,.5);pointer-events:all;font-family:system-ui,sans-serif">
       <span style="font-size:13px;line-height:1.4">
         <strong>ReelForge (${idx + 1}/${total})</strong> — click the
         <strong style="text-decoration:underline">${step.label}</strong>

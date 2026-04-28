@@ -105,8 +105,8 @@ Tasks are defined in `turbo.json`:
 ### Design System
 
 Defined in `ReelForge_UI_UX_Spec.md`. Key tokens for `globals.css`:
-- Background: `--bg-base: #0A0A0F`, `--bg-surface: #13131A`, `--bg-elevated: #1C1C27`
-- Accent: `--accent-primary: #7C5CFC` (purple CTA), `--accent-secondary: #5B8DEF`
+- Background: `--bg-base: #09090b`, `--bg-surface: #111113`, `--bg-elevated: #1a1a1e`
+- Accent: `--accent-primary: #f55c2a` (orange CTA), `--accent-secondary: #4a90e2`
 - Status: `--accent-success: #34D399`, `--accent-warning: #FBBF24`, `--accent-danger: #F87171`
-- Text: `--text-primary: #F4F4F8`, `--text-secondary: #9898B0`, `--text-muted: #5A5A72`
+- Text: `--text-primary: #F4F4F8`, `--text-secondary: #a1a1aa`, `--text-muted: #52525b`
 - Font: Inter (UI) + JetBrains Mono (code). Base spacing unit: 4px.

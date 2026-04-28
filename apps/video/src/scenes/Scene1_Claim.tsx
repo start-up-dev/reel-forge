@@ -54,7 +54,7 @@ export const Scene1_Claim: React.FC = () => {
     fontFamily: "'Inter', sans-serif",
     fontSize: 12,
     fontWeight: 600,
-    color: "#9898B0",
+    color: "#a1a1aa",
     textTransform: "uppercase",
     letterSpacing: "0.16em",
     marginTop: 18,
@@ -63,7 +63,7 @@ export const Scene1_Claim: React.FC = () => {
   return (
     <AbsoluteFill
       style={{
-        background: "#0A0A0F",
+        background: "#09090b",
         display: "flex",
         flexDirection: "column",
         alignItems: "center",
@@ -76,7 +76,7 @@ export const Scene1_Claim: React.FC = () => {
           position: "absolute",
           inset: 0,
           background:
-            "radial-gradient(ellipse 800px 500px at 50% 40%, rgba(124,92,252,0.1), transparent)",
+            "radial-gradient(ellipse 800px 500px at 50% 40%, rgba(245,92,42,0.1), transparent)",
           pointerEvents: "none",
         }}
       />
@@ -124,7 +124,7 @@ export const Scene1_Claim: React.FC = () => {
           >
             <path
               d="M8 24 L80 24 M62 10 L80 24 L62 38"
-              stroke="#7C5CFC"
+              stroke="#f55c2a"
               strokeWidth="3.5"
               strokeLinecap="round"
               strokeLinejoin="round"

@@ -34,7 +34,7 @@ BROKEN.
 
 Each word arrives from a slightly different direction (left, right, bottom). On the word "BROKEN" — a red horizontal line slashes through it and the text cracks apart into fragments that fly offscreen. As the fragments clear, the ReelForge dark background fades in underneath.
 
-No browser frame. No UI. Just raw kinetic typography against `#0A0A0F`.
+No browser frame. No UI. Just raw kinetic typography against `#09090b`.
 
 **Voiceover (VO):**  
 *(None — let the visuals breathe. Music carries this.)*
@@ -49,7 +49,7 @@ No browser frame. No UI. Just raw kinetic typography against `#0A0A0F`.
 ### Scene 1 — The Claim (frames 90–240 · 5 seconds)
 
 **Visual:**  
-The fragments from Scene 0 dissolve into purple particles that drift upward and reassemble into a new stat counter layout:
+The fragments from Scene 0 dissolve into orange particles that drift upward and reassemble into a new stat counter layout:
 
 ```
 [  4 HOURS  ]        [  10 MINUTES  ]
@@ -70,7 +70,7 @@ One idea. One click. Finished.
 
 **Typography:**  
 - Counter numbers: JetBrains Mono Bold, ~160px  
-- Labels: Inter Medium, `#9898B0`, 14px uppercase tracking-widest  
+- Labels: Inter Medium, `#a1a1aa`, 14px uppercase tracking-widest  
 - Tagline: Inter ExtraBold 800, 48px, `#F4F4F8`
 
 ---
@@ -86,7 +86,7 @@ A horizontal flow diagram animates from left to right across the full canvas. Ea
 
 Each node:
 - Starts as a dim circle with an icon  
-- When it activates: ring pulses outward (like a sonar ping), icon color shifts from `#5A5A72` → `#7C5CFC`, a small label fades in below  
+- When it activates: ring pulses outward (like a sonar ping), icon color shifts from `#52525b` → `#f55c2a` (orange), a small label fades in below  
 - Particle trail: 8–12 small dots fly along the SVG path from node to node using `strokeDashoffset` animation  
 
 Below each node, a micro-detail appears as it activates:
@@ -96,14 +96,14 @@ Below each node, a micro-detail appears as it activates:
 - **Grok Images**: a 2×2 grid of blurry image thumbnails snapping into focus  
 - **Your Video**: a vertical phone mockup that slides up  
 
-The whole pipeline takes 8 seconds to complete left-to-right. On the last node ("Your Video"), a burst of purple sparks explodes outward.
+The whole pipeline takes 8 seconds to complete left-to-right. On the last node ("Your Video"), a burst of orange sparks explodes outward.
 
 **VO:**  
 > *"Your idea becomes a script with Claude. A voice with ElevenLabs. Visuals with Grok. And a finished video — automatically assembled and ready to post."*
 
 **Typography:**  
-- Node labels: Inter SemiBold, 13px, `#9898B0`  
-- Micro-detail text: Inter Medium, 11px, `#5A5A72`
+- Node labels: Inter SemiBold, 13px, `#a1a1aa`  
+- Micro-detail text: Inter Medium, 11px, `#52525b`
 
 ---
 
@@ -144,8 +144,8 @@ What will YOU make?
 > *"What will you make?"*
 
 **Typography:**  
-- Style badge pills: Inter Bold, 10px, uppercase, border `#7C5CFC/50`, bg `#7C5CFC/10`  
-- Counter strip: Inter Medium, 13px, `#9898B0`, tracking-widest  
+- Style badge pills: Inter Bold, 10px, uppercase, border `#f55c2a/50`, bg `#f55c2a/10`  
+- Counter strip: Inter Medium, 13px, `#a1a1aa`, tracking-widest  
 - Final headline: Inter Black 900, 96px, `#F4F4F8`, centered
 
 ---
@@ -153,7 +153,7 @@ What will YOU make?
 ### Scene 4 — CTA (frames 990–1350 · 12 seconds)
 
 **Visual:**  
-Clean, quiet, confident. Dark `#0A0A0F` background. The radial purple glow from the design spec.
+Clean, quiet, confident. Dark `#09090b` background. The radial orange glow from the design spec.
 
 Three elements land in sequence:
 
@@ -180,10 +180,10 @@ Three elements land in sequence:
 
 **Typography:**  
 - Stat numbers: JetBrains Mono Bold, 48px, `#F4F4F8`  
-- Stat labels: Inter Medium, 11px, `#9898B0`, uppercase  
-- CTA button: Inter Black, 24px, `#FFFFFF`, bg `#7C5CFC`, shadow `#7C5CFC/40`  
-- Subtext: Inter Medium, 13px, `#5A5A72`  
-- URL: JetBrains Mono, 20px, `#9898B0`  
+- Stat labels: Inter Medium, 11px, `#a1a1aa`, uppercase  
+- CTA button: Inter Black, 24px, `#FFFFFF`, bg `#f55c2a`, shadow `#f55c2a/40`  
+- Subtext: Inter Medium, 13px, `#52525b`  
+- URL: JetBrains Mono, 20px, `#a1a1aa`  
 - Final line: Inter ExtraBold 800, 52px, `#F4F4F8`
 
 ---
@@ -293,7 +293,7 @@ Your first one is ten minutes away.
 ### Phase 3 — Rebuild Scenes
 
 - [ ] **Delete** old `Scene0_Hero.tsx` — replace entirely
-- [ ] **`Scene0_Hook.tsx`** — Kinetic typography. "MAKING VIDEOS / IS / BROKEN." Three `KineticWord` components, staggered 8 frames apart. Word 3 gets the crack/fragment split effect. Background: pure `#0A0A0F`, no glow yet.
+- [ ] **`Scene0_Hook.tsx`** — Kinetic typography. "MAKING VIDEOS / IS / BROKEN." Three `KineticWord` components, staggered 8 frames apart. Word 3 gets the crack/fragment split effect. Background: pure `#09090b`, no glow yet.
 - [ ] **`Scene1_Claim.tsx`** — Two `StatCounter` components side by side. Left: count up to "4:00:00". Right: count down from "10:00" to "0:00". Connecting arrow SVG draws itself. Tagline fades in character-by-character below.
 - [ ] **`Scene2_Pipeline.tsx`** — Five `PipelineNode` components connected by SVG paths. `ParticleTrail` components travel between nodes. Each node activation triggers its micro-detail panel. Final node triggers particle burst using `@remotion/noise`.
 - [ ] **`Scene3_OutputReel.tsx`** — Six `PhoneMockup` components, staggered entry. Each contains a styled background gradient + title overlay (no real video needed — styled divs). Style badge pills animate in below each phone. Phones cluster together for the final headline "What will YOU make?"

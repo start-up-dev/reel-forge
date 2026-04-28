@@ -22,12 +22,12 @@ type SubtitleStyle =
 const COLOR_WHITE = "&H00FFFFFF";
 const COLOR_BLACK = "&H00000000";
 const COLOR_SHADOW = "&H80000000";
-const COLOR_ACCENT_PURPLE = "&H00FC5C7C"; // #7C5CFC → B=FC G=5C R=7C
+const COLOR_ACCENT_ORANGE = "&H002A5CF5"; // #f55c2a → B=2A G=5C R=F5
 const COLOR_WARM_WHITE = "&H00F8F4F4";
 const COLOR_TRANSPARENT = "&H00000000";
 
 // Inline override color (no alpha prefix, trailing &) — used inside karaoke {\ } tags
-const KARAOKE_PURPLE_INLINE = "FC5C7C";
+const KARAOKE_ORANGE_INLINE = "2A5CF5";
 
 function toAssTime(seconds: number): string {
   const cs = Math.round(Math.max(0, seconds) * 100);
@@ -121,7 +121,7 @@ function buildBoldPop(words: WordTimestamp[]): string {
 }
 
 function buildWordHighlight(words: WordTimestamp[]): string {
-  const style = makeStyle("Default", 80, COLOR_WHITE, COLOR_WHITE, COLOR_ACCENT_PURPLE, COLOR_SHADOW, true, false, 5, 0, 2, 200);
+  const style = makeStyle("Default", 80, COLOR_WHITE, COLOR_WHITE, COLOR_ACCENT_ORANGE, COLOR_SHADOW, true, false, 5, 0, 2, 200);
   const events: AssEvent[] = words.map((w) => ({ start: w.start, end: w.end, text: w.word }));
   return buildAssFile(style, events);
 }
@@ -142,7 +142,7 @@ function buildCinematic(words: WordTimestamp[]): string {
 
 function buildNeonGlow(words: WordTimestamp[]): string {
   // White text with thick purple outline — the wide outline creates a bloom/glow effect
-  const style = makeStyle("Default", 88, COLOR_WHITE, COLOR_WHITE, COLOR_ACCENT_PURPLE, COLOR_SHADOW, true, false, 6, 3, 2, 200);
+  const style = makeStyle("Default", 88, COLOR_WHITE, COLOR_WHITE, COLOR_ACCENT_ORANGE, COLOR_SHADOW, true, false, 6, 3, 2, 200);
   const events: AssEvent[] = words.map((w) => ({ start: w.start, end: w.end, text: w.word.toUpperCase() }));
   return buildAssFile(style, events);
 }
@@ -184,7 +184,7 @@ function buildKaraoke(words: WordTimestamp[]): string {
 
       const textParts = group.map((w, i) => {
         const escaped = escapeAssWord(w.word);
-        if (i === wi) return `{\\c&H${KARAOKE_PURPLE_INLINE}&}${escaped}{\\r}`;
+        if (i === wi) return `{\\c&H${KARAOKE_ORANGE_INLINE}&}${escaped}{\\r}`;
         return escaped;
       });
 

@@ -21,21 +21,21 @@
 
 ```
 Background layers (darkest → lightest):
-  --bg-base:     #0A0A0F   ← page canvas
-  --bg-surface:  #13131A   ← cards, panels
-  --bg-elevated: #1C1C27   ← raised elements, inputs
+  --bg-base:     #09090b   ← page canvas
+  --bg-surface:  #111113   ← cards, panels
+  --bg-elevated: #1a1a1e   ← raised elements, inputs
 
 Accent palette:
-  --accent-primary:   #7C5CFC   ← CTA purple (primary action)
-  --accent-secondary: #5B8DEF   ← blue (secondary accent)
+  --accent-primary:   #f55c2a   ← CTA orange (primary action)
+  --accent-secondary: #4a90e2   ← blue (secondary accent)
   --accent-success:   #34D399   ← green (trust, check marks)
   --accent-warning:   #FBBF24   ← yellow (highlight, word-by-word subtitle)
   --accent-danger:    #F87171   ← red (errors, before-state)
 
 Text:
   --text-primary:   #F4F4F8   ← headings, key info
-  --text-secondary: #9898B0   ← body, supporting copy
-  --text-muted:     #5A5A72   ← labels, captions
+  --text-secondary: #a1a1aa   ← body, supporting copy
+  --text-muted:     #52525b   ← labels, captions
 
 Typography:
   UI font:   Inter (weights 400, 500, 600, 700, 800, 900)

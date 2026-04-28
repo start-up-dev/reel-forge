@@ -98,14 +98,14 @@ export const Scene3_OutputReel: React.FC = () => {
   });
 
   return (
-    <AbsoluteFill style={{ background: "#0A0A0F" }}>
+    <AbsoluteFill style={{ background: "#09090b" }}>
       {/* purple vignette */}
       <div
         style={{
           position: "absolute",
           inset: 0,
           background:
-            "radial-gradient(ellipse 1400px 700px at 50% 60%, rgba(124,92,252,0.09), transparent)",
+            "radial-gradient(ellipse 1400px 700px at 50% 60%, rgba(245,92,42,0.09), transparent)",
           pointerEvents: "none",
         }}
       />
@@ -130,7 +130,7 @@ export const Scene3_OutputReel: React.FC = () => {
             fontFamily: "'Inter', sans-serif",
             fontSize: 13,
             fontWeight: 600,
-            color: "#9898B0",
+            color: "#a1a1aa",
             textTransform: "uppercase",
             letterSpacing: "0.18em",
             opacity: stripP,
@@ -140,9 +140,9 @@ export const Scene3_OutputReel: React.FC = () => {
           }}
         >
           <span>7 Styles</span>
-          <span style={{ color: "#5A5A72" }}>·</span>
+          <span style={{ color: "#52525b" }}>·</span>
           <span>4 Platforms</span>
-          <span style={{ color: "#5A5A72" }}>·</span>
+          <span style={{ color: "#52525b" }}>·</span>
           <span>∞ Topics</span>
         </div>
 
@@ -235,12 +235,12 @@ export const Scene3_OutputReel: React.FC = () => {
               style={{
                 padding: "5px 12px",
                 borderRadius: 20,
-                border: "1px solid rgba(124,92,252,0.45)",
-                background: "rgba(124,92,252,0.08)",
+                border: "1px solid rgba(245,92,42,0.45)",
+                background: "rgba(245,92,42,0.08)",
                 fontFamily: "'Inter', sans-serif",
                 fontSize: 10,
                 fontWeight: 700,
-                color: "#9898B0",
+                color: "#a1a1aa",
                 textTransform: "uppercase",
                 letterSpacing: "0.08em",
                 width: 210,
@@ -264,7 +264,7 @@ export const Scene3_OutputReel: React.FC = () => {
             display: "flex",
             alignItems: "center",
             justifyContent: "center",
-            background: "rgba(10,10,15,0.72)",
+            background: "rgba(9,9,11,0.72)",
             opacity: overlayOpacity,
             zIndex: 10,
           }}
@@ -287,7 +287,7 @@ export const Scene3_OutputReel: React.FC = () => {
               }}
             >
               What will{" "}
-              <span style={{ color: "#7C5CFC" }}>YOU</span>
+              <span style={{ color: "#f55c2a" }}>YOU</span>
               {" "}make?
             </div>
             <div
@@ -295,7 +295,7 @@ export const Scene3_OutputReel: React.FC = () => {
                 marginTop: 24,
                 fontFamily: "'Inter', sans-serif",
                 fontSize: 20,
-                color: "#9898B0",
+                color: "#a1a1aa",
                 fontWeight: 500,
                 opacity: interpolate(frame, [360, 390], [0, 1], {
                   extrapolateLeft: "clamp",

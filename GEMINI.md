@@ -62,10 +62,10 @@ The following files are foundational to the project. Read them before making sig
 
 Follow these CSS tokens (defined in `globals.css`) for all UI work:
 
-- **Backgrounds:** `--bg-base: #0A0A0F`, `--bg-surface: #13131A`, `--bg-elevated: #1C1C27`
-- **Accents:** `--accent-primary: #7C5CFC` (Purple CTA), `--accent-secondary: #5B8DEF`
+- **Backgrounds:** `--bg-base: #09090b`, `--bg-surface: #111113`, `--bg-elevated: #1a1a1e`
+- **Accents:** `--accent-primary: #f55c2a` (Orange CTA), `--accent-secondary: #4a90e2`
 - **Status:** `--accent-success: #34D399`, `--accent-warning: #FBBF24`, `--accent-danger: #F87171`
-- **Text:** `--text-primary: #F4F4F8`, `--text-secondary: #9898B0`, `--text-muted: #5A5A72`
+- **Text:** `--text-primary: #F4F4F8`, `--text-secondary: #a1a1aa`, `--text-muted: #52525b`
 - **Typography:** Inter (UI), JetBrains Mono (Code). Base spacing: 4px.
 
 ---

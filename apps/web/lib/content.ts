@@ -122,7 +122,7 @@ export const SHOWCASE = {
       hook: "How to scale your startup to $10k/mo",
       gradientFrom: "#0a1a2e",
       gradientTo: "#1a2e4a",
-      accentColor: "#5b8def",
+      accentColor: "#4a90e2",
     },
     {
       style: "Stock Footage",

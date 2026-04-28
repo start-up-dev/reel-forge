@@ -15,7 +15,7 @@ import { Scene4_CTA } from "./scenes/Scene4_CTA";
 
 export const Main: React.FC = () => {
   return (
-    <AbsoluteFill style={{ background: "#0A0A0F" }}>
+    <AbsoluteFill style={{ background: "#09090b" }}>
       <Sequence from={0} durationInFrames={90}>
         <Scene0_Hook />
       </Sequence>

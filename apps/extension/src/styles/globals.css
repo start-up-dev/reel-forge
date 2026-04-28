@@ -5,7 +5,7 @@
 @tailwind utilities;
 
 body {
-  background-color: #0a0a0f;
+  background-color: #09090b;
   color: #f4f4f8;
   font-family: Inter, system-ui, sans-serif;
   -webkit-font-smoothing: antialiased;
@@ -19,7 +19,7 @@ body {
   width: 4px;
 }
 ::-webkit-scrollbar-track {
-  background: #13131a;
+  background: #111113;
 }
 ::-webkit-scrollbar-thumb {
   background: #2a2a3a;
