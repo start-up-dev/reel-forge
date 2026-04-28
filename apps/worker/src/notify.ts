@@ -11,7 +11,7 @@ async function sendEmail(
       Authorization: `Bearer ${env.RESEND_API_KEY}`,
       "Content-Type": "application/json",
     },
-    body: JSON.stringify({ from: env.RESEND_FROM_EMAIL, to, subject, html }),
+    body: JSON.stringify({ from: `ReelForge <${env.RESEND_FROM_EMAIL}>`, to, subject, html }),
   });
 
   if (!res.ok) {

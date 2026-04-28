@@ -158,13 +158,13 @@ function BillingContent() {
           {isTryOut ? (
             <div>
               <div className="mb-1.5 flex items-center justify-between text-xs">
-                <span className="text-[var(--text-secondary)]">Video credits remaining</span>
+                <span className="text-[var(--text-secondary)]">Video credits used</span>
                 <span className="font-medium text-[var(--text-primary)]">
-                  {trialRemaining} / 3
+                  {3 - trialRemaining} / 3
                 </span>
               </div>
               <ProgressBar
-                value={(trialRemaining / 3) * 100}
+                value={((3 - trialRemaining) / 3) * 100}
                 color={trialRemaining === 0 ? "danger" : trialRemaining === 1 ? "warning" : "primary"}
               />
             </div>

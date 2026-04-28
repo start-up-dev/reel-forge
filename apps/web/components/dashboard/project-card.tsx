@@ -49,6 +49,37 @@ export function ProjectCard({
 
   return (
     <div className="group relative flex flex-col overflow-hidden rounded-xl border border-[var(--bg-border)] bg-[var(--bg-surface)] shadow-[var(--shadow-card)] transition-all hover:-translate-y-0.5 hover:shadow-lg">
+      {/* Options menu — lives outside <Link> so clicks never trigger navigation */}
+      <div ref={menuRef} className="absolute right-2 top-2 z-10">
+        <button
+          onClick={() => setMenuOpen((v) => !v)}
+          aria-label="Project options"
+          className="flex h-7 w-7 items-center justify-center rounded-lg bg-black/40 text-white opacity-0 backdrop-blur-sm transition-opacity group-hover:opacity-100 hover:bg-black/60"
+        >
+          <MoreVertical className="h-4 w-4" />
+        </button>
+
+        {menuOpen && (
+          <div className="absolute right-0 top-8 z-20 min-w-[160px] overflow-hidden rounded-xl border border-[var(--bg-border)] bg-[var(--bg-elevated)] py-1 shadow-[var(--shadow-modal)]">
+            <button
+              onClick={() => { setMenuOpen(false); onEdit(project); }}
+              className="flex w-full items-center gap-2.5 px-4 py-2 text-left text-sm text-[var(--text-secondary)] hover:bg-[var(--bg-border)] hover:text-[var(--text-primary)]"
+            >
+              <Edit2 className="h-3.5 w-3.5" />
+              Edit Project
+            </button>
+            <div className="my-1 h-px bg-[var(--bg-border)]" />
+            <button
+              onClick={() => { setMenuOpen(false); onDelete(project); }}
+              className="flex w-full items-center gap-2.5 px-4 py-2 text-left text-sm text-[var(--accent-danger)] hover:bg-[var(--accent-danger)]/10"
+            >
+              <Trash2 className="h-3.5 w-3.5" />
+              Delete
+            </button>
+          </div>
+        )}
+      </div>
+
       {/* Entire card body (thumbnail + content) is a link */}
       <Link href={`/projects/${project.id}`} className="flex flex-col">
         {/* Thumbnail area */}
@@ -70,40 +101,6 @@ export function ProjectCard({
               <span className="text-[10px] text-white/70">
                 +{project.platforms.length - 3}
               </span>
-            )}
-          </div>
-          {/* Gear menu trigger — stopPropagation prevents triggering the parent Link */}
-          <div ref={menuRef} className="absolute right-2 top-2">
-            <button
-              onClick={(e) => {
-                e.preventDefault();
-                e.stopPropagation();
-                setMenuOpen((v) => !v);
-              }}
-              aria-label="Project options"
-              className="flex h-7 w-7 items-center justify-center rounded-lg bg-black/40 text-white opacity-0 backdrop-blur-sm transition-opacity group-hover:opacity-100 hover:bg-black/60"
-            >
-              <MoreVertical className="h-4 w-4" />
-            </button>
-
-            {menuOpen && (
-              <div className="absolute right-0 top-8 z-20 min-w-[160px] overflow-hidden rounded-xl border border-[var(--bg-border)] bg-[var(--bg-elevated)] py-1 shadow-[var(--shadow-modal)]">
-                <button
-                  onClick={(e) => { e.stopPropagation(); setMenuOpen(false); onEdit(project); }}
-                  className="flex w-full items-center gap-2.5 px-4 py-2 text-left text-sm text-[var(--text-secondary)] hover:bg-[var(--bg-border)] hover:text-[var(--text-primary)]"
-                >
-                  <Edit2 className="h-3.5 w-3.5" />
-                  Edit Project
-                </button>
-                <div className="my-1 h-px bg-[var(--bg-border)]" />
-                <button
-                  onClick={(e) => { e.stopPropagation(); setMenuOpen(false); onDelete(project); }}
-                  className="flex w-full items-center gap-2.5 px-4 py-2 text-left text-sm text-[var(--accent-danger)] hover:bg-[var(--accent-danger)]/10"
-                >
-                  <Trash2 className="h-3.5 w-3.5" />
-                  Delete
-                </button>
-              </div>
             )}
           </div>
         </div>

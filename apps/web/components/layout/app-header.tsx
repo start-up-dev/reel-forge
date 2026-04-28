@@ -58,15 +58,15 @@ export function AppHeader({ onMenuToggle }: AppHeaderProps) {
             {isTryOut ? (
               <>
                 <div className="flex items-center gap-2">
-                  <span className="text-xs text-[var(--text-muted)]">Credits</span>
+                  <span className="text-xs text-[var(--text-muted)]">Credits used</span>
                   <span className={`text-xs font-medium tabular-nums ${trialRemaining === 0 ? "text-[var(--accent-danger)]" : "text-[var(--text-primary)]"}`}>
-                    {trialRemaining} / 3
+                    {3 - trialRemaining} / 3
                   </span>
                 </div>
                 <div className="h-1.5 w-24 overflow-hidden rounded-full bg-[var(--bg-elevated)]">
                   <div
                     className={`h-full rounded-full transition-all ${trialRemaining === 0 ? "bg-[var(--accent-danger)]" : trialRemaining === 1 ? "bg-[var(--accent-warning)]" : "bg-[var(--accent-primary)]"}`}
-                    style={{ width: `${Math.min((trialRemaining / 3) * 100, 100)}%` }}
+                    style={{ width: `${Math.min(((3 - trialRemaining) / 3) * 100, 100)}%` }}
                   />
                 </div>
               </>
