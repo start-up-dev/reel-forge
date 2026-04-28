@@ -15,7 +15,11 @@ const PLAN_CONFIG: Record<
   string,
   { plan: "starter" | "pro"; dailyLimit: number; monthlyLimit: number }
 > = {
-  [env.STRIPE_STARTER_PRICE_ID]: { plan: "starter", dailyLimit: 5, monthlyLimit: 150 },
+  [env.STRIPE_STARTER_PRICE_ID]: {
+    plan: "starter",
+    dailyLimit: 5,
+    monthlyLimit: 150,
+  },
   [env.STRIPE_PRO_PRICE_ID]: { plan: "pro", dailyLimit: 15, monthlyLimit: 450 },
 };
 
@@ -34,7 +38,12 @@ export async function billingRoutes(fastify: FastifyInstance): Promise<void> {
     (_req, body, done) => {
       (_req as unknown as { rawBody: Buffer }).rawBody = body as Buffer;
       try {
-        done(null, (body as Buffer).length > 0 ? JSON.parse((body as Buffer).toString()) : {});
+        done(
+          null,
+          (body as Buffer).length > 0
+            ? JSON.parse((body as Buffer).toString())
+            : {},
+        );
       } catch (e) {
         done(e as Error);
       }
@@ -43,31 +52,36 @@ export async function billingRoutes(fastify: FastifyInstance): Promise<void> {
 
   // ─── Public: Stripe webhook ───────────────────────────────────────────────
   fastify.post("/webhook", async (request, reply) => {
-      const sig = request.headers["stripe-signature"];
-      if (!sig) {
-        return reply.status(400).send({ error: "Missing stripe-signature header." });
-      }
+    const sig = request.headers["stripe-signature"];
+    if (!sig) {
+      return reply
+        .status(400)
+        .send({ error: "Missing stripe-signature header." });
+    }
 
-      let event: Stripe.Event;
-      try {
-        const rawBody = (request as unknown as { rawBody: Buffer }).rawBody;
-        event = stripe.webhooks.constructEvent(rawBody, sig, env.STRIPE_WEBHOOK_SECRET);
-      } catch (err: unknown) {
-        const msg = err instanceof Error ? err.message : String(err);
-        fastify.log.warn(`Stripe signature verification failed: ${msg}`);
-        return reply.status(400).send({ error: `Webhook Error: ${msg}` });
-      }
+    let event: Stripe.Event;
+    try {
+      const rawBody = (request as unknown as { rawBody: Buffer }).rawBody;
+      event = stripe.webhooks.constructEvent(
+        rawBody,
+        sig,
+        env.STRIPE_WEBHOOK_SECRET,
+      );
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : String(err);
+      fastify.log.warn(`Stripe signature verification failed: ${msg}`);
+      return reply.status(400).send({ error: `Webhook Error: ${msg}` });
+    }
 
-      try {
-        await handleStripeEvent(event);
-      } catch (err) {
-        fastify.log.error(err, "Stripe webhook handler error");
-        return reply.status(500).send({ error: "Webhook handler failed." });
-      }
+    try {
+      await handleStripeEvent(event);
+    } catch (err) {
+      fastify.log.error(err, "Stripe webhook handler error");
+      return reply.status(500).send({ error: "Webhook handler failed." });
+    }
 
-      return reply.send({ received: true });
-    },
-  );
+    return reply.send({ received: true });
+  });
 
   // ─── Authenticated: trial checkout ───────────────────────────────────────
   fastify.post<{ Body: { videoId?: string } }>(
@@ -98,6 +112,7 @@ export async function billingRoutes(fastify: FastifyInstance): Promise<void> {
         metadata: { userId: user.id },
         success_url: successUrl,
         cancel_url: cancelUrl,
+        allow_promotion_codes: true,
       });
 
       return reply.send({ data: { url: session.url } });
@@ -128,6 +143,7 @@ export async function billingRoutes(fastify: FastifyInstance): Promise<void> {
         metadata: { userId: user.id },
         success_url: `${env.NEXT_PUBLIC_APP_URL}/billing?subscribed=1`,
         cancel_url: `${env.NEXT_PUBLIC_APP_URL}/billing`,
+        allow_promotion_codes: true,
       });
 
       return reply.send({ data: { url: session.url } });
@@ -136,17 +152,26 @@ export async function billingRoutes(fastify: FastifyInstance): Promise<void> {
 
   // ─── Dev only: simulate plan activation without Stripe ───────────────────
   if (env.NODE_ENV === "development") {
-    const DEV_PLAN_CONFIGS: Record<string, {
-      plan: "none" | "try_out" | "starter" | "pro";
-      dailyLimit: number;
-      monthlyLimit: number;
-      trialPaid?: boolean;
-      trialVideoRemaining?: number;
-    }> = {
-      none:    { plan: "none",    dailyLimit: 0,  monthlyLimit: 0 },
-      try_out: { plan: "try_out", dailyLimit: 0,  monthlyLimit: 0, trialPaid: true, trialVideoRemaining: 3 },
-      starter: { plan: "starter", dailyLimit: 5,  monthlyLimit: 150 },
-      pro:     { plan: "pro",     dailyLimit: 15, monthlyLimit: 450 },
+    const DEV_PLAN_CONFIGS: Record<
+      string,
+      {
+        plan: "none" | "try_out" | "starter" | "pro";
+        dailyLimit: number;
+        monthlyLimit: number;
+        trialPaid?: boolean;
+        trialVideoRemaining?: number;
+      }
+    > = {
+      none: { plan: "none", dailyLimit: 0, monthlyLimit: 0 },
+      try_out: {
+        plan: "try_out",
+        dailyLimit: 0,
+        monthlyLimit: 0,
+        trialPaid: true,
+        trialVideoRemaining: 3,
+      },
+      starter: { plan: "starter", dailyLimit: 5, monthlyLimit: 150 },
+      pro: { plan: "pro", dailyLimit: 15, monthlyLimit: 450 },
     };
 
     fastify.post<{ Body: { plan?: string } }>(
@@ -158,7 +183,9 @@ export async function billingRoutes(fastify: FastifyInstance): Promise<void> {
         const config = plan ? DEV_PLAN_CONFIGS[plan] : undefined;
 
         if (!config) {
-          return reply.status(400).send({ error: { code: "INVALID_PLAN", message: "Invalid plan." } });
+          return reply.status(400).send({
+            error: { code: "INVALID_PLAN", message: "Invalid plan." },
+          });
         }
 
         await db
@@ -172,22 +199,29 @@ export async function billingRoutes(fastify: FastifyInstance): Promise<void> {
   }
 
   // ─── Authenticated: Stripe billing portal ────────────────────────────────
-  fastify.get("/portal", { preHandler: requireAuth }, async (request, reply) => {
-    const user = request.currentUser!;
+  fastify.get(
+    "/portal",
+    { preHandler: requireAuth },
+    async (request, reply) => {
+      const user = request.currentUser!;
 
-    if (!user.stripeCustomerId) {
-      return reply.status(409).send({
-        error: { code: "NO_STRIPE_CUSTOMER", message: "No billing account found." },
+      if (!user.stripeCustomerId) {
+        return reply.status(409).send({
+          error: {
+            code: "NO_STRIPE_CUSTOMER",
+            message: "No billing account found.",
+          },
+        });
+      }
+
+      const portalSession = await stripe.billingPortal.sessions.create({
+        customer: user.stripeCustomerId,
+        return_url: `${env.NEXT_PUBLIC_APP_URL}/billing`,
       });
-    }
 
-    const portalSession = await stripe.billingPortal.sessions.create({
-      customer: user.stripeCustomerId,
-      return_url: `${env.NEXT_PUBLIC_APP_URL}/billing`,
-    });
-
-    return reply.send({ data: { url: portalSession.url } });
-  });
+      return reply.send({ data: { url: portalSession.url } });
+    },
+  );
 }
 
 // ─── Stripe event handlers ────────────────────────────────────────────────────
@@ -264,7 +298,12 @@ async function handleStripeEvent(event: Stripe.Event): Promise<void> {
 
       await db
         .update(users)
-        .set({ plan: "none", dailyLimit: 0, monthlyLimit: 0, updatedAt: new Date() })
+        .set({
+          plan: "none",
+          dailyLimit: 0,
+          monthlyLimit: 0,
+          updatedAt: new Date(),
+        })
         .where(eq(users.id, user.id));
       break;
     }
