@@ -649,7 +649,7 @@ Tasks are ordered by dependency. Each phase can largely begin after the previous
 
 - [ ] Test clip request failure (simulate via extension fail button) — verify video reaches FAILED status and retry works
 - [ ] Test stale clip lock cleanup — manually stall a clip and verify the 10-minute reset job works
-- [ ] Test quota enforcement — daily limit, monthly limit, trial gate — all 3 paths
+- [x] Test quota enforcement — daily limit, monthly limit, trial gate — all 3 paths
 - [ ] Test Stripe webhook handling — cancel subscription, verify plan reverts
 - [ ] Test SSE reconnect — drop connection mid-processing, verify it reconnects and resumes
 

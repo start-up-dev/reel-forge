@@ -190,7 +190,7 @@ describe("Video routes", () => {
       const res = await app.inject({
         method: "POST",
         url: `/api/projects/${SAMPLE_PROJECT.id}/videos`,
-        payload: {},
+        payload: { title: "" },
       });
 
       expect(res.statusCode).toBe(400);

@@ -116,7 +116,10 @@ describe("Project routes", () => {
           name: "My TikTok Channel",
           platforms: ["tiktok"],
           niche: "fitness",
-          tone: "energetic",
+          language: "English",
+          targetAudience: "Gym goers",
+          videoStyle: "educational",
+          tone: "inspirational",
         },
       });
 
