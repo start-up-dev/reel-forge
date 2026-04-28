@@ -699,6 +699,24 @@ Tasks are ordered by dependency. Each phase can largely begin after the previous
 
 ---
 
+## Phase 16 — Remotion Video Demo
+
+### 16.1 Scaffolding & Core Components
+
+- [x] Create `apps/video` workspace with Remotion and Tailwind CSS
+- [x] Implement `BrowserFrame` component for simulated UI aesthetic
+- [x] Implement animated `Cursor` with coordinate interpolation
+- [x] Implement `Typewriter` effect for realistic text entry simulation
+
+### 16.2 Scene Implementation
+
+- [x] Build Scene 1: Idea Input (Step 1)
+- [x] Build Scene 2: Script Review & Voice Selection (Step 2/3)
+- [x] Build Scene 3: Assembly Progress & Vertical Video Reveal
+- [x] Orchestrate 60-second composition in `Main.tsx` with smooth transitions
+
+---
+
 ## Ongoing / Post-MVP Backlog
 
 - [ ] Mobile app (React Native)
