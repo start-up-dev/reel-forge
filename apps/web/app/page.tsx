@@ -865,7 +865,7 @@ function SubtitlePreview({ name }: { name: string }) {
   const map: Record<string, React.ReactNode> = {
     "Bold Pop": (
       <div className="flex h-40 items-center justify-center bg-[#09090b] px-3 relative overflow-hidden">
-        <div className="absolute inset-0 bg-gradient-to-tr from-purple-900/30 to-orange-900/30 opacity-40" />
+        <div className="absolute inset-0 bg-gradient-to-tr from-orange-900/30 to-orange-600/20 opacity-40" />
         <p className="relative text-[22px] font-[1000] text-white drop-shadow-[0_8px_24px_rgba(0,0,0,1)] scale-110 group-hover:scale-125 transition-transform duration-700">
           SAVE{" "}
           <span className="rounded-lg bg-[var(--accent-warning)] px-2.5 py-0.5 text-black shadow-2xl">

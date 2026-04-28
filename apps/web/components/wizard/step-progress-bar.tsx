@@ -63,7 +63,7 @@ export function StepProgressBar({
                   "flex h-7 w-7 sm:h-9 sm:w-9 items-center justify-center rounded-full border-2 transition-all duration-300",
                   isActive && [
                     "scale-110 border-[var(--accent-primary)] bg-[var(--accent-primary)]/15",
-                    "shadow-[0_0_0_4px_rgba(124,92,252,0.12),0_0_20px_rgba(124,92,252,0.45)]",
+                    "shadow-[0_0_0_4px_rgba(245,92,42,0.12),0_0_20px_rgba(245,92,42,0.45)]",
                   ],
                   isCompleted &&
                     "border-[var(--accent-primary)] bg-[var(--accent-primary)]",

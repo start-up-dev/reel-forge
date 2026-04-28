@@ -91,14 +91,14 @@ All four current styles show one word at a time. Add five new styles including m
 
 ### 3.2 — New Single-Word Styles
 
-- [x] **`neon_glow`** — white text, thick colored outline (`COLOR_ACCENT_PURPLE`), heavy shadow creating a bloom effect. Font size 88px, bold, bottom center.
+- [x] **`neon_glow`** — white text, thick colored outline (`COLOR_ACCENT_ORANGE`), heavy shadow creating a bloom effect. Font size 88px, bold, bottom center.
 - [x] **`oversized_pop`** — single word, 120px, all-caps, centered vertically. Black outline 5px.
 
 ### 3.3 — New Multi-Word Group Styles (3–4 words per line)
 
 - [x] **`grouped_bold`** — groups of 3 words, bold white, 72px, black outline 3px, bottom center.
 - [x] **`grouped_cinematic`** — groups of 4 words, italic warm white, 60px, no outline, heavy shadow, bottom center.
-- [x] **`karaoke`** — groups of 4 words; active word highlighted in `COLOR_ACCENT_PURPLE` via ASS inline override tags.
+- [x] **`karaoke`** — groups of 4 words; active word highlighted in `COLOR_ACCENT_ORANGE` via ASS inline override tags.
 
 ### 3.4 — Subtitle Style Selector UI
 

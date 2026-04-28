@@ -35,7 +35,7 @@ export const Scene3_Assembly: React.FC = () => {
             </div>
             <div className="h-4 w-full bg-bg-elevated rounded-full overflow-hidden border border-white/5 p-1">
                 <div 
-                    className="h-full bg-accent-primary rounded-full shadow-[0_0_30px_rgba(124,92,252,0.6)]" 
+                    className="h-full bg-accent-primary rounded-full shadow-[0_0_30px_rgba(245,92,42,0.6)]" 
                     style={{ width: `${progress}%` }}
                 />
             </div>

@@ -85,7 +85,7 @@ Base unit: 4px. Scale: 4, 8, 12, 16, 20, 24, 32, 40, 48, 64, 80px.
 
 - `shadow-card`: `0 1px 3px rgba(0,0,0,0.4), 0 0 0 1px var(--bg-border)`
 - `shadow-modal`: `0 24px 64px rgba(0,0,0,0.7)`
-- `shadow-glow-accent`: `0 0 24px rgba(124,92,252,0.25)` — used on active/focus states
+- `shadow-glow-accent`: `0 0 24px rgba(245,92,42,0.25)` — used on active/focus states
 
 ### Button Variants
 
@@ -108,13 +108,13 @@ The landing page is public-facing and conversion-focused. Single long-scroll pag
 ### 2.1 Navigation Bar
 
 - Fixed top, full width, `--bg-surface` with a 1px bottom border in `--bg-border` and subtle backdrop blur
-- Left: ReelForge wordmark logo (purple accent on the "R" glyph)
+- Left: ReelForge wordmark logo (orange accent on the "R" glyph)
 - Right: "Sign In" ghost button + "Get Started" primary button (small)
 - On mobile: hamburger → slide-in drawer with same links
 
 ### 2.2 Hero Section
 
-Full viewport height. Dark gradient background (`--bg-base` to a very subtle purple-tinted `#0E0A1A` at the bottom).
+Full viewport height. Dark gradient background (`--bg-base` to a very subtle orange-tinted `#1A0E05` at the bottom).
 
 Layout (centered):
 - **Eyebrow label**: small all-caps pill badge — "AI-POWERED VIDEO CREATION"
@@ -123,7 +123,7 @@ Layout (centered):
 - **CTA row**: "Start Free Trial — $2" primary button (large, 52px, full glow shadow) + "See how it works →" ghost link
 - **Social proof strip**: 5 avatar circles overlapping + "Trusted by 1,200+ creators" in small text (post-launch placeholder)
 
-**Animated background**: Faint looping grid of thin lines in `--bg-border` color, very low opacity. A subtle animated purple orb blur in the top-right quadrant.
+**Animated background**: Faint looping grid of thin lines in `--bg-border` color, very low opacity. A subtle animated orange orb blur in the top-right quadrant.
 
 **Below the fold hint**: Faint down-arrow chevron with "See the workflow" label, softly pulsing.
 
@@ -684,7 +684,7 @@ The extension is installed as an unpacked CRX by the operator. It has a popup UI
 480×520px popup. Dark background matching the app (`--bg-surface`). Branded header bar with "ReelForge Operator" label.
 
 **Status section** (top card):
-- Large number (accent purple): "47" — pending clips in queue
+- Large number (accent orange): "47" — pending clips in queue
 - Label below: "clips in queue"
 - Last updated timestamp: "Updated 2s ago"
 - Connection indicator: green dot "Connected" or red dot "Disconnected"

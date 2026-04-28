@@ -688,7 +688,7 @@ useEffect(() => {
 
 ### Step progress bar — `wizard-header.tsx` / `step-progress-bar.tsx`
 
-- Active step: 32px circle (was ~24px), add `shadow-[0_0_12px_rgba(124,92,252,0.4)]`
+- Active step: 32px circle (was ~24px), add `shadow-[0_0_12px_rgba(245,92,42,0.4)]`
 - Completed steps: checkmark icon replaces number
 - Connector line: add a colored fill track (`bg-[var(--accent-primary)]`) that grows left-to-right as steps complete
 

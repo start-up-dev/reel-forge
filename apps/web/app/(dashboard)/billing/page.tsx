@@ -101,7 +101,8 @@ function BillingContent() {
   }
 
   const currentPlan = user?.plan ?? PlanType.None;
-  const isTryOut = currentPlan === PlanType.TryOut;
+  const isTrial = !!user?.trialPaid;
+  const isTryOut = currentPlan === PlanType.TryOut || (currentPlan === PlanType.None && isTrial);
   const trialRemaining = user?.trialVideoRemaining ?? 0;
   const dailyUsed = user?.videosToday ?? 0;
   const dailyLimit = currentPlan === PlanType.None || isTryOut ? 0 : (user?.dailyLimit ?? 0);

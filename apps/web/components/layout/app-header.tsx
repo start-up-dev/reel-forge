@@ -30,8 +30,9 @@ export function AppHeader({ onMenuToggle }: AppHeaderProps) {
   const { user } = useUser();
 
   const plan = user?.plan ?? PlanType.None;
-  const hasActivePlan = plan !== PlanType.None;
-  const isTryOut = plan === PlanType.TryOut;
+  const isTrial = !!user?.trialPaid;
+  const hasActivePlan = plan !== PlanType.None || isTrial;
+  const isTryOut = plan === PlanType.TryOut || (plan === PlanType.None && isTrial);
   const trialRemaining = user?.trialVideoRemaining ?? 0;
   const dailyUsed = user?.videosToday ?? 0;
   const dailyLimit = hasActivePlan && !isTryOut ? (user?.dailyLimit ?? 0) : 0;

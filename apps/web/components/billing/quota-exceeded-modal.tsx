@@ -26,8 +26,8 @@ const CONFIG = {
   },
   trial_exhausted: {
     icon: TrendingUp,
-    title: "Trial video used",
-    sub: "Your one trial video has been generated.",
+    title: "Trial videos used",
+    sub: "Your trial videos have been generated.",
     cta: "Subscribe to keep creating",
   },
 };

@@ -242,7 +242,7 @@ Your first one is ten minutes away.
 - **Genre:** Cinematic electronic / lo-fi trap hybrid
 - **Energy curve:** Starts minimal (just a pulse beat), builds through Scene 2, peaks at Scene 3, resolves to quiet confident tone at Scene 4
 - **BPM:** 85–95 (slow enough to feel premium, fast enough to feel modern)
-- **Key:** Minor (A minor or D minor — matches the purple/dark visual palette)
+- **Key:** Minor (A minor or D minor — matches the orange/dark visual palette)
 - **No lyrics** — VO must sit on top cleanly
 
 ### Specific Track Recommendations (Royalty-Free)
@@ -297,7 +297,7 @@ Your first one is ten minutes away.
 - [ ] **`Scene1_Claim.tsx`** — Two `StatCounter` components side by side. Left: count up to "4:00:00". Right: count down from "10:00" to "0:00". Connecting arrow SVG draws itself. Tagline fades in character-by-character below.
 - [ ] **`Scene2_Pipeline.tsx`** — Five `PipelineNode` components connected by SVG paths. `ParticleTrail` components travel between nodes. Each node activation triggers its micro-detail panel. Final node triggers particle burst using `@remotion/noise`.
 - [ ] **`Scene3_OutputReel.tsx`** — Six `PhoneMockup` components, staggered entry. Each contains a styled background gradient + title overlay (no real video needed — styled divs). Style badge pills animate in below each phone. Phones cluster together for the final headline "What will YOU make?"
-- [ ] **`Scene4_CTA.tsx`** — Three-beat sequence: stat strip → CTA button (`GlowButton` + `RippleReveal`) → domain typewriter. Radial purple glow bg.
+- [ ] **`Scene4_CTA.tsx`** — Three-beat sequence: stat strip → CTA button (`GlowButton` + `RippleReveal`) → domain typewriter. Radial orange glow bg.
 
 ### Phase 4 — Rewire Main.tsx
 
@@ -319,7 +319,7 @@ Your first one is ten minutes away.
 - [ ] Add `<Audio>` component for VO track (`src/assets/voiceover.mp3`)
 - [ ] Volume mix: BGM at `volume={0.35}` during VO sections, `volume={0.65}` during silent Scene 0
 - [ ] Add subtle scanline overlay component (CSS repeating-linear-gradient, 2px lines, 3% opacity) during Scene 2 pipeline for "AI processing" texture
-- [ ] Color-grade Scene 3 Output Reel: add a very subtle purple vignette behind the phones using a radial gradient `AbsoluteFill`
+- [ ] Color-grade Scene 3 Output Reel: add a very subtle orange vignette behind the phones using a radial gradient `AbsoluteFill`
 - [ ] Test full render: `npx remotion render src/index.ts walkthrough out/reelforge_marketing.mp4 --codec=h264`
 - [ ] Test vertical render: `npx remotion render src/index.ts vertical out/reelforge_vertical.mp4 --codec=h264`
 

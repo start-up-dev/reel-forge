@@ -14,7 +14,7 @@ export const Scene0_Hero: React.FC = () => {
       <div 
         className="absolute inset-0 pointer-events-none"
         style={{
-            background: 'radial-gradient(ellipse 800px 500px at 50% 40%, rgba(124,92,252,0.12), transparent)'
+            background: 'radial-gradient(ellipse 800px 500px at 50% 40%, rgba(245,92,42,0.12), transparent)'
         }}
       />
       

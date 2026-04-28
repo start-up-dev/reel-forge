@@ -26,9 +26,9 @@ export function Step7Done({ video, userPlan, onMakeAnother, onShowSubscriptionPr
     return () => clearTimeout(t);
   }, []);
 
-  // Show subscription prompt after a short delay for trial users (plan === "none")
+  // Show subscription prompt after a short delay for trial users (plan === "none" or "try_out")
   useEffect(() => {
-    if (userPlan !== "none") return;
+    if (userPlan !== "none" && userPlan !== "try_out") return;
     const t = setTimeout(() => onShowSubscriptionPrompt(), 3000);
     return () => clearTimeout(t);
   }, [userPlan, onShowSubscriptionPrompt]);

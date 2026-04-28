@@ -99,7 +99,7 @@ export const Scene3_OutputReel: React.FC = () => {
 
   return (
     <AbsoluteFill style={{ background: "#09090b" }}>
-      {/* purple vignette */}
+      {/* orange vignette */}
       <div
         style={{
           position: "absolute",

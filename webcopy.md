@@ -86,7 +86,7 @@ How it Works    Styles    Pricing    FAQ
 
 ### Right
 - **"Sign in"** link: Inter 500, 14px, `--text-secondary`. Hover → `--text-primary`.
-- **"Start for $5"** button: Inter 600, 14px. Pill (`border-radius: 9999px`), `padding: 8px 20px`. Background `--accent-primary`. Text: white. Hover: `opacity: 0.9`, `box-shadow: 0 0 20px rgba(124,92,252,0.4)`. Transition 150ms.
+- **"Start for $5"** button: Inter 600, 14px. Pill (`border-radius: 9999px`), `padding: 8px 20px`. Background `--accent-primary`. Text: white. Hover: `opacity: 0.9`, `box-shadow: 0 0 20px rgba(245,92,42,0.4)`. Transition 150ms.
 - 16px gap between the two.
 
 ### Mobile
@@ -100,7 +100,7 @@ How it Works    Styles    Pricing    FAQ
 - `min-height: 100svh`. Flex column, centered horizontally. Content starts at 28% from top (slight upward bias — feels more premium than dead center).
 - Background: `--bg-base`. Pure. No noise.
 - Two decorative elements:
-  1. Radial glow behind headline — `radial-gradient(ellipse 800px 500px at 50% 40%, rgba(124,92,252,0.12), transparent)`.
+  1. Radial glow behind headline — `radial-gradient(ellipse 800px 500px at 50% 40%, rgba(245,92,42,0.12), transparent)`.
   2. Very faint dot grid at `opacity: 0.03` — `radial-gradient(circle, rgba(255,255,255,0.3) 1px, transparent 1px)` repeated at `32px 32px`. Depth without noise.
 
 ### Pre-Headline (Eyebrow)
@@ -135,7 +135,7 @@ One pipeline. Four platforms. Under 10 minutes of your time.
 Start for $5 →
 ```
 - Inter 700, 16px. Pill. `padding: 14px 32px`. Background `--accent-primary`. Text white.
-- Hover: `box-shadow: 0 0 40px rgba(124,92,252,0.5)`, `transform: translateY(-1px)`. 200ms.
+- Hover: `box-shadow: 0 0 40px rgba(245,92,42,0.5)`, `transform: translateY(-1px)`. 200ms.
 - The `→` moves 4px right on hover.
 - Below button, 10px gap: Inter 400, 12px, `--text-muted`: "3 video credits · Secured by Stripe"
 
@@ -145,7 +145,7 @@ Start for $5 →
 ```
 - Inter 500, 15px. No fill. `border: 1px solid rgba(255,255,255,0.1)`. `padding: 14px 24px`. Pill.
 - `▶` in `--accent-primary`, 12px. Text `--text-secondary`.
-- Hover: border `rgba(124,92,252,0.4)`. Text `--text-primary`.
+- Hover: border `rgba(245,92,42,0.4)`. Text `--text-primary`.
 - Opens modal with 90-second product walkthrough video. *(Note: this video must be produced before launch — it's a primary conversion path.)*
 
 ### Hero Social Proof (48px below CTAs)
@@ -157,7 +157,7 @@ Joined by creators posting 5+ videos daily
 - Immediately right: `★★★★★` 12px `--accent-warning` + `"5.0 from early creators"` 12px `--text-muted`.
 
 ### Hero Product Preview (64px below proof)
-- Static dark-mode screenshot of the Step 4 Scene Review grid (8–12 cinematic scene cards with generated images, purple action buttons).
+- Static dark-mode screenshot of the Step 4 Scene Review grid (8–12 cinematic scene cards with generated images, orange action buttons).
 - `perspective(1000px) rotateX(4deg)` tilt on load.
 - On scroll 0–200px: smoothly animates to `rotateX(0deg)` — "rising" effect.
 - `box-shadow: 0 40px 100px rgba(0,0,0,0.6)`. `border: 1px solid rgba(255,255,255,0.06)`. `border-radius: 16px`.
@@ -246,7 +246,7 @@ Each: `background: --bg-surface`, `border: 1px solid rgba(255,255,255,0.05)`, `b
 
 ### Visual Design
 - Background: `--bg-surface`. `padding: 140px 0`.
-- Center of section: a large radial glow — `radial-gradient(ellipse 900px 500px at 50% 50%, rgba(124,92,252,0.1), transparent)`. Warm, like a light turning on.
+- Center of section: a large radial glow — `radial-gradient(ellipse 900px 500px at 50% 50%, rgba(245,92,42,0.1), transparent)`. Warm, like a light turning on.
 - No section label. No grid. Just the words, the visual, and one CTA.
 
 ### Headline
@@ -328,13 +328,13 @@ On scroll-into-view: fade in + slide up 24px, 400ms ease-out. Staggered 80ms per
 - Label: Inter 600, 11px, `--accent-primary`, letter-spacing `0.1em`: "START HERE"
 - Title: Inter 700, 22px, `--text-primary`: "Type an idea — or let AI brainstorm one for you"
 - Body: "Open a project and type your topic — 'Why most people fail at saving money' — and go. Or switch to Brainstorm mode: ReelForge gives you three distinct angle options. Pick one and the pipeline fires."
-- Visual element: small UI mockup — a text input with placeholder "What's your video about?" and two option pills: "Brainstorm ideas" (outlined) and "Go straight to script" (filled purple).
+- Visual element: small UI mockup — a text input with placeholder "What's your video about?" and two option pills: "Brainstorm ideas" (outlined) and "Go straight to script" (filled orange).
 
 **Step 02 — AI Script**
 - Label: Inter 600, 11px, `--text-muted`, letter-spacing `0.1em`: "WRITTEN BY AI, APPROVED BY YOU"
 - Title: "A script written for your niche, your platform, your audience"
 - Body: "Claude writes a hook-first, CTA-ending script calibrated to your channel's style, tone, and language. Not a template — a purpose-built script. Edit it freely, approve it, or regenerate with one click."
-- Detail pill: Inter 500, 12px, `rgba(124,92,252,0.1)` bg, `1px solid rgba(124,92,252,0.2)` border, `--accent-primary`, pill: "< 8 seconds to generate"
+- Detail pill: Inter 500, 12px, `rgba(245,92,42,0.1)` bg, `1px solid rgba(245,92,42,0.2)` border, `--accent-primary`, pill: "< 8 seconds to generate"
 
 **Step 03 — Voiceover**
 - Label: "BROADCAST QUALITY, ANY LANGUAGE"
@@ -406,7 +406,7 @@ Each card:
 - `border: 1px solid rgba(255,255,255,0.05)`
 - `border-radius: 20px`
 - `padding: 28px 24px`
-- Hover: `border-color: --accent-primary`, `transform: translateY(-4px)`, `box-shadow: 0 8px 40px rgba(124,92,252,0.15)`. 200ms.
+- Hover: `border-color: --accent-primary`, `transform: translateY(-4px)`, `box-shadow: 0 8px 40px rgba(245,92,42,0.15)`. 200ms.
 
 Card anatomy: icon (40px, rounded 12px bg) → style name (Inter 700, 17px) → mood tag (Inter 500, 12px, `--text-muted`, italic) → two-sentence description (Inter 400, 14px, `--text-secondary`).
 
@@ -428,7 +428,7 @@ Card anatomy: icon (40px, rounded 12px bg) → style name (Inter 700, 17px) → 
 - Copy: "Your topic becomes a 3D cartoon character that physically IS the subject — a talking egg for nutrition, a coin for finance. The mascot drives every scene. Built for channels building a recognizable identity."
 
 **4. 2D Animation**
-- Icon bg: `rgba(124,92,252,0.15)`. Icon: geometric shape cluster, `--accent-primary`.
+- Icon bg: `rgba(245,92,42,0.15)`. Icon: geometric shape cluster, `--accent-primary`.
 - Mood: "Clean · Explainer · Vector-style"
 - Copy: "Flat vector illustration. Clean icons, geometric shapes, bold diagrams. No characters — pure visual storytelling through shapes. The go-to style for educational and explainer content."
 
@@ -603,7 +603,7 @@ Inter 400, 13px, `--text-muted`. Centered: "All subscriptions billed monthly. Ca
 
 Cards: `background: --bg-surface`, `border: 1px solid rgba(255,255,255,0.06)`, `border-radius: 24px`, `padding: 36px`.
 
-**Pro card only:** `border: 1.5px solid --accent-primary`. `box-shadow: 0 0 60px rgba(124,92,252,0.15)`. Badge: absolute `−16px` top center, `background: --accent-primary`, Inter 700 11px white, pill, `padding: 4px 16px`: "Most Popular"
+**Pro card only:** `border: 1.5px solid --accent-primary`. `box-shadow: 0 0 60px rgba(245,92,42,0.15)`. Badge: absolute `−16px` top center, `background: --accent-primary`, Inter 700 11px white, pill, `padding: 4px 16px`: "Most Popular"
 
 ---
 
@@ -640,7 +640,7 @@ Cards: `background: --bg-surface`, `border: 1px solid rgba(255,255,255,0.06)`, `
   - All Starter features included
   - Priority generation queue
   - Custom voice prompts per project
-- CTA: `background: --accent-primary`, white, Inter 700, 14px: "Start Pro Plan". Hover: `opacity: 0.9`, `box-shadow: 0 0 30px rgba(124,92,252,0.4)`.
+- CTA: `background: --accent-primary`, white, Inter 700, 14px: "Start Pro Plan". Hover: `opacity: 0.9`, `box-shadow: 0 0 30px rgba(245,92,42,0.4)`.
 
 ### Below cards (32px gap)
 Inter 400, 13px, `--text-muted`. Centered:
@@ -700,7 +700,7 @@ A: "The clip generation queue processes in order across all users. Average queue
 
 ### Visual Design
 - Background `--bg-base`. `padding: 160px 0`.
-- Center: large radial glow — `radial-gradient(ellipse 1000px 600px at 50% 50%, rgba(124,92,252,0.12), transparent)`. The room feels lit from within.
+- Center: large radial glow — `radial-gradient(ellipse 1000px 600px at 50% 50%, rgba(245,92,42,0.12), transparent)`. The room feels lit from within.
 - No section label. No dividers. Just words and button.
 
 ### Headline
@@ -724,7 +724,7 @@ Not rationed by how many hours you can work.
 Start for $5 — your first 3 videos →
 ```
 - Pill button. Inter 700, 18px. `padding: 18px 40px`. `background: --accent-primary`. White text. `border-radius: 9999px`.
-- Hover: `box-shadow: 0 0 60px rgba(124,92,252,0.5)`, `transform: translateY(-2px)`. 250ms.
+- Hover: `box-shadow: 0 0 60px rgba(245,92,42,0.5)`, `transform: translateY(-2px)`. 250ms.
 
 ### Below button (16px gap)
 ```
@@ -762,7 +762,7 @@ Start for $5 — your first 3 videos →
 og:title       → Stop Making Videos by Hand. Start With ReelForge.
 og:description → One idea in. Finished video out. Under 10 minutes of your time.
 og:image       → Dark-mode Step 4 Scene Review grid — 
-                 8 cinematic scene cards, purple accent highlights, ReelForge UI.
+                 8 cinematic scene cards, orange accent highlights, ReelForge UI.
 ```
 
 ---
