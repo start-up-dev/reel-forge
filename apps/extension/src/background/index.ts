@@ -479,6 +479,16 @@ chrome.runtime.onMessage.addListener(
 
         void (async () => {
           try {
+            // Reject Grok's default "dancing bear" placeholder. It is always served
+            // from imagine-public.x.ai/imagine-public/share-videos/ — real generated
+            // clips come from assets.grok.com/users/{id}/generated/. If we see the
+            // placeholder URL, fail immediately so the clip auto-retries.
+            if (videoUrl.includes("imagine-public.x.ai/imagine-public/share-videos/")) {
+              throw new Error(
+                "Grok returned the default placeholder video (dancing bear) — retrying",
+              );
+            }
+
             // 1. Get the signed GCS upload URL from our backend (SW has no CORS issues).
             const urlRes = await fetch(
               `${backendUrl}/api/operator/clips/${clipId}/upload-url`,
