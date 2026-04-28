@@ -160,7 +160,7 @@ async function callSplitScenes(
 
   const message = await client.messages.create({
     model: "claude-sonnet-4-6",
-    max_tokens: 8192,
+    max_tokens: 16000,
     system,
     tools: [
       {
@@ -220,7 +220,7 @@ async function callSplitScenes(
   });
 
   if (message.stop_reason === "max_tokens") {
-    console.warn("[splitScenes] response was truncated — max_tokens hit");
+    throw new Error("Scene split response was truncated (max_tokens). Reduce scene count or prompt length.");
   }
 
   const toolUse = message.content.find(
@@ -252,8 +252,11 @@ export async function splitScenes(
       characterNote,
     );
     const scenes = extractScenes(raw);
-    if (scenes) return scenes;
-    console.warn(`[splitScenes] attempt ${attempt} returned invalid shape:`, JSON.stringify(raw));
+    if (scenes && scenes.length >= minScenes) return scenes;
+    console.warn(
+      `[splitScenes] attempt ${attempt} returned invalid shape (got ${scenes?.length ?? 0} scenes, need ≥${minScenes}):`,
+      JSON.stringify(raw),
+    );
   }
 
   throw new Error("Scene split failed after 3 attempts: model did not return a valid scenes array.");
