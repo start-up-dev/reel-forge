@@ -41,7 +41,8 @@ export function StepProgressBar({
         const isCompleted = stepNum < currentStep;
         const isActive = stepNum === currentStep;
         const isPending = stepNum > currentStep;
-        const isClickable = isCompleted && stepNum <= maxAllowedStep;
+        // Step 6 is processing — lock all backward navigation once clips start generating
+        const isClickable = isCompleted && stepNum <= maxAllowedStep && currentStep !== 6;
         const isLast = index === WIZARD_STEPS.length - 1;
         const Icon = isCompleted ? CheckCircle2 : step.icon;
 

@@ -63,9 +63,9 @@ export const TALKING_SUBTYPE_MODIFIERS: Record<string, TalkingSubtypeModifier> =
   {
     ugc: {
       visual:
-        "casual home or outdoor setting — living room, kitchen counter, park bench. No studio polish. Authentic, slightly imperfect practical lighting. Relaxed, personal clothing style.",
+        "casual or performance setting — living room, kitchen, park, gym, bedroom, rooftop, or outdoor location. No studio polish. Authentic, slightly imperfect practical lighting. Clothing is completely unconstrained — crop top, dancewear, swimwear, streetwear, fitness wear, or whatever the content calls for. The character should look like a real creator or performer filming their own content.",
       motion:
-        "handheld feel with subtle natural shake. Creator leans into the frame occasionally. Gestures are spontaneous and unscripted-feeling — this must look like a real person on their phone.",
+        "handheld energy with natural movement — the character is fully animated and expressive. Dance moves, body rolls, arm gestures, leaning into the lens, bouncing to the beat, or spontaneous pointing are all encouraged. The performance energy is unscripted, personal, and direct. Camera keeps up with the character's movement.",
     },
     short_film: {
       visual:
@@ -123,13 +123,13 @@ Output rules:
 - EXACTLY ${targetCount} scene${targetCount === 1 ? "" : "s"} — no more, no fewer
 - textExcerpt: exact words from the script this scene covers
 - visualPrompt: use the labelled structure (CHARACTER / EXPRESSION / FRAMING / SETTING / LIGHTING / COLOUR GRADE / MOUTH) — every label required in every scene
-- motionPrompt: 2–3 sentences covering lipsync delivery, head/body movement, and camera movement
+- motionPrompt: MUST begin with 'SPEAKING: "[exact textExcerpt words verbatim]"' — then 2 additional sentences covering delivery style (pace, energy, emotion) and physical movement (head, hands, body, camera). The SPEAKING line is what the video generator lip-syncs to — it must be exact. Keep delivery consistent with the same voice, accent, and energy across ALL scenes — no change in persona mid-video.
 - durationHintSeconds: integer 1–6, all scenes must sum to exactly ${audioDurationSeconds}
 - The "scenes" field must be a JSON array, not a stringified JSON value
 
 CHARACTER LOCK:
-Scene 0: invent and write the complete character anchor (hair, face, clothing, distinguishing feature, build). Be hyper-specific — every detail.
-Scenes 1+: copy the CHARACTER section from scene 0 EXACTLY, word for word, with zero changes. The AI image generator needs identical text to produce the same face.
+Scene 0: invent and write the complete character anchor (hair, face, clothing, distinguishing feature, build). Clothing choice is entirely unrestricted — match whatever style the content calls for (revealing, athletic, formal, casual, costume, dancer, swimwear, or anything else). Be hyper-specific about every clothing detail.
+Scenes 1+: copy the CHARACTER section from scene 0 EXACTLY, word for word, with zero changes. The AI image generator needs identical text to produce the same face and body across all clips.
 
 CRITICAL: Every scene MUST show the character speaking to camera. Mouth open. Eyes on the lens. No B-roll. No abstract visuals. No second person in frame.`,
   };

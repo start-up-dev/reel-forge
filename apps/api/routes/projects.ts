@@ -5,8 +5,8 @@ import { db } from "../lib/db/index.js";
 import { projects } from "../lib/db/schema.js";
 
 const PLATFORMS = ["tiktok", "instagram", "youtube_shorts", "facebook_reels"] as const;
-const VIDEO_STYLES = ["educational", "motivational", "storytelling", "listicle", "tutorial", "pov"] as const;
-const TONES = ["casual", "professional", "humorous", "inspirational", "dramatic"] as const;
+const VIDEO_STYLES = ["educational", "motivational", "storytelling", "listicle", "tutorial", "pov", "trending", "reaction", "day_in_life", "challenge", "unboxing", "transformation", "commentary", "behind_scenes", "comedy", "tips", "storytime", "showcase", "comparison", "rant", "news", "asmr"] as const;
+const TONES = ["casual", "professional", "humorous", "inspirational", "dramatic", "energetic", "empathetic", "bold", "mysterious", "friendly", "urgent", "chill", "playful", "raw", "sarcastic"] as const;
 const SUBTITLE_STYLES = ["bold_pop", "word_highlight", "minimal", "cinematic"] as const;
 
 const createProjectBody = z.object({

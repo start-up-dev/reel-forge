@@ -89,7 +89,7 @@ async function request<T>(
     throw new ApiError(res.status, message);
   }
 
-  if (res.status === 204) return null as T;
+  if (res.status === 204) return { data: null } as unknown as T;
   return res.json() as Promise<T>;
 }
 

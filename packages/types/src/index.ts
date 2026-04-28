@@ -22,6 +22,22 @@ export enum VideoStyle {
   Listicle = "listicle",
   Tutorial = "tutorial",
   POV = "pov",
+  Trending = "trending",
+  Reaction = "reaction",
+  DayInLife = "day_in_life",
+  Challenge = "challenge",
+  Unboxing = "unboxing",
+  Transformation = "transformation",
+  Commentary = "commentary",
+  BehindScenes = "behind_scenes",
+  Comedy = "comedy",
+  Tips = "tips",
+  Storytime = "storytime",
+  Showcase = "showcase",
+  Comparison = "comparison",
+  Rant = "rant",
+  News = "news",
+  Asmr = "asmr",
 }
 
 export enum RenderStyle {
@@ -41,6 +57,16 @@ export enum Tone {
   Humorous = "humorous",
   Inspirational = "inspirational",
   Dramatic = "dramatic",
+  Energetic = "energetic",
+  Empathetic = "empathetic",
+  Bold = "bold",
+  Mysterious = "mysterious",
+  Friendly = "friendly",
+  Urgent = "urgent",
+  Chill = "chill",
+  Playful = "playful",
+  Raw = "raw",
+  Sarcastic = "sarcastic",
 }
 
 export enum SubtitleStyle {

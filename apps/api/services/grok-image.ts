@@ -6,6 +6,10 @@ interface GrokImageResponse {
 
 const GROK_IMAGE_MODEL = "grok-imagine-image";
 
+// Appended to every prompt to prevent Grok from rendering text/subtitle overlays.
+const ANTI_OVERLAY_SUFFIX =
+  " No text overlays. No subtitles. No captions. No watermarks. No burned-in words. No UI elements. Clean frame only.";
+
 export async function generateImage(prompt: string): Promise<Buffer> {
   const response = await fetch("https://api.x.ai/v1/images/generations", {
     method: "POST",
@@ -15,7 +19,7 @@ export async function generateImage(prompt: string): Promise<Buffer> {
     },
     body: JSON.stringify({
       model: GROK_IMAGE_MODEL,
-      prompt,
+      prompt: prompt + ANTI_OVERLAY_SUFFIX,
       n: 1,
       aspect_ratio: "9:16",
       response_format: "b64_json",

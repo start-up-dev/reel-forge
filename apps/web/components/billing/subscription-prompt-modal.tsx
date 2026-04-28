@@ -13,21 +13,23 @@ const PLANS = [
   {
     key: "starter" as const,
     label: "Starter",
-    price: "$29/mo",
+    price: "$49/mo",
     icon: Zap,
     perks: ["5 videos/day", "150 videos/month", "All styles & voices"],
   },
   {
     key: "pro" as const,
     label: "Pro",
-    price: "$79/mo",
+    price: "$99/mo",
     icon: Crown,
     perks: ["15 videos/day", "450 videos/month", "Priority processing"],
     highlight: true,
   },
 ];
 
-export function SubscriptionPromptModal({ onClose }: SubscriptionPromptModalProps) {
+export function SubscriptionPromptModal({
+  onClose,
+}: SubscriptionPromptModalProps) {
   const api = useApiClient();
   const [loading, setLoading] = useState<"starter" | "pro" | null>(null);
 
@@ -35,7 +37,7 @@ export function SubscriptionPromptModal({ onClose }: SubscriptionPromptModalProp
     setLoading(plan);
     const result = await withToast(
       () => api.billing.subscribe(plan),
-      "Failed to start checkout"
+      "Failed to start checkout",
     );
     if (result?.data?.url) {
       window.location.href = result.data.url;
@@ -46,7 +48,10 @@ export function SubscriptionPromptModal({ onClose }: SubscriptionPromptModalProp
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-      <div className="absolute inset-0 bg-black/70 backdrop-blur-sm" onClick={onClose} />
+      <div
+        className="absolute inset-0 bg-black/70 backdrop-blur-sm"
+        onClick={onClose}
+      />
 
       <div className="relative w-full max-w-lg rounded-2xl border border-[var(--bg-border)] bg-[var(--bg-surface)] p-8 shadow-2xl">
         <button
@@ -81,18 +86,27 @@ export function SubscriptionPromptModal({ onClose }: SubscriptionPromptModalProp
               }`}
             >
               <div className="mb-3 flex items-center gap-2">
-                <Icon className={`h-4 w-4 ${highlight ? "text-[var(--accent-primary)]" : "text-[var(--text-muted)]"}`} />
-                <span className="text-sm font-semibold text-[var(--text-primary)]">{label}</span>
+                <Icon
+                  className={`h-4 w-4 ${highlight ? "text-[var(--accent-primary)]" : "text-[var(--text-muted)]"}`}
+                />
+                <span className="text-sm font-semibold text-[var(--text-primary)]">
+                  {label}
+                </span>
                 {highlight && (
                   <span className="ml-auto rounded-full bg-[var(--accent-primary)] px-2 py-0.5 text-[10px] font-semibold text-white">
                     Popular
                   </span>
                 )}
               </div>
-              <p className="mb-3 text-2xl font-black text-[var(--text-primary)]">{price}</p>
+              <p className="mb-3 text-2xl font-black text-[var(--text-primary)]">
+                {price}
+              </p>
               <ul className="mb-4 space-y-1">
                 {perks.map((p) => (
-                  <li key={p} className="flex items-center gap-1.5 text-xs text-[var(--text-secondary)]">
+                  <li
+                    key={p}
+                    className="flex items-center gap-1.5 text-xs text-[var(--text-secondary)]"
+                  >
                     <span className="text-[var(--accent-success)]">✓</span>
                     {p}
                   </li>

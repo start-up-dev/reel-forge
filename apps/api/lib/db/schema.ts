@@ -23,6 +23,22 @@ export const videoStyleEnum = pgEnum("video_style", [
   "listicle",
   "tutorial",
   "pov",
+  "trending",
+  "reaction",
+  "day_in_life",
+  "challenge",
+  "unboxing",
+  "transformation",
+  "commentary",
+  "behind_scenes",
+  "comedy",
+  "tips",
+  "storytime",
+  "showcase",
+  "comparison",
+  "rant",
+  "news",
+  "asmr",
 ]);
 
 // PRD §7.2 — corrected values (was: energetic, calm, motivational, humorous, professional)
@@ -32,6 +48,16 @@ export const toneEnum = pgEnum("tone", [
   "humorous",
   "inspirational",
   "dramatic",
+  "energetic",
+  "empathetic",
+  "bold",
+  "mysterious",
+  "friendly",
+  "urgent",
+  "chill",
+  "playful",
+  "raw",
+  "sarcastic",
 ]);
 
 export const subtitleStyleEnum = pgEnum("subtitle_style", [

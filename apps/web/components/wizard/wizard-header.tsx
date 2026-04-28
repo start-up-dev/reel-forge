@@ -159,8 +159,12 @@ export function WizardHeader({
       <ConfirmDialog
         open={showBackConfirm}
         onOpenChange={setShowBackConfirm}
-        title="Leave this video?"
-        description="Your progress is saved. You can return and continue from where you left off."
+        title={currentStep === 6 ? "Leave while processing?" : "Leave this video?"}
+        description={
+          currentStep === 6
+            ? "Your video is still generating. You can safely leave — it will keep processing in the background and you can check back later."
+            : "Your progress is saved. You can return and continue from where you left off."
+        }
         confirmLabel="Leave"
         cancelLabel="Stay"
         variant="primary"
