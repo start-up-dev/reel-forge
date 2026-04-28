@@ -216,7 +216,7 @@ export async function assembleVideo(videoId: string): Promise<void> {
     const [user] = await db.select().from(users).where(eq(users.id, video.userId));
     if (user?.emailNotifyReady) {
       const videoPageUrl = `${env.APP_URL}/videos/${videoId}?step=7`;
-      await sendVideoReadyEmail(user.email, user.firstName, video.title, videoPageUrl).catch(
+      await sendVideoReadyEmail(user.email, user.firstName, user.lastName, video.title, videoPageUrl).catch(
         (err) => console.error("[assemble] Failed to send ready email:", err),
       );
     }
@@ -245,7 +245,7 @@ export async function assembleVideo(videoId: string): Promise<void> {
         : [];
       if (user?.emailNotifyFailed && video) {
         const retryUrl = `${env.APP_URL}/videos/${videoId}`;
-        await sendVideoFailedEmail(user.email, user.firstName, video.title, retryUrl).catch(
+        await sendVideoFailedEmail(user.email, user.firstName, user.lastName, video.title, retryUrl).catch(
           (emailErr) => console.error("[assemble] Failed to send failure email:", emailErr),
         );
       }

@@ -48,6 +48,7 @@ export const users = pgTable("users", {
   id: text("id").primaryKey(),
   email: text("email").notNull(),
   firstName: text("first_name"),
+  lastName: text("last_name"),
   emailNotifyReady: boolean("email_notify_ready").notNull().default(true),
   emailNotifyFailed: boolean("email_notify_failed").notNull().default(true),
 });
