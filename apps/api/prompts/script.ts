@@ -105,14 +105,61 @@ export const RENDER_STYLE_SCRIPT_MODIFIERS: Record<string, string> = {
 
 // ─── Builder ──────────────────────────────────────────────────────────────────
 
+// For talking videos each clip is exactly 6s → one sentence per clip at ~14 words/sentence.
+// Key: ceil(duration/6) gives scene count; range is sceneCount × [12, 16].
+function talkingWordRange(targetDurationSeconds: number): [number, number, number] {
+  const sceneCount = Math.ceil(targetDurationSeconds / 6);
+  return [sceneCount * 12, sceneCount * 16, sceneCount];
+}
+
 export function buildScriptMessages(
   project: ProjectRow,
   idea: string,
   targetDurationSeconds: number,
   renderStyle?: string,
+  videoType?: string,
 ): PromptPair {
-  const [minW, maxW] = WORDS_FOR_DURATION[targetDurationSeconds] ?? [65, 85];
   const styleModifier = renderStyle ? (RENDER_STYLE_SCRIPT_MODIFIERS[renderStyle] ?? "") : "";
+
+  if (videoType === "talking") {
+    const [minW, maxW, sceneCount] = talkingWordRange(targetDurationSeconds);
+
+    if (isBengali(project)) {
+      return {
+        system: BENGALI_SCRIPT_SYSTEM,
+        user: `${projectContext(project)}
+
+ভিডিও টাইপ: TALKING HEAD — প্রতিটি বাক্য = ১টি ৬-সেকেন্ড ক্লিপ
+নিয়ম: ঠিক ${sceneCount}টি বাক্য লিখো। প্রতিটি বাক্য ১২-১৬ শব্দ। কোনো বাক্য মাঝখানে কাটা যাবে না।
+সময়: ${targetDurationSeconds} সেকেন্ড (${sceneCount} × ৬ সেকেন্ড)
+আইডিয়া: ${idea}
+${styleModifier ? `\n${styleModifier}` : ""}
+এখনই স্ক্রিপ্ট লিখো। শুধু spoken text — কোনো label, title, বা markdown নয়।`,
+      };
+    }
+
+    return {
+      system: ENGLISH_SCRIPT_SYSTEM,
+      user: `Project context:
+${projectContext(project)}
+${styleModifier ? `\n${styleModifier}\n` : ""}
+VIDEO TYPE: TALKING HEAD — each sentence becomes one 6-second video clip.
+
+CRITICAL STRUCTURE RULES:
+- Write EXACTLY ${sceneCount} sentences — one per clip.
+- Each sentence must be 12–16 words (fits 6 seconds at natural speech pace).
+- Every sentence must be grammatically complete — never end mid-thought.
+- Count words in each sentence before writing the next. Adjust until it's 12–16.
+- Total word count: ${minW}–${maxW} words across all ${sceneCount} sentences.
+- Write as a continuous spoken script — sentences flow naturally into each other.
+${project.claudeSystemPrompt ? `Additional instructions: ${project.claudeSystemPrompt}\n` : ""}
+Video idea: ${idea}
+
+Write the script now. Spoken words only — no scene directions, no titles, no labels, no markdown, no sentence numbers. Language: ${project.language}.`,
+    };
+  }
+
+  const [minW, maxW] = WORDS_FOR_DURATION[targetDurationSeconds] ?? [65, 85];
 
   if (isBengali(project)) {
     return {

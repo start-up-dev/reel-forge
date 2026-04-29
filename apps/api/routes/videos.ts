@@ -534,7 +534,7 @@ export async function videosRoutes(fastify: FastifyInstance): Promise<void> {
       }
 
       const [video] = await db
-        .select({ id: videos.id, projectId: videos.projectId, targetDurationSeconds: videos.targetDurationSeconds, renderStyle: videos.renderStyle, title: videos.title })
+        .select({ id: videos.id, projectId: videos.projectId, targetDurationSeconds: videos.targetDurationSeconds, renderStyle: videos.renderStyle, title: videos.title, videoType: videos.videoType })
         .from(videos)
         .where(
           and(eq(videos.id, id), eq(videos.userId, user.id), isNull(videos.deletedAt)),
@@ -567,7 +567,7 @@ export async function videosRoutes(fastify: FastifyInstance): Promise<void> {
       try {
         const needsTitle = !video.title || video.title === "Untitled Video";
         const [script, autoTitle] = await Promise.all([
-          generateScript(project, parsed.data.idea, video.targetDurationSeconds ?? 30, video.renderStyle ?? undefined),
+          generateScript(project, parsed.data.idea, video.targetDurationSeconds ?? 30, video.renderStyle ?? undefined, video.videoType ?? undefined),
           needsTitle ? generateTitle(parsed.data.idea) : Promise.resolve(null),
         ]);
         const [updated] = await db

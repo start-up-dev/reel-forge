@@ -99,8 +99,9 @@ export async function generateScript(
   idea: string,
   targetDurationSeconds = 30,
   renderStyle?: string,
+  videoType?: string,
 ): Promise<string> {
-  const { system, user } = buildScriptMessages(project, idea, targetDurationSeconds, renderStyle);
+  const { system, user } = buildScriptMessages(project, idea, targetDurationSeconds, renderStyle, videoType);
 
   const message = await client.messages.create({
     model: "claude-sonnet-4-6",

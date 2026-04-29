@@ -112,22 +112,21 @@ export function buildTalkingSceneMessages(
 
   return {
     system: `${TALKING_SCENE_DIRECTOR_SYSTEM}${subtypeSection}`,
-    user: `Split this script into exactly ${targetCount} scene${targetCount === 1 ? "" : "s"} where the character speaks directly to camera.
+    user: `Assign each sentence of this script to one scene. The script was written as exactly ${targetCount} complete sentences — assign one sentence per scene, word for word.
 
 SCRIPT:
 ${script}
 
-Total audio duration: ${audioDurationSeconds} seconds
+Total duration: ${audioDurationSeconds} seconds (${targetCount} clips × 6 seconds each)
 Required scene count: exactly ${targetCount}
 ${characterNote ? `\nCHARACTER & STYLE NOTE — use this to define the character anchor in scene 0 and carry it through every scene:\n${characterNote}\n` : ""}
 
 Output rules:
-- EXACTLY ${targetCount} scene${targetCount === 1 ? "" : "s"} — no more, no fewer
-- textExcerpt: exact words from the script this scene covers
+- EXACTLY ${targetCount} scene${targetCount === 1 ? "" : "s"} — one per sentence in the script
+- textExcerpt: one complete sentence copied VERBATIM from the script — never split a sentence across scenes, never combine two sentences into one scene
 - visualPrompt: use the labelled structure (CHARACTER / EXPRESSION / FRAMING / SETTING / LIGHTING / COLOUR GRADE / MOUTH) — every label required in every scene
 - motionPrompt: MUST begin with 'SPEAKING: "[exact textExcerpt words verbatim]"' — then 2 additional sentences covering delivery style (pace, energy, emotion) and physical movement (head, hands, body, camera). The SPEAKING line is what the video generator lip-syncs to — it must be exact. Keep delivery consistent with the same voice, accent, and energy across ALL scenes — no change in persona mid-video.
 - durationHintSeconds: always exactly 6 — every Grok clip is exactly 6 seconds, no exceptions
-- textExcerpt word count: 12–16 words per scene — this is how much speech fits in 6 seconds at natural pace (~2.3 words/second). Count carefully before assigning words to each scene.
 - The "scenes" field must be a JSON array, not a stringified JSON value
 
 CHARACTER LOCK:
