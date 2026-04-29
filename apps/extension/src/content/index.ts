@@ -58,9 +58,6 @@ async function processClip(msg: ProcessClipMsg): Promise<void> {
   const imageBytes: Uint8Array | null =
     msg.imageBytes && msg.imageBytes.length > 0 ? new Uint8Array(msg.imageBytes) : null;
 
-  // For talking videos, prepend the exact spoken words so Grok generates accurate
-  // lipsync. The character must visibly say these words in the generated clip.
-  const isTalking = msg.videoType === "talking";
   const basePrompt = clip.motionPrompt || clip.visualPrompt;
 
   // 1. Wait for the prompt input to appear (Grok SPA needs time to hydrate).
@@ -98,10 +95,7 @@ async function processClip(msg: ProcessClipMsg): Promise<void> {
   // 5. Clear any existing text first, then set our prompt.
   //    This prevents Grok from auto-submitting with stale text when the image
   //    is attached (image + pre-existing prompt can trigger auto-generation).
-  const promptText =
-    isTalking && msg.textExcerpt
-      ? `SAY EXACTLY: "${msg.textExcerpt}"\n\n${basePrompt}`
-      : basePrompt;
+  const promptText = basePrompt;
 
   setReactValue(freshPromptEl, "");
   await sleep(200);
@@ -126,8 +120,18 @@ async function processClip(msg: ProcessClipMsg): Promise<void> {
   } else if (autoClick) {
     const [min, max] = DELAY_RANGES[clickDelayMode];
     await sleep(randomBetween(min, max));
-    generateBtn.click();
+    // Re-set prompt right before clicking — Grok can reset the input during the delay.
+    const liveEl = resolvePromptInput(selectors.promptInput) ?? freshPromptEl;
+    setReactValue(liveEl, promptText);
+    await sleep(200);
+    if (!isAlreadyGenerating(generateBtn)) {
+      generateBtn.click();
+    }
   } else {
+    // Re-set prompt before handing off to operator — Grok can clear it.
+    const liveEl = resolvePromptInput(selectors.promptInput) ?? freshPromptEl;
+    setReactValue(liveEl, promptText);
+    await sleep(200);
     highlightElement(generateBtn);
     await waitForClick(generateBtn, 120_000);
     removeHighlight(generateBtn);
@@ -261,7 +265,9 @@ function snapshotVideoSrcs(): Set<string> {
 
 /**
  * Waits for a video element whose src was NOT in preExistingVideoSrcs.
- * Uses both MutationObserver (childList + attribute changes) and periodic polling.
+ * Resolves with the FIRST video Grok adds to the DOM (insertion order, not document
+ * order) so we always get the primary generated clip, not a later thumbnail that
+ * happens to appear earlier in the HTML.
  */
 function waitForNewVideo(
   preExisting: Set<string>,
@@ -270,10 +276,14 @@ function waitForNewVideo(
   selectorValue: string,
 ): Promise<HTMLVideoElement> {
   return new Promise<HTMLVideoElement>((resolve, reject) => {
+    function isNew(v: HTMLVideoElement): boolean {
+      const src = v.src || v.querySelector("source")?.src || "";
+      return !!(src && !preExisting.has(src));
+    }
+
     function findNew(): HTMLVideoElement | null {
       for (const v of document.querySelectorAll<HTMLVideoElement>("video")) {
-        const src = v.src || v.querySelector("source")?.src || "";
-        if (src && !preExisting.has(src)) return v;
+        if (isNew(v)) return v;
       }
       return null;
     }
@@ -282,10 +292,43 @@ function waitForNewVideo(
     if (already) { resolve(already); return; }
 
     const deadline = Date.now() + timeoutMs;
+    let resolved = false;
 
-    const observer = new MutationObserver(() => {
+    function tryResolve(v: HTMLVideoElement): void {
+      if (resolved) return;
+      resolved = true;
+      observer.disconnect();
+      clearInterval(iv);
+      resolve(v);
+    }
+
+    const observer = new MutationObserver((mutations) => {
+      if (resolved) return;
+      // Walk addedNodes in batch order — this matches the order Grok appended
+      // elements, so we pick the first generated video, not a later thumbnail
+      // that may sit earlier in document order.
+      for (const mutation of mutations) {
+        for (const node of mutation.addedNodes) {
+          if (node instanceof HTMLVideoElement && isNew(node)) {
+            tryResolve(node); return;
+          }
+          if (node instanceof Element) {
+            for (const v of node.querySelectorAll<HTMLVideoElement>("video")) {
+              if (isNew(v)) { tryResolve(v); return; }
+            }
+          }
+        }
+        if (
+          mutation.type === "attributes" &&
+          mutation.target instanceof HTMLVideoElement &&
+          isNew(mutation.target)
+        ) {
+          tryResolve(mutation.target); return;
+        }
+      }
+      // Fallback DOM scan for React renders that mutate src without a childList change.
       const el = findNew();
-      if (el) { observer.disconnect(); clearInterval(iv); resolve(el); }
+      if (el) tryResolve(el);
     });
     observer.observe(document.body, {
       childList: true,
@@ -296,11 +339,10 @@ function waitForNewVideo(
 
     // Polling fallback — MutationObserver can miss blob-src changes in some React renders.
     const iv = setInterval(() => {
+      if (resolved) { clearInterval(iv); return; }
       const el = findNew();
       if (el) {
-        observer.disconnect();
-        clearInterval(iv);
-        resolve(el);
+        tryResolve(el);
         return;
       }
       if (Date.now() > deadline) {
