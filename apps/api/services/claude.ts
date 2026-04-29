@@ -114,6 +114,21 @@ export async function generateScript(
   return script;
 }
 
+export async function generateTitle(idea: string): Promise<string> {
+  const message = await client.messages.create({
+    model: "claude-haiku-4-5-20251001",
+    max_tokens: 30,
+    messages: [
+      {
+        role: "user",
+        content: `Generate a short, punchy video title (3–6 words) for this idea. Return only the title, no quotes, no punctuation at the end.\n\nIdea: ${idea}`,
+      },
+    ],
+  });
+  const title = message.content[0]?.type === "text" ? message.content[0].text.trim() : "";
+  return title || "Untitled Video";
+}
+
 // ─── Scene splitting ──────────────────────────────────────────────────────────
 
 function tryParseArray(s: string): unknown[] | null {

@@ -9,7 +9,7 @@ import {
   generateSignedUploadUrl,
   uploadBuffer,
 } from "../lib/storage.js";
-import { generateCharacterSheet, generateIdeas, generateScript, splitScenes } from "../services/claude.js";
+import { generateCharacterSheet, generateIdeas, generateScript, generateTitle, splitScenes } from "../services/claude.js";
 import { generateVoiceover } from "../services/elevenlabs.js";
 import { generateImage, generateImageFromReference } from "../services/grok-image.js";
 
@@ -534,7 +534,7 @@ export async function videosRoutes(fastify: FastifyInstance): Promise<void> {
       }
 
       const [video] = await db
-        .select({ id: videos.id, projectId: videos.projectId, targetDurationSeconds: videos.targetDurationSeconds, renderStyle: videos.renderStyle })
+        .select({ id: videos.id, projectId: videos.projectId, targetDurationSeconds: videos.targetDurationSeconds, renderStyle: videos.renderStyle, title: videos.title })
         .from(videos)
         .where(
           and(eq(videos.id, id), eq(videos.userId, user.id), isNull(videos.deletedAt)),
@@ -565,10 +565,19 @@ export async function videosRoutes(fastify: FastifyInstance): Promise<void> {
         .where(eq(videos.id, id));
 
       try {
-        const script = await generateScript(project, parsed.data.idea, video.targetDurationSeconds ?? 30, video.renderStyle ?? undefined);
+        const needsTitle = !video.title || video.title === "Untitled Video";
+        const [script, autoTitle] = await Promise.all([
+          generateScript(project, parsed.data.idea, video.targetDurationSeconds ?? 30, video.renderStyle ?? undefined),
+          needsTitle ? generateTitle(parsed.data.idea) : Promise.resolve(null),
+        ]);
         const [updated] = await db
           .update(videos)
-          .set({ script, status: "SCRIPT_READY", updatedAt: new Date() })
+          .set({
+            script,
+            status: "SCRIPT_READY",
+            ...(autoTitle ? { title: autoTitle } : {}),
+            updatedAt: new Date(),
+          })
           .where(eq(videos.id, id))
           .returning();
         return reply.send({ data: updated });
