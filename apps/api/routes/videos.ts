@@ -95,7 +95,7 @@ async function processScenes(
           textExcerpt: s.textExcerpt,
           visualPrompt: s.visualPrompt,
           motionPrompt: s.motionPrompt,
-          durationHintSeconds: Math.max(1, Math.min(6, Math.round(s.durationHintSeconds))),
+          durationHintSeconds: videoType === "talking" ? 6 : Math.max(1, Math.min(6, Math.round(s.durationHintSeconds))),
         })),
       )
       .returning();

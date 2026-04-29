@@ -224,9 +224,11 @@ async function callSplitScenes(
                   },
                   durationHintSeconds: {
                     type: "integer",
-                    minimum: 1,
+                    minimum: videoType === "talking" ? 6 : 1,
                     maximum: 6,
-                    description: `Whole-number seconds this scene lasts (1–6). All scenes must sum to exactly ${audioDurationSeconds}.`,
+                    description: videoType === "talking"
+                      ? "Always exactly 6 — every Grok clip is exactly 6 seconds."
+                      : `Whole-number seconds this scene lasts (1–6). All scenes must sum to exactly ${audioDurationSeconds}.`,
                   },
                 },
                 required: [
@@ -266,13 +268,20 @@ export async function splitScenes(
   talkingSubtype?: string | null,
   characterNote?: string | null,
 ): Promise<SceneSplit[]> {
-  const minScenes = Math.ceil(audioDurationSeconds / 6);
-  const targetCount = Math.max(minScenes, Math.round(audioDurationSeconds / 5));
+  // Talking videos: each Grok clip is exactly 6s, so scene count = ceil(duration/6)
+  // and the effective duration is always a multiple of 6.
+  const targetCount = videoType === "talking"
+    ? Math.ceil(audioDurationSeconds / 6)
+    : Math.max(Math.ceil(audioDurationSeconds / 6), Math.round(audioDurationSeconds / 5));
+  const effectiveDuration = videoType === "talking"
+    ? targetCount * 6
+    : audioDurationSeconds;
+  const minScenes = targetCount;
 
   for (let attempt = 1; attempt <= 3; attempt++) {
     const raw = await callSplitScenes(
       script,
-      audioDurationSeconds,
+      effectiveDuration,
       targetCount,
       videoType,
       renderStyle ?? undefined,
