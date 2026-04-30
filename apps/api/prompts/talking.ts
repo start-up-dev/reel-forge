@@ -123,7 +123,7 @@ ${characterNote ? `\nCHARACTER & STYLE NOTE — use this to define the character
 Output rules:
 - EXACTLY ${targetCount} scene${targetCount === 1 ? "" : "s"} — one per sentence in the script
 - textExcerpt: one complete sentence copied VERBATIM from the script — never split a sentence across scenes, never combine two sentences into one scene
-- visualPrompt: use the labelled structure (CHARACTER / EXPRESSION / FRAMING / SETTING / LIGHTING / COLOUR GRADE / MOUTH) — every label required in every scene
+- visualPrompt: use the labelled structure (CHARACTER / EXPRESSION / FRAMING / SETTING / LIGHTING / COLOUR GRADE) — every label required in every scene
 - motionPrompt: MUST begin with 'SPEAKING: "[exact textExcerpt words verbatim]"' — then 2 additional sentences covering delivery style (pace, energy, emotion) and physical movement (head, hands, body, camera). The SPEAKING line is what the video generator lip-syncs to — it must be exact. Keep delivery consistent with the same voice, accent, and energy across ALL scenes — no change in persona mid-video.
 - durationHintSeconds: always exactly 6 — every Grok clip is exactly 6 seconds, no exceptions
 - The "scenes" field must be a JSON array, not a stringified JSON value
