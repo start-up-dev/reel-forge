@@ -8,6 +8,8 @@ import {
   failClip,
   checkHealth,
   getQueueCount,
+  retryClip,
+  fetchClipStatuses,
 } from "../lib/api-client.js";
 import type { ClaimedClip } from "../lib/api-client.js";
 import type {
@@ -15,6 +17,8 @@ import type {
   FailedClipEntry,
   PopupMessage,
   ExtensionSettings,
+  StoredClipStatus,
+  StoredClipStatusMap,
 } from "../lib/messages.js";
 import { DEFAULT_SETTINGS } from "../lib/messages.js";
 
@@ -23,6 +27,7 @@ import { DEFAULT_SETTINGS } from "../lib/messages.js";
 interface TabEntry {
   clipId: string;
   videoId: string;
+  videoTitle: string;
   sceneIndex: number;
   visualPrompt: string;
   motionPrompt: string;
@@ -46,6 +51,33 @@ const failedClips: FailedClipEntry[] = [];
 let selectorError: WorkerState["selectorError"] = null;
 let lastQueueCount = 0;
 let connected = false;
+let clipStatuses: StoredClipStatusMap = {};
+
+const SEVEN_DAYS_MS = 7 * 24 * 60 * 60 * 1000;
+
+function pruneOldClipStatuses(): void {
+  const cutoff = Date.now() - SEVEN_DAYS_MS;
+  for (const key of Object.keys(clipStatuses)) {
+    if ((clipStatuses[key]?.updatedAt ?? 0) < cutoff) {
+      delete clipStatuses[key];
+    }
+  }
+}
+
+function saveClipStatus(entry: StoredClipStatus): void {
+  clipStatuses[entry.clipId] = entry;
+  chrome.storage.local.set({ clipStatuses }).catch(() => {});
+}
+
+// Load persisted clip statuses on startup
+chrome.storage.local.get("clipStatuses").then((result) => {
+  const stored = result.clipStatuses as StoredClipStatusMap | undefined;
+  if (stored) {
+    clipStatuses = stored;
+    pruneOldClipStatuses();
+  }
+  broadcastState();
+}).catch(() => {});
 
 // ── Settings ──────────────────────────────────────────────────────────────────
 
@@ -89,6 +121,7 @@ function buildState(): WorkerState {
     session: { ...session },
     failedClips: [...failedClips],
     selectorError,
+    clipStatuses: { ...clipStatuses },
   };
 }
 
@@ -123,6 +156,7 @@ async function openClipTab(clip: ClaimedClip, settings: ExtensionSettings): Prom
   activeTabs.set(tab.id, {
     clipId: clip.id,
     videoId: clip.videoId,
+    videoTitle: clip.videoTitle,
     sceneIndex: clip.sceneIndex,
     visualPrompt: clip.visualPrompt,
     motionPrompt: clip.motionPrompt,
@@ -130,6 +164,17 @@ async function openClipTab(clip: ClaimedClip, settings: ExtensionSettings): Prom
     textExcerpt: clip.textExcerpt ?? null,
     videoType: clip.videoType ?? null,
     startedAt: Date.now(),
+  });
+
+  saveClipStatus({
+    clipId: clip.id,
+    videoId: clip.videoId,
+    videoTitle: clip.videoTitle,
+    sceneIndex: clip.sceneIndex,
+    motionPrompt: clip.motionPrompt,
+    status: "processing",
+    error: null,
+    updatedAt: Date.now(),
   });
   broadcastState();
 
@@ -230,6 +275,7 @@ async function handleTabError(
           {
             id: entry.clipId,
             videoId: entry.videoId,
+            videoTitle: entry.videoTitle,
             sceneIndex: entry.sceneIndex,
             visualPrompt: entry.visualPrompt,
             motionPrompt: entry.motionPrompt,
@@ -256,6 +302,7 @@ async function handleTabError(
     failedClips.push({
       clipId,
       videoId: entry.videoId,
+      videoTitle: entry.videoTitle,
       sceneIndex: entry.sceneIndex,
       visualPrompt: entry.visualPrompt,
       motionPrompt: entry.motionPrompt,
@@ -264,6 +311,17 @@ async function handleTabError(
       videoType: entry.videoType,
       errorMessage: error,
       failedAt: Date.now(),
+    });
+
+    saveClipStatus({
+      clipId,
+      videoId: entry.videoId,
+      videoTitle: entry.videoTitle,
+      sceneIndex: entry.sceneIndex,
+      motionPrompt: entry.motionPrompt,
+      status: "failed",
+      error,
+      updatedAt: Date.now(),
     });
   }
 
@@ -343,6 +401,32 @@ async function start(): Promise<void> {
   selectorError = null;
   clipRetryCount.clear();
   connected = await checkHealth();
+
+  if (connected) {
+    try {
+      const apiStatuses = await fetchClipStatuses();
+      const now = Date.now();
+      for (const entry of apiStatuses) {
+        const processedAtMs = entry.processedAt ? new Date(entry.processedAt).getTime() : 0;
+        const existing = clipStatuses[entry.clipId];
+        // Local entry wins only if it was updated more recently than the API's processedAt
+        if (!existing || existing.updatedAt <= processedAtMs) {
+          clipStatuses[entry.clipId] = {
+            clipId: entry.clipId,
+            videoId: entry.videoId,
+            videoTitle: entry.videoTitle,
+            sceneIndex: entry.sceneIndex,
+            motionPrompt: entry.motionPrompt,
+            status: entry.status,
+            error: entry.error,
+            updatedAt: processedAtMs || now,
+          };
+        }
+      }
+      chrome.storage.local.set({ clipStatuses }).catch(() => {});
+    } catch { /* non-fatal — continue with local state */ }
+  }
+
   broadcastState();
   void poll();
 }
@@ -395,27 +479,61 @@ chrome.runtime.onMessage.addListener(
       case "RETRY_CLIP": {
         const idx = failedClips.findIndex((f) => f.clipId === message.clipId);
         const entry = idx !== -1 ? failedClips[idx] : undefined;
-        if (entry) {
-          failedClips.splice(idx, 1);
-          // Reset auto-retry counter so manual retries get the full budget again.
-          clipRetryCount.delete(entry.clipId);
-          void getSettings().then((settings) => {
-            void openClipTab(
-              {
-                id: entry.clipId,
-                videoId: entry.videoId,
-                sceneIndex: entry.sceneIndex,
-                visualPrompt: entry.visualPrompt,
-                motionPrompt: entry.motionPrompt,
-                baseImageUrl: entry.baseImageUrl,
-                textExcerpt: entry.textExcerpt,
-                videoType: entry.videoType,
-              },
-              settings,
-            );
-          });
+
+        if (!entry) {
+          console.warn("[SW] RETRY_CLIP: clip not found in failedClips:", message.clipId);
+          sendResponse({ ok: false, error: "Clip not found in failed list" });
+          break;
         }
-        sendResponse({ ok: true });
+
+        void (async () => {
+          try {
+            await retryClip(entry.clipId);
+          } catch (err) {
+            const errMsg = err instanceof Error ? err.message : String(err);
+            console.error("[SW] retryClip backend reset failed:", errMsg);
+            failedClips.push({
+              ...entry,
+              errorMessage: `Backend retry reset failed: ${errMsg}`,
+              failedAt: Date.now(),
+            });
+            broadcastState();
+            sendResponse({ ok: false, error: errMsg });
+            return;
+          }
+
+          failedClips.splice(idx, 1);
+          clipRetryCount.delete(entry.clipId);
+
+          saveClipStatus({
+            clipId: entry.clipId,
+            videoId: entry.videoId,
+            videoTitle: entry.videoTitle,
+            sceneIndex: entry.sceneIndex,
+            motionPrompt: entry.motionPrompt,
+            status: "processing",
+            error: null,
+            updatedAt: Date.now(),
+          });
+
+          const settings = await getSettings();
+          void openClipTab(
+            {
+              id: entry.clipId,
+              videoId: entry.videoId,
+              videoTitle: entry.videoTitle,
+              sceneIndex: entry.sceneIndex,
+              visualPrompt: entry.visualPrompt,
+              motionPrompt: entry.motionPrompt,
+              baseImageUrl: entry.baseImageUrl,
+              textExcerpt: entry.textExcerpt,
+              videoType: entry.videoType,
+            },
+            settings,
+          );
+
+          sendResponse({ ok: true });
+        })();
         break;
       }
     }
@@ -439,9 +557,22 @@ chrome.runtime.onMessage.addListener(
 
     switch (message.type) {
       case "CLIP_DONE": {
+        const doneEntry = activeTabs.get(tabId);
         activeTabs.delete(tabId);
         clipRetryCount.delete(message.clipId);
         session.done++;
+        if (doneEntry) {
+          saveClipStatus({
+            clipId: message.clipId,
+            videoId: doneEntry.videoId,
+            videoTitle: doneEntry.videoTitle,
+            sceneIndex: doneEntry.sceneIndex,
+            motionPrompt: doneEntry.motionPrompt,
+            status: "done",
+            error: null,
+            updatedAt: Date.now(),
+          });
+        }
         closeTab(tabId);
         broadcastState();
         schedulePoll(500);
@@ -691,9 +822,22 @@ chrome.runtime.onMessage.addListener(
               throw new Error(`completeClip: ${completeRes.status}`);
 
             // 5. Clean up tab — same as CLIP_DONE.
+            const uploadDoneEntry = activeTabs.get(tabId);
             activeTabs.delete(tabId);
             clipRetryCount.delete(clipId);
             session.done++;
+            if (uploadDoneEntry) {
+              saveClipStatus({
+                clipId,
+                videoId: uploadDoneEntry.videoId,
+                videoTitle: uploadDoneEntry.videoTitle,
+                sceneIndex: uploadDoneEntry.sceneIndex,
+                motionPrompt: uploadDoneEntry.motionPrompt,
+                status: "done",
+                error: null,
+                updatedAt: Date.now(),
+              });
+            }
             closeTab(tabId);
             broadcastState();
             schedulePoll(500);

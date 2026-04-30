@@ -93,6 +93,7 @@ export enum VideoStatus {
   ScenesReady = "SCENES_READY",
   ClipsQueued = "CLIPS_QUEUED",
   ClipsProcessing = "CLIPS_PROCESSING",
+  ClipsNeedsReview = "CLIPS_NEEDS_REVIEW",
   AssemblyPending = "ASSEMBLY_PENDING",
   AssemblyProcessing = "ASSEMBLY_PROCESSING",
   Complete = "COMPLETE",
@@ -187,6 +188,7 @@ export interface Video {
   targetDurationSeconds: number;    // 15 | 30 | 45 | 60
   videoType: VideoType;             // "generated" | "talking"
   talkingSubtype: TalkingSubtype | null; // only set when videoType === "talking"
+  sceneCount: number;                // total scenes; set when scenes are inserted
   voiceSpeed: number;               // 0.5–2.0; default 1.0; applied via FFmpeg atempo
   characterBaseGcsPath: string | null; // GCS path of the base character image (cartoon/mascot only)
   renderStyle: RenderStyle | null;  // visual/render style for script + scene prompts
@@ -264,3 +266,21 @@ export interface PaginatedResponse<T> {
   pageSize: number;
   hasMore: boolean;
 }
+
+// ─── Live Clip Progress (Track 7) ─────────────────────────────────────────────
+
+export interface SnapshotClip {
+  sceneIndex: number;
+  status: "queued" | "processing" | "done" | "failed";
+  clipUrl?: string;
+  error?: string;
+}
+
+export type ClipStatusMap = Record<number, SnapshotClip>;
+
+export type ClipProgressEvent =
+  | { type: "CLIP_PROCESSING"; videoId: string; sceneIndex: number }
+  | { type: "CLIP_DONE"; videoId: string; sceneIndex: number; clipUrl: string }
+  | { type: "CLIP_FAILED"; videoId: string; sceneIndex: number; error: string }
+  | { type: "HEARTBEAT" }
+  | { type: "SNAPSHOT"; clips: SnapshotClip[] };

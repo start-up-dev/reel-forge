@@ -3,8 +3,9 @@ import { z } from "zod";
 import { and, count, eq, sql } from "drizzle-orm";
 import { db } from "../lib/db/index.js";
 import { clipRequests, scenes, videos } from "../lib/db/schema.js";
-import { generateSignedUploadUrl } from "../lib/storage.js";
+import { generateSignedReadUrl, generateSignedUploadUrl } from "../lib/storage.js";
 import { dispatchAssemblyTask } from "../lib/cloud-tasks.js";
+import { emitClipEvent } from "../lib/clip-events.js";
 import { env } from "../lib/env.js";
 
 function validateSecret(
@@ -68,7 +69,8 @@ export async function operatorRoutes(fastify: FastifyInstance): Promise<void> {
           u.motion_prompt   AS "motionPrompt",
           u.base_image_url  AS "baseImageUrl",
           s.text_excerpt    AS "textExcerpt",
-          v.video_type      AS "videoType"
+          v.video_type      AS "videoType",
+          v.title           AS "videoTitle"
         FROM updated u
         LEFT JOIN scenes s ON s.video_id = u.video_id AND s.scene_index = u.scene_index
         LEFT JOIN videos v ON v.id = u.video_id
@@ -83,6 +85,7 @@ export async function operatorRoutes(fastify: FastifyInstance): Promise<void> {
         baseImageUrl: string;
         textExcerpt: string | null;
         videoType: string | null;
+        videoTitle: string | null;
       }[];
 
       // Transition videos from CLIPS_QUEUED → CLIPS_PROCESSING on first claim.
@@ -93,6 +96,10 @@ export async function operatorRoutes(fastify: FastifyInstance): Promise<void> {
             .update(videos)
             .set({ status: "CLIPS_PROCESSING", updatedAt: new Date() })
             .where(and(eq(videos.id, videoId), eq(videos.status, "CLIPS_QUEUED")));
+        }
+
+        for (const row of claimed) {
+          emitClipEvent({ type: "CLIP_PROCESSING", videoId: row.videoId, sceneIndex: row.sceneIndex });
         }
       }
 
@@ -182,6 +189,15 @@ export async function operatorRoutes(fastify: FastifyInstance): Promise<void> {
         );
       const remaining = Number(remainingRows[0]?.remaining ?? 1);
 
+      // Signed URL is best-effort — a signing failure must not block assembly dispatch.
+      let signedClipUrl = body.gcsPath;
+      try {
+        signedClipUrl = await generateSignedReadUrl(body.gcsPath, 60);
+      } catch (err) {
+        console.error("[operator] Failed to sign clip URL for SSE:", err);
+      }
+      emitClipEvent({ type: "CLIP_DONE", videoId: clip.videoId, sceneIndex: clip.sceneIndex, clipUrl: signedClipUrl });
+
       if (remaining === 0) {
         await db
           .update(videos)
@@ -227,7 +243,9 @@ export async function operatorRoutes(fastify: FastifyInstance): Promise<void> {
         .set({ status: "failed", error: body.error })
         .where(eq(clipRequests.id, id));
 
-      // If nothing is still in-flight, the video can't recover — mark it failed.
+      emitClipEvent({ type: "CLIP_FAILED", videoId: clip.videoId, sceneIndex: clip.sceneIndex, error: body.error });
+
+      // If nothing is still in-flight, transition to CLIPS_NEEDS_REVIEW.
       const pendingRows = await db
         .select({ pending: count() })
         .from(clipRequests)
@@ -243,7 +261,7 @@ export async function operatorRoutes(fastify: FastifyInstance): Promise<void> {
         await db
           .update(videos)
           .set({
-            status: "FAILED",
+            status: "CLIPS_NEEDS_REVIEW",
             error: `Clip ${clip.sceneIndex} failed: ${body.error}`,
             updatedAt: new Date(),
           })
@@ -256,6 +274,78 @@ export async function operatorRoutes(fastify: FastifyInstance): Promise<void> {
       }
 
       return reply.send({ data: { ok: true } });
+    },
+  );
+
+  // ── GET /api/operator/clips/statuses ──────────────────────────────────────
+  // Returns clip status for all active videos (not COMPLETE, DRAFT, or FAILED).
+  fastify.get(
+    "/operator/clips/statuses",
+    { preHandler: validateSecret },
+    async (_request, reply) => {
+      const rows = await db.execute(sql`
+        SELECT
+          cr.id              AS "clipId",
+          cr.video_id        AS "videoId",
+          v.title            AS "videoTitle",
+          cr.scene_index     AS "sceneIndex",
+          cr.motion_prompt   AS "motionPrompt",
+          cr.status,
+          cr.error,
+          cr.processed_at    AS "processedAt"
+        FROM clip_requests cr
+        JOIN videos v ON v.id = cr.video_id
+        WHERE v.status NOT IN ('COMPLETE', 'DRAFT', 'FAILED')
+        ORDER BY cr.video_id ASC, cr.scene_index ASC
+      `);
+
+      return reply.send({ data: rows.rows });
+    },
+  );
+
+  // ── POST /api/operator/clips/:id/retry ────────────────────────────────────
+  // Resets a failed clip to processing so the extension can open a new tab.
+  fastify.post(
+    "/operator/clips/:id/retry",
+    { preHandler: validateSecret },
+    async (request, reply) => {
+      const { id } = request.params as { id: string };
+
+      const [clip] = await db
+        .select()
+        .from(clipRequests)
+        .where(eq(clipRequests.id, id));
+
+      if (!clip) {
+        return reply.code(404).send({ error: "Clip not found" });
+      }
+      if (clip.status !== "failed") {
+        return reply.code(409).send({ error: "Clip is not in failed state" });
+      }
+
+      await db
+        .update(clipRequests)
+        .set({
+          status: "processing",
+          error: null,
+          claimedAt: new Date(),
+          processedAt: null,
+          clipUrl: null,
+        })
+        .where(eq(clipRequests.id, id));
+
+      // Reset video status if it was stuck in a terminal/review state.
+      await db
+        .update(videos)
+        .set({ status: "CLIPS_PROCESSING", updatedAt: new Date() })
+        .where(
+          and(
+            eq(videos.id, clip.videoId),
+            sql`${videos.status} IN ('FAILED', 'CLIPS_NEEDS_REVIEW', 'CLIPS_QUEUED')`,
+          ),
+        );
+
+      return reply.send({ data: { ok: true, sceneIndex: clip.sceneIndex, videoId: clip.videoId } });
     },
   );
 }

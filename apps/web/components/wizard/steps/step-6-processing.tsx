@@ -8,6 +8,8 @@ import { Button } from "@repo/ui/button";
 import { useApiClient, withToast } from "@/lib/api-client";
 import type { VideoDetail } from "@/lib/api-client";
 import { cn } from "@repo/ui/utils";
+import { useClipProgress } from "@/lib/hooks/useClipProgress";
+import { ClipProgressPanel } from "@/components/wizard/ClipProgressPanel";
 
 interface Step6ProcessingProps {
   video: VideoDetail;
@@ -30,6 +32,7 @@ function buildTimeline(video: VideoDetail, queuePosition: number): TimelineItem[
     VideoStatus.VoicePending, VideoStatus.VoiceReady,
     VideoStatus.ScenesPending, VideoStatus.ScenesReady,
     VideoStatus.ClipsQueued, VideoStatus.ClipsProcessing,
+    VideoStatus.ClipsNeedsReview,
     VideoStatus.AssemblyPending, VideoStatus.AssemblyProcessing,
     VideoStatus.Complete,
   ].includes(s);
@@ -37,18 +40,21 @@ function buildTimeline(video: VideoDetail, queuePosition: number): TimelineItem[
   const voiceDone = [
     VideoStatus.ScenesPending, VideoStatus.ScenesReady,
     VideoStatus.ClipsQueued, VideoStatus.ClipsProcessing,
+    VideoStatus.ClipsNeedsReview,
     VideoStatus.AssemblyPending, VideoStatus.AssemblyProcessing,
     VideoStatus.Complete,
   ].includes(s);
 
   const scenesDone = [
     VideoStatus.ClipsQueued, VideoStatus.ClipsProcessing,
+    VideoStatus.ClipsNeedsReview,
     VideoStatus.AssemblyPending, VideoStatus.AssemblyProcessing,
     VideoStatus.Complete,
   ].includes(s);
 
   const clipsActive = [
     VideoStatus.ClipsQueued, VideoStatus.ClipsProcessing,
+    VideoStatus.ClipsNeedsReview,
   ].includes(s);
   const clipsDone = [
     VideoStatus.AssemblyPending, VideoStatus.AssemblyProcessing,
@@ -92,10 +98,22 @@ export function Step6Processing({
   const [retrying, setRetrying] = useState(false);
   const isFailed = video.status === VideoStatus.Failed;
   const isComplete = video.status === VideoStatus.Complete;
+  const isClipsActive =
+    video.status === VideoStatus.ClipsQueued ||
+    video.status === VideoStatus.ClipsProcessing;
+  const isUnderReview = video.status === VideoStatus.ClipsNeedsReview;
+
+  const { clips, connected } = useClipProgress(
+    isClipsActive || isUnderReview ? video.id : null,
+  );
+
+  const totalScenes = video.sceneCount ?? 0;
+  const doneCount = Object.values(clips).filter((c) => c.status === "done").length;
+  const allClipsDone = totalScenes > 0 && doneCount === totalScenes;
 
   // Poll video status while processing
   useEffect(() => {
-    if (isFailed || isComplete) return;
+    if (isFailed || isComplete || isUnderReview) return;
 
     const interval = setInterval(async () => {
       const result = await withToast(
@@ -116,9 +134,6 @@ export function Step6Processing({
     return () => clearInterval(interval);
   }, [isFailed, isComplete, api, video.id, onVideoUpdate, onAdvance]);
 
-  // TODO: Replace polling with SSE when Phase 6.4 is implemented
-  // Connect to GET /api/videos/:id/status-stream for real-time updates
-
   const estimatedWait =
     queuePosition > 0 ? `~${Math.round(queuePosition * 0.5)} min` : null;
   const timeline = buildTimeline(video, queuePosition);
@@ -132,8 +147,22 @@ export function Step6Processing({
         {isFailed ? "Something went wrong" : video.title}
       </h1>
       <p className="mb-12 text-sm text-[var(--text-secondary)]">
-        {isFailed ? "Your video couldn't be processed." : "Being processed…"}
+        {isFailed
+          ? "Your video couldn't be processed."
+          : isUnderReview
+          ? "A few clips need attention — we're on it."
+          : "Being processed…"}
       </p>
+
+      {/* Under review badge */}
+      {isUnderReview && (
+        <div
+          className="mb-8 rounded-full bg-[var(--accent-warning)]/20 px-4 py-1.5 text-sm font-semibold text-[var(--accent-warning)]"
+          title="A few clips need attention — we're on it. No action needed from you."
+        >
+          Under Review
+        </div>
+      )}
 
       {/* Queue position indicator */}
       {queuePosition > 0 && !isFailed && (
@@ -204,6 +233,27 @@ export function Step6Processing({
           </div>
         ))}
       </div>
+
+      {/* Live clip progress panel — shown while clips are generating or under review */}
+      {(isClipsActive || isUnderReview) && !allClipsDone && totalScenes > 0 && (
+        <div className="mt-8 w-full">
+          <ClipProgressPanel
+            totalScenes={totalScenes}
+            clips={clips}
+            connected={connected}
+          />
+        </div>
+      )}
+
+      {/* All clips ready — waiting for assembly */}
+      {allClipsDone && isClipsActive && (
+        <div className="mt-8 flex w-full items-center justify-center gap-3 rounded-xl border border-[var(--accent-success)]/30 bg-[var(--accent-success)]/5 px-4 py-4">
+          <Loader2 className="h-4 w-4 animate-spin text-[var(--accent-success)]" />
+          <span className="text-sm text-[var(--accent-success)]">
+            All clips ready — assembling…
+          </span>
+        </div>
+      )}
 
       {/* Failed state */}
       {isFailed && video.error && (

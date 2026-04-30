@@ -78,6 +78,20 @@
       "when": 1777507200000,
       "tag": "0010_expanded_enums",
       "breakpoints": false
+    },
+    {
+      "idx": 11,
+      "version": "7",
+      "when": 1777593600000,
+      "tag": "0011_scene_count",
+      "breakpoints": true
+    },
+    {
+      "idx": 12,
+      "version": "7",
+      "when": 1777680000000,
+      "tag": "0012_clips_needs_review",
+      "breakpoints": false
     }
   ]
 }

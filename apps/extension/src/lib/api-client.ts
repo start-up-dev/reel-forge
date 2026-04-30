@@ -13,6 +13,7 @@ export interface ClaimedClip {
   baseImageUrl: string;
   textExcerpt: string | null;
   videoType: string | null;
+  videoTitle: string;
 }
 
 async function loadSettings(): Promise<Pick<ExtensionSettings, "backendUrl" | "operatorSecret">> {
@@ -82,6 +83,34 @@ export async function failClip(clipId: string, error: string): Promise<void> {
 export async function getQueueCount(): Promise<number> {
   const result = await request<{ data: { count: number } }>("/api/operator/queue/count");
   return result.data.count;
+}
+
+export interface ClipStatusEntry {
+  clipId: string;
+  videoId: string;
+  videoTitle: string;
+  sceneIndex: number;
+  motionPrompt: string;
+  status: "queued" | "processing" | "done" | "failed";
+  error: string | null;
+  processedAt: string | null;
+}
+
+export async function fetchClipStatuses(): Promise<ClipStatusEntry[]> {
+  const result = await request<{ data: ClipStatusEntry[] }>(
+    "/api/operator/clips/statuses",
+  );
+  return result.data;
+}
+
+export async function retryClip(
+  clipId: string,
+): Promise<{ sceneIndex: number; videoId: string }> {
+  const result = await request<{ data: { ok: boolean; sceneIndex: number; videoId: string } }>(
+    `/api/operator/clips/${clipId}/retry`,
+    { method: "POST" },
+  );
+  return result.data;
 }
 
 // ── Upload helper with retry ──────────────────────────────────────────────────

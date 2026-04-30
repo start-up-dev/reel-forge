@@ -31,6 +31,8 @@ function statusBadgeStyles(status: VideoStatus) {
       return { bg: "bg-[var(--accent-danger)]/20", text: "text-[var(--accent-danger)]", label: "Failed" };
     case VideoStatus.Draft:
       return { bg: "bg-[var(--bg-border)]", text: "text-[var(--text-muted)]", label: "Draft" };
+    case VideoStatus.ClipsNeedsReview:
+      return { bg: "bg-[var(--accent-warning)]/20", text: "text-[var(--accent-warning)]", label: "Under Review" };
     default:
       return { bg: "bg-[var(--accent-warning)]/20", text: "text-[var(--accent-warning)]", label: "Processing" };
   }

@@ -3,6 +3,7 @@
 export interface FailedClipEntry {
   clipId: string;
   videoId: string;
+  videoTitle: string;
   sceneIndex: number;
   visualPrompt: string;
   motionPrompt: string;
@@ -12,6 +13,19 @@ export interface FailedClipEntry {
   errorMessage: string;
   failedAt: number;
 }
+
+export interface StoredClipStatus {
+  clipId: string;
+  videoId: string;
+  videoTitle: string;
+  sceneIndex: number;
+  motionPrompt: string;
+  status: "queued" | "processing" | "done" | "failed";
+  error: string | null;
+  updatedAt: number;
+}
+
+export type StoredClipStatusMap = Record<string, StoredClipStatus>;
 
 export interface WorkerState {
   running: boolean;
@@ -26,6 +40,7 @@ export interface WorkerState {
   };
   failedClips: FailedClipEntry[];
   selectorError: { selector: string; name: string } | null;
+  clipStatuses: StoredClipStatusMap;
 }
 
 export type PopupMessage =

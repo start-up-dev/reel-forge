@@ -35,6 +35,7 @@ function statusToDefaultStep(status: VideoStatus): number {
       return 4;
     case VideoStatus.ClipsQueued:
     case VideoStatus.ClipsProcessing:
+    case VideoStatus.ClipsNeedsReview:
     case VideoStatus.AssemblyPending:
     case VideoStatus.AssemblyProcessing:
     case VideoStatus.Failed:
@@ -63,6 +64,7 @@ function statusToMaxAllowedStep(status: VideoStatus): number {
       return 5; // Can view step 4 or advance to step 5 (style picker)
     case VideoStatus.ClipsQueued:
     case VideoStatus.ClipsProcessing:
+    case VideoStatus.ClipsNeedsReview:
     case VideoStatus.AssemblyPending:
     case VideoStatus.AssemblyProcessing:
     case VideoStatus.Failed:

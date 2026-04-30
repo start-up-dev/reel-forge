@@ -1,0 +1,1 @@
+ALTER TYPE "public"."video_status" ADD VALUE IF NOT EXISTS 'CLIPS_NEEDS_REVIEW';

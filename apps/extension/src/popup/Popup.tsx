@@ -1,5 +1,5 @@
-import { useEffect, useReducer, useCallback } from "react";
-import type { WorkerState, FailedClipEntry } from "../lib/messages.js";
+import { useEffect, useReducer, useCallback, useState } from "react";
+import type { WorkerState, StoredClipStatus, StoredClipStatusMap } from "../lib/messages.js";
 
 const EMPTY_STATE: WorkerState = {
   running: false,
@@ -10,6 +10,7 @@ const EMPTY_STATE: WorkerState = {
   session: { done: 0, failed: 0, startedAt: null },
   failedClips: [],
   selectorError: null,
+  clipStatuses: {},
 };
 
 // ── Popup root ────────────────────────────────────────────────────────────────
@@ -167,10 +168,8 @@ export function Popup() {
         </div>
       )}
 
-      {/* Failed clips */}
-      {state.failedClips.length > 0 && (
-        <FailedList clips={state.failedClips} onRetry={handleRetry} />
-      )}
+      {/* Clip Status Board */}
+      <ClipStatusBoard statuses={state.clipStatuses} onRetry={handleRetry} />
 
       {/* Footer link to options */}
       <div className="mt-auto pt-2 flex justify-end">
@@ -249,41 +248,111 @@ function Controls() {
   );
 }
 
-// ── Failed clips list ─────────────────────────────────────────────────────────
+// ── Clip Status Board ─────────────────────────────────────────────────────────
 
-function FailedList({
-  clips,
+function StatusPill({ status }: { status: StoredClipStatus["status"] }) {
+  const styles: Record<StoredClipStatus["status"], string> = {
+    queued: "bg-bg-elevated text-text-muted",
+    processing: "bg-accent-warning/20 text-accent-warning animate-pulse",
+    done: "bg-accent-success/20 text-accent-success",
+    failed: "bg-accent-danger/20 text-accent-danger",
+  };
+  const labels: Record<StoredClipStatus["status"], string> = {
+    queued: "Queued",
+    processing: "Processing",
+    done: "Done",
+    failed: "Failed",
+  };
+  return (
+    <span className={`rounded px-1.5 py-0.5 text-[10px] font-medium ${styles[status]}`}>
+      {labels[status]}
+    </span>
+  );
+}
+
+function ClipStatusBoard({
+  statuses,
   onRetry,
 }: {
-  clips: FailedClipEntry[];
+  statuses: StoredClipStatusMap;
   onRetry: (id: string) => void;
 }) {
+  const [retrying, setRetrying] = useState<Set<string>>(new Set());
+
+  const entries = Object.values(statuses).sort(
+    (a, b) => a.videoId.localeCompare(b.videoId) || a.sceneIndex - b.sceneIndex,
+  );
+
+  // Group by videoId
+  const groups = entries.reduce<Record<string, StoredClipStatus[]>>((acc, e) => {
+    (acc[e.videoId] ??= []).push(e);
+    return acc;
+  }, {});
+
+  const handleRetry = (clipId: string) => {
+    setRetrying((prev) => new Set([...prev, clipId]));
+    onRetry(clipId);
+    // Clear spinner on next STATE_UPDATE — achieved by clearing after short delay
+    // as a fallback; the real clear happens when state updates re-render this component.
+    setTimeout(() => {
+      setRetrying((prev) => {
+        const next = new Set(prev);
+        next.delete(clipId);
+        return next;
+      });
+    }, 10_000);
+  };
+
   return (
     <div className="bg-bg-surface rounded-xl p-3">
       <p className="text-text-muted text-xs uppercase tracking-wide mb-2">
-        Failed clips ({clips.length})
+        Clips {entries.length > 0 ? `(${entries.length})` : ""}
       </p>
-      <div className="flex flex-col gap-2 max-h-40 overflow-y-auto">
-        {clips.map((c) => (
-          <div
-            key={c.clipId}
-            className="flex items-start justify-between gap-2 bg-bg-elevated rounded-lg p-2"
-          >
-            <div className="min-w-0">
-              <p className="text-xs text-text-secondary truncate">
-                Scene {c.sceneIndex + 1} — video {c.videoId.slice(0, 8)}…
+
+      {entries.length === 0 ? (
+        <p className="text-text-muted text-xs text-center py-4">No active clips</p>
+      ) : (
+        <div className="flex flex-col gap-3 max-h-64 overflow-y-auto">
+          {Object.entries(groups).map(([videoId, clips]) => (
+            <div key={videoId}>
+              <p className="text-[10px] text-text-muted uppercase tracking-wide mb-1.5 truncate">
+                {clips[0]?.videoTitle ?? videoId.slice(0, 8) + "…"}
               </p>
-              <p className="text-xs text-accent-danger mt-0.5 truncate">{c.errorMessage}</p>
+              <div className="flex flex-col gap-1">
+                {clips.map((clip) => (
+                  <div
+                    key={clip.clipId}
+                    className="flex items-center gap-2 bg-bg-elevated rounded-lg px-2 py-1.5"
+                  >
+                    <span className="text-xs text-text-muted w-14 shrink-0">
+                      Scene {clip.sceneIndex + 1}
+                    </span>
+                    <span className="text-xs text-text-secondary truncate flex-1 min-w-0">
+                      {clip.motionPrompt.slice(0, 40)}
+                      {clip.motionPrompt.length > 40 ? "…" : ""}
+                    </span>
+                    <StatusPill status={clip.status} />
+                    {clip.status === "failed" && clip.error && (
+                      <span className="text-[10px] text-accent-danger truncate max-w-[80px]">
+                        {clip.error}
+                      </span>
+                    )}
+                    {clip.status === "failed" && (
+                      <button
+                        onClick={() => handleRetry(clip.clipId)}
+                        disabled={retrying.has(clip.clipId)}
+                        className="shrink-0 text-[10px] text-accent-primary hover:text-accent-primary/80 underline disabled:opacity-50"
+                      >
+                        {retrying.has(clip.clipId) ? "…" : "Retry"}
+                      </button>
+                    )}
+                  </div>
+                ))}
+              </div>
             </div>
-            <button
-              onClick={() => onRetry(c.clipId)}
-              className="shrink-0 text-xs text-accent-primary hover:text-accent-primary/80 underline whitespace-nowrap"
-            >
-              Retry
-            </button>
-          </div>
-        ))}
-      </div>
+          ))}
+        </div>
+      )}
     </div>
   );
 }

@@ -1,6 +1,7 @@
 import { and, asc, desc, eq, ilike, isNull, sql } from "drizzle-orm";
 import type { FastifyInstance } from "fastify";
 import { z } from "zod";
+import type { SnapshotClip } from "@repo/types";
 import { db } from "../lib/db/index.js";
 import { clipRequests, projects, scenes, users, videos } from "../lib/db/schema.js";
 import { checkQuota } from "../lib/quota.js";
@@ -9,6 +10,7 @@ import {
   generateSignedUploadUrl,
   uploadBuffer,
 } from "../lib/storage.js";
+import { subscribeToVideo } from "../lib/clip-events.js";
 import { generateCharacterSheet, generateIdeas, generateScript, generateTitle, splitScenes } from "../services/claude.js";
 import { generateVoiceover } from "../services/elevenlabs.js";
 import { generateImage, generateImageFromReference } from "../services/grok-image.js";
@@ -99,6 +101,11 @@ async function processScenes(
         })),
       )
       .returning();
+
+    await db
+      .update(videos)
+      .set({ sceneCount: inserted.length, updatedAt: new Date() })
+      .where(eq(videos.id, videoId));
 
     // All styles use sequential processing: scene 0 generates normally and its
     // result becomes the visual reference for every subsequent scene.
@@ -1166,6 +1173,80 @@ export async function videosRoutes(fastify: FastifyInstance): Promise<void> {
         .where(eq(users.id, user.id));
 
       return reply.send({ data: { videoId: id, status: "CLIPS_QUEUED" } });
+    },
+  );
+
+  // GET /api/videos/:id/progress — SSE stream of live clip generation events
+  fastify.get<{ Params: { id: string } }>(
+    "/videos/:id/progress",
+    async (request, reply) => {
+      const user = request.currentUser!;
+      const { id } = request.params;
+
+      const [video] = await db
+        .select({ id: videos.id })
+        .from(videos)
+        .where(and(eq(videos.id, id), eq(videos.userId, user.id), isNull(videos.deletedAt)))
+        .limit(1);
+
+      if (!video) {
+        return reply.status(403).send({
+          error: { code: "FORBIDDEN", message: "Video not found or access denied." },
+        });
+      }
+
+      // Build initial snapshot before hijacking the response
+      const clipRows = await db
+        .select()
+        .from(clipRequests)
+        .where(eq(clipRequests.videoId, id));
+
+      const snapshotClips: SnapshotClip[] = await Promise.all(
+        clipRows.map(async (clip) => {
+          const entry: SnapshotClip = {
+            sceneIndex: clip.sceneIndex,
+            status: clip.status as SnapshotClip["status"],
+          };
+          if (clip.status === "done" && clip.clipUrl) {
+            try {
+              entry.clipUrl = await generateSignedReadUrl(clip.clipUrl, 60);
+            } catch { /* skip */ }
+          }
+          if (clip.status === "failed" && clip.error) {
+            entry.error = clip.error;
+          }
+          return entry;
+        }),
+      );
+
+      reply.hijack();
+      const res = reply.raw;
+
+      res.writeHead(200, {
+        "Content-Type": "text/event-stream",
+        "Cache-Control": "no-cache",
+        "Connection": "keep-alive",
+        "X-Accel-Buffering": "no",
+      });
+
+      res.write(`data: ${JSON.stringify({ type: "SNAPSHOT", clips: snapshotClips })}\n\n`);
+
+      const unsubscribe = subscribeToVideo(id, (event) => {
+        res.write(`data: ${JSON.stringify(event)}\n\n`);
+      });
+
+      const heartbeat = setInterval(() => {
+        res.write(`data: ${JSON.stringify({ type: "HEARTBEAT" })}\n\n`);
+      }, 15_000);
+
+      let ended = false;
+      request.raw.on("close", () => {
+        if (ended) return;
+        ended = true;
+        unsubscribe();
+        clearInterval(heartbeat);
+        res.end();
+      });
     },
   );
 }

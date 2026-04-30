@@ -35,7 +35,6 @@ FRAMING: [medium close-up (shoulders to top of head) as default / ECU for peak e
 SETTING: [specific background appropriate to subtype — see subtype rules below]
 LIGHTING: [motivated and flattering — soft front fill + subtle rim light; specify warmth or coolness]
 COLOUR GRADE: [clean warm for UGC/explainer; cooler high-contrast for short film/interview]
-MOUTH: [character mouth is OPEN, visibly forming words — always write this explicitly]
 
 ## motionPrompt — how to write it
 2–3 sentences covering all three elements:

@@ -84,6 +84,7 @@ export const videoStatusEnum = pgEnum("video_status", [
   "SCENES_READY",
   "CLIPS_QUEUED",
   "CLIPS_PROCESSING",
+  "CLIPS_NEEDS_REVIEW",
   "ASSEMBLY_PENDING",
   "ASSEMBLY_PROCESSING",
   "COMPLETE",
@@ -219,6 +220,7 @@ export const videos = pgTable(
     talkingSubtype: talkingSubtypeEnum("talking_subtype"),
     voiceSpeed: real("voice_speed").notNull().default(1.0),  // 0.5–2.0; applied via FFmpeg atempo at render
     characterBaseGcsPath: text("character_base_gcs_path"),   // GCS path of the character reference image (cartoon/mascot only)
+    sceneCount: integer("scene_count").notNull().default(0),
     renderStyle: renderStyleEnum("render_style"),
     voiceId: text("voice_id"),
     outputUrl: text("output_url"),
