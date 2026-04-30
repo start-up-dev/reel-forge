@@ -107,7 +107,7 @@ export function Step6Processing({
     isClipsActive || isUnderReview ? video.id : null,
   );
 
-  const totalScenes = video.sceneCount ?? 0;
+  const totalScenes = video.sceneCount || video.scenes.length;
   const doneCount = Object.values(clips).filter((c) => c.status === "done").length;
   const allClipsDone = totalScenes > 0 && doneCount === totalScenes;
 

@@ -37,7 +37,6 @@ interface TabEntry {
   startedAt: number;
 }
 
-const MAX_AUTO_RETRIES = 2;
 const DL_RETRIES = 3;
 const DL_RETRY_DELAY_MS = 15_000;
 
@@ -45,7 +44,6 @@ let running = false;
 let pollTimer: ReturnType<typeof setTimeout> | null = null;
 
 const activeTabs = new Map<number, TabEntry>();
-const clipRetryCount = new Map<string, number>();
 const session = { done: 0, failed: 0, startedAt: null as number | null };
 const failedClips: FailedClipEntry[] = [];
 let selectorError: WorkerState["selectorError"] = null;
@@ -69,12 +67,20 @@ function saveClipStatus(entry: StoredClipStatus): void {
   chrome.storage.local.set({ clipStatuses }).catch(() => {});
 }
 
-// Load persisted clip statuses on startup
-chrome.storage.local.get("clipStatuses").then((result) => {
+function saveFailedClips(): void {
+  chrome.storage.local.set({ failedClips: [...failedClips] }).catch(() => {});
+}
+
+// Load persisted clip statuses and failed clips on startup
+chrome.storage.local.get(["clipStatuses", "failedClips"]).then((result) => {
   const stored = result.clipStatuses as StoredClipStatusMap | undefined;
   if (stored) {
     clipStatuses = stored;
     pruneOldClipStatuses();
+  }
+  const storedFailed = result.failedClips as FailedClipEntry[] | undefined;
+  if (storedFailed?.length) {
+    failedClips.push(...storedFailed);
   }
   broadcastState();
 }).catch(() => {});
@@ -245,56 +251,18 @@ async function sendClipToTab(
   });
 }
 
-// ── Error handling with auto-retry ────────────────────────────────────────────
-// retryable=false is used for user-initiated tab closes to avoid re-processing.
+// ── Error handling ────────────────────────────────────────────────────────────
 
 async function handleTabError(
   tabId: number,
   clipId: string,
   error: string,
-  retryable = true,
 ): Promise<void> {
   const entry = activeTabs.get(tabId);
   activeTabs.delete(tabId);
   closeTab(tabId);
 
-  const retryCount = clipRetryCount.get(clipId) ?? 0;
-
-  if (retryable && retryCount < MAX_AUTO_RETRIES && entry) {
-    clipRetryCount.set(clipId, retryCount + 1);
-    const delayMs = 10_000 * (retryCount + 1); // 10 s, then 20 s
-    console.log(
-      `[SW] Auto-retrying clip ${clipId} in ${delayMs / 1000}s ` +
-        `(attempt ${retryCount + 1}/${MAX_AUTO_RETRIES}): ${error}`,
-    );
-
-    setTimeout(() => {
-      if (!running) return;
-      void getSettings().then((settings) =>
-        openClipTab(
-          {
-            id: entry.clipId,
-            videoId: entry.videoId,
-            videoTitle: entry.videoTitle,
-            sceneIndex: entry.sceneIndex,
-            visualPrompt: entry.visualPrompt,
-            motionPrompt: entry.motionPrompt,
-            baseImageUrl: entry.baseImageUrl,
-            textExcerpt: entry.textExcerpt,
-            videoType: entry.videoType,
-          },
-          settings,
-        ),
-      );
-    }, delayMs);
-
-    broadcastState();
-    schedulePoll(500);
-    return;
-  }
-
-  // Exhausted retries (or not retryable) — permanently fail.
-  clipRetryCount.delete(clipId);
+  // Always fail immediately — operator retries manually from the popup.
   await failClip(clipId, error).catch(() => {});
 
   session.failed++;
@@ -312,6 +280,7 @@ async function handleTabError(
       errorMessage: error,
       failedAt: Date.now(),
     });
+    saveFailedClips();
 
     saveClipStatus({
       clipId,
@@ -399,7 +368,6 @@ async function start(): Promise<void> {
   session.startedAt = Date.now();
   failedClips.length = 0;
   selectorError = null;
-  clipRetryCount.clear();
   connected = await checkHealth();
 
   if (connected) {
@@ -477,61 +445,60 @@ chrome.runtime.onMessage.addListener(
         break;
 
       case "RETRY_CLIP": {
-        const idx = failedClips.findIndex((f) => f.clipId === message.clipId);
-        const entry = idx !== -1 ? failedClips[idx] : undefined;
+        const clipId = message.clipId;
 
-        if (!entry) {
-          console.warn("[SW] RETRY_CLIP: clip not found in failedClips:", message.clipId);
-          sendResponse({ ok: false, error: "Clip not found in failed list" });
+        // Look up in failedClips first; fall back to clipStatuses so retries
+        // work even after a service-worker restart wipes in-memory state.
+        const failedIdx = failedClips.findIndex((f) => f.clipId === clipId);
+        const failedEntry = failedIdx !== -1 ? failedClips[failedIdx] : undefined;
+        const statusEntry = clipStatuses[clipId];
+
+        if (!failedEntry && !statusEntry) {
+          console.warn("[SW] RETRY_CLIP: clip not found:", clipId);
+          sendResponse({ ok: false, error: "Clip not found" });
           break;
         }
 
         void (async () => {
           try {
-            await retryClip(entry.clipId);
+            await retryClip(clipId);
           } catch (err) {
             const errMsg = err instanceof Error ? err.message : String(err);
             console.error("[SW] retryClip backend reset failed:", errMsg);
-            failedClips.push({
-              ...entry,
-              errorMessage: `Backend retry reset failed: ${errMsg}`,
-              failedAt: Date.now(),
-            });
+            if (failedEntry) {
+              failedClips.push({
+                ...failedEntry,
+                errorMessage: `Backend retry reset failed: ${errMsg}`,
+                failedAt: Date.now(),
+              });
+              saveFailedClips();
+            }
             broadcastState();
             sendResponse({ ok: false, error: errMsg });
             return;
           }
 
-          failedClips.splice(idx, 1);
-          clipRetryCount.delete(entry.clipId);
+          // Remove from failedClips if present
+          if (failedIdx !== -1) {
+            failedClips.splice(failedIdx, 1);
+            saveFailedClips();
+          }
 
+          const base = failedEntry ?? statusEntry!;
           saveClipStatus({
-            clipId: entry.clipId,
-            videoId: entry.videoId,
-            videoTitle: entry.videoTitle,
-            sceneIndex: entry.sceneIndex,
-            motionPrompt: entry.motionPrompt,
-            status: "processing",
+            clipId,
+            videoId: base.videoId,
+            videoTitle: base.videoTitle,
+            sceneIndex: base.sceneIndex,
+            motionPrompt: base.motionPrompt,
+            status: "queued",
             error: null,
             updatedAt: Date.now(),
           });
 
-          const settings = await getSettings();
-          void openClipTab(
-            {
-              id: entry.clipId,
-              videoId: entry.videoId,
-              videoTitle: entry.videoTitle,
-              sceneIndex: entry.sceneIndex,
-              visualPrompt: entry.visualPrompt,
-              motionPrompt: entry.motionPrompt,
-              baseImageUrl: entry.baseImageUrl,
-              textExcerpt: entry.textExcerpt,
-              videoType: entry.videoType,
-            },
-            settings,
-          );
-
+          // Clip is back to queued — the normal poll loop will claim and open it.
+          broadcastState();
+          schedulePoll(500);
           sendResponse({ ok: true });
         })();
         break;
@@ -559,7 +526,6 @@ chrome.runtime.onMessage.addListener(
       case "CLIP_DONE": {
         const doneEntry = activeTabs.get(tabId);
         activeTabs.delete(tabId);
-        clipRetryCount.delete(message.clipId);
         session.done++;
         if (doneEntry) {
           saveClipStatus({
@@ -824,7 +790,6 @@ chrome.runtime.onMessage.addListener(
             // 5. Clean up tab — same as CLIP_DONE.
             const uploadDoneEntry = activeTabs.get(tabId);
             activeTabs.delete(tabId);
-            clipRetryCount.delete(clipId);
             session.done++;
             if (uploadDoneEntry) {
               saveClipStatus({
@@ -956,7 +921,7 @@ chrome.runtime.onMessage.addListener(
 chrome.tabs.onRemoved.addListener((tabId) => {
   if (!activeTabs.has(tabId)) return;
   const clipId = activeTabs.get(tabId)!.clipId;
-  void handleTabError(tabId, clipId, "Tab closed unexpectedly", false);
+  void handleTabError(tabId, clipId, "Tab closed unexpectedly");
 });
 
 // Initial state ping.

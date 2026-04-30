@@ -108,7 +108,7 @@ export async function retryClip(
 ): Promise<{ sceneIndex: number; videoId: string }> {
   const result = await request<{ data: { ok: boolean; sceneIndex: number; videoId: string } }>(
     `/api/operator/clips/${clipId}/retry`,
-    { method: "POST" },
+    { method: "POST", body: JSON.stringify({}) },
   );
   return result.data;
 }

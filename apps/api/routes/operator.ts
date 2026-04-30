@@ -326,9 +326,9 @@ export async function operatorRoutes(fastify: FastifyInstance): Promise<void> {
       await db
         .update(clipRequests)
         .set({
-          status: "processing",
+          status: "queued",
           error: null,
-          claimedAt: new Date(),
+          claimedAt: null,
           processedAt: null,
           clipUrl: null,
         })
