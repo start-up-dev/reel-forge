@@ -24,32 +24,32 @@ No new database tables. No WebSocket infrastructure. No Redis. Single Fastify in
 
 `ClipProgressPanel` needs the total number of scenes to render the full grid (including `queued` cards for scenes not yet claimed). This field does not currently exist.
 
-- [ ] Add `sceneCount` integer column (not null, default `0`) to the `videos` table in `apps/api/lib/db/schema.ts`
-- [ ] Generate migration `0011_scene_count.sql` and add to journal
-- [ ] Add `sceneCount: number` to the `Video` interface in `packages/types/src/index.ts`
-- [ ] In `POST /api/videos/:id/scenes` (the endpoint that creates scene rows), after inserting scenes set `videos.sceneCount = <count of inserted scenes>` in the same transaction
-- [ ] `sceneCount` is returned automatically via `SELECT *` on existing video fetch routes — no other API changes needed
+- [x] Add `sceneCount` integer column (not null, default `0`) to the `videos` table in `apps/api/lib/db/schema.ts`
+- [x] Generate migration `0011_scene_count.sql` and add to journal
+- [x] Add `sceneCount: number` to the `Video` interface in `packages/types/src/index.ts`
+- [x] In `POST /api/videos/:id/scenes` (the endpoint that creates scene rows), after inserting scenes set `videos.sceneCount = <count of inserted scenes>` in the same transaction
+- [x] `sceneCount` is returned automatically via `SELECT *` on existing video fetch routes — no other API changes needed
 
 ---
 
 ### 7.1 — Shared Types
 
-- [ ] Add `ClipProgressEvent` discriminated union to `packages/types/src/index.ts`:
+- [x] Add `ClipProgressEvent` discriminated union to `packages/types/src/index.ts`:
   - `{ type: "CLIP_PROCESSING"; videoId: string; sceneIndex: number }`
   - `{ type: "CLIP_DONE"; videoId: string; sceneIndex: number; clipUrl: string }` — `clipUrl` is a signed GCS read URL (1-hour TTL)
   - `{ type: "CLIP_FAILED"; videoId: string; sceneIndex: number; error: string }`
   - `{ type: "HEARTBEAT" }` — keepalive ping sent every 15 s; client ignores it
   - `{ type: "SNAPSHOT"; clips: SnapshotClip[] }` — initial state burst sent on connect so a refreshed page catches up immediately
-- [ ] Add `SnapshotClip` interface to `@repo/types`:
+- [x] Add `SnapshotClip` interface to `@repo/types`:
   - `{ sceneIndex: number; status: "queued" | "processing" | "done" | "failed"; clipUrl?: string; error?: string }`
-- [ ] Add `ClipStatusMap` type alias to `@repo/types`:
+- [x] Add `ClipStatusMap` type alias to `@repo/types`:
   - `Record<number, SnapshotClip>` — keyed by `sceneIndex`; used as the hook's state shape
 
 ---
 
 ### 7.2 — Backend: In-Memory Event Bus
 
-- [ ] Create `apps/api/lib/clip-events.ts`:
+- [x] Create `apps/api/lib/clip-events.ts`:
   - Export `type ClipEventSubscriber = (event: ClipProgressEvent) => void`
   - Export singleton `clipEventBus`: `Map<string, Set<ClipEventSubscriber>>` (videoId → subscriber set)
   - Export `subscribeToVideo(videoId: string, cb: ClipEventSubscriber): () => void` — adds `cb` to the set, returns an unsubscribe function that deletes it and cleans up the empty set entry
@@ -60,7 +60,7 @@ No new database tables. No WebSocket infrastructure. No Redis. Single Fastify in
 
 ### 7.3 — Backend: SSE Endpoint
 
-- [ ] Add `GET /api/videos/:id/progress` route to `apps/api/routes/videos.ts` (Clerk-auth-gated, same auth middleware as other video routes):
+- [x] Add `GET /api/videos/:id/progress` route to `apps/api/routes/videos.ts` (Clerk-auth-gated, same auth middleware as other video routes):
   - Verify the requesting user owns the video (existing ownership check pattern); return `403` if not
   - Set response headers on `reply.raw`:
     - `Content-Type: text/event-stream`
@@ -72,7 +72,7 @@ No new database tables. No WebSocket infrastructure. No Redis. Single Fastify in
   - Subscribe via `subscribeToVideo(videoId, cb)` where `cb` serializes each event as `data: <JSON>\n\n` and writes to `reply.raw`
   - Start a `setInterval` heartbeat every 15 s writing `data: {"type":"HEARTBEAT"}\n\n`
   - On `request.raw.on("close", ...)`: call the unsubscribe function, clear the heartbeat interval, end `reply.raw`
-- [ ] SSE wire format: each event is written as `data: ${JSON.stringify(event)}\n\n` (standard SSE, no `event:` field needed — client uses `type` inside the JSON)
+- [x] SSE wire format: each event is written as `data: ${JSON.stringify(event)}\n\n` (standard SSE, no `event:` field needed — client uses `type` inside the JSON)
 
 ---
 
@@ -80,20 +80,20 @@ No new database tables. No WebSocket infrastructure. No Redis. Single Fastify in
 
 All three emission points are in `apps/api/routes/operator.ts`.
 
-- [ ] In `GET /api/operator/queue` (the claim endpoint), after the `UPDATE … RETURNING` CTE runs and clips transition to `processing`:
+- [x] In `GET /api/operator/queue` (the claim endpoint), after the `UPDATE … RETURNING` CTE runs and clips transition to `processing`:
   - For each claimed clip, call `emitClipEvent({ type: "CLIP_PROCESSING", videoId: row.videoId, sceneIndex: row.sceneIndex })`
-- [ ] In `POST /api/operator/clips/:id/complete`:
+- [x] In `POST /api/operator/clips/:id/complete`:
   - After updating the clip and scene rows, call `generateSignedReadUrl` for the `gcsPath` (1-hour TTL)
   - Call `emitClipEvent({ type: "CLIP_DONE", videoId: clip.videoId, sceneIndex: clip.sceneIndex, clipUrl: signedUrl })`
-- [ ] In `POST /api/operator/clips/:id/fail`:
+- [x] In `POST /api/operator/clips/:id/fail`:
   - Call `emitClipEvent({ type: "CLIP_FAILED", videoId: clip.videoId, sceneIndex: clip.sceneIndex, error: body.error })`
-- [ ] Import `emitClipEvent` and `generateSignedReadUrl` at the top of `operator.ts`; no other changes to route logic
+- [x] Import `emitClipEvent` and `generateSignedReadUrl` at the top of `operator.ts`; no other changes to route logic
 
 ---
 
 ### 7.5 — Frontend: SSE Hook
 
-- [ ] Create `apps/web/hooks/useClipProgress.ts`:
+- [x] Create `apps/web/hooks/useClipProgress.ts`:
   - Signature: `useClipProgress(videoId: string | null): { clips: ClipStatusMap; connected: boolean }`
   - Returns empty map and `connected: false` immediately when `videoId` is null (video not yet created)
   - Uses Clerk `useAuth()` to call `getToken()` before opening the stream
@@ -112,7 +112,7 @@ All three emission points are in `apps/api/routes/operator.ts`.
 
 ### 7.6 — Frontend: ClipProgressPanel Component
 
-- [ ] Create `apps/web/components/wizard/ClipProgressPanel.tsx`:
+- [x] Create `apps/web/components/wizard/ClipProgressPanel.tsx`:
   - Props: `{ totalScenes: number; clips: ClipStatusMap; connected: boolean }`
   - **Header bar**: "Generating clips" label + `connected` dot (green pulse when connected, grey when reconnecting) + fraction counter "X / N complete"
   - **Progress bar**: filled width = `doneCount / totalScenes * 100%`; uses `--accent-primary` fill color; animated with CSS transition
@@ -128,7 +128,7 @@ All three emission points are in `apps/api/routes/operator.ts`.
 
 ### 7.7 — Frontend: Wire into Wizard
 
-- [ ] In the Step 4 (clip queue / review) page component in `apps/web/app/(wizard)/`:
+- [x] In the Step 4 (clip queue / review) page component in `apps/web/app/(wizard)/`:
   - Import `useClipProgress` and `ClipProgressPanel`
   - Call `useClipProgress(video.id)` when `video.status` is `CLIPS_QUEUED` or `CLIPS_PROCESSING`; pass `null` otherwise (hook stays idle, no open connections)
   - Render `<ClipProgressPanel totalScenes={video.sceneCount} clips={clips} connected={connected} />` in place of (or above) the current static "Processing…" placeholder — `video.sceneCount` is the value added in task 7.0
@@ -141,10 +141,10 @@ All three emission points are in `apps/api/routes/operator.ts`.
 
 The frontend calls the Fastify API directly at `NEXT_PUBLIC_API_URL` (there is no Next.js → Fastify proxy layer — `proxy.ts` is Clerk middleware, not a reverse proxy). Because the browser opens a long-lived `fetch` stream to a different origin, Fastify's CORS config must explicitly allow it.
 
-- [ ] In `apps/api/server.ts`, verify the `@fastify/cors` `origin` config includes the web app origin (e.g. `http://localhost:3000` in dev, the production domain in prod)
-- [ ] Ensure `@fastify/cors` does **not** set `Access-Control-Allow-Origin: *` — credentialed requests (Authorization header) require a specific origin, not wildcard
-- [ ] Verify `Access-Control-Expose-Headers` is not restricting `Content-Type` — SSE relies on the browser reading `Content-Type: text/event-stream` from the response
-- [ ] No timeout changes needed — browser `fetch` streams have no built-in timeout; the server heartbeat (every 15 s) keeps the TCP connection alive through idle-connection-killing proxies or CDNs
+- [x] In `apps/api/server.ts`, verify the `@fastify/cors` `origin` config includes the web app origin (e.g. `http://localhost:3000` in dev, the production domain in prod)
+- [x] Ensure `@fastify/cors` does **not** set `Access-Control-Allow-Origin: *` — credentialed requests (Authorization header) require a specific origin, not wildcard
+- [x] Verify `Access-Control-Expose-Headers` is not restricting `Content-Type` — SSE relies on the browser reading `Content-Type: text/event-stream` from the response
+- [x] No timeout changes needed — browser `fetch` streams have no built-in timeout; the server heartbeat (every 15 s) keeps the TCP connection alive through idle-connection-killing proxies or CDNs
 
 ---
 
@@ -158,27 +158,27 @@ Two bugs exist in the current retry flow. First, when the extension's manual "Re
 
 ### 8.1 — New VideoStatus: CLIPS_NEEDS_REVIEW
 
-- [ ] Add `ClipsNeedsReview = "CLIPS_NEEDS_REVIEW"` to the `VideoStatus` enum in `packages/types/src/index.ts`
-- [ ] Add `"CLIPS_NEEDS_REVIEW"` to the `status` column check constraint (or enum type) in `apps/api/lib/db/schema.ts`
-- [ ] Generate migration `0012_clips_needs_review.sql` and add to the Drizzle journal — note: `0010` and `0011` are already taken (`0010_expanded_enums.sql`, `0011_scene_count.sql` from task 7.0)
-- [ ] In `POST /api/operator/clips/:id/fail` (operator.ts): change the `pending === 0` branch so the video transitions to `"CLIPS_NEEDS_REVIEW"` instead of `"FAILED"`. The exact `NOT IN` guard stays the same to avoid overwriting `COMPLETE` / `ASSEMBLY_PENDING` / `ASSEMBLY_PROCESSING`.
-- [ ] `"FAILED"` is no longer set automatically anywhere — it can only be set by the admin confirmation endpoint (8.2 below)
+- [x] Add `ClipsNeedsReview = "CLIPS_NEEDS_REVIEW"` to the `VideoStatus` enum in `packages/types/src/index.ts`
+- [x] Add `"CLIPS_NEEDS_REVIEW"` to the `status` column check constraint (or enum type) in `apps/api/lib/db/schema.ts`
+- [x] Generate migration `0012_clips_needs_review.sql` and add to the Drizzle journal — note: `0010` and `0011` are already taken (`0010_expanded_enums.sql`, `0011_scene_count.sql` from task 7.0)
+- [x] In `POST /api/operator/clips/:id/fail` (operator.ts): change the `pending === 0` branch so the video transitions to `"CLIPS_NEEDS_REVIEW"` instead of `"FAILED"`. The exact `NOT IN` guard stays the same to avoid overwriting `COMPLETE` / `ASSEMBLY_PENDING` / `ASSEMBLY_PROCESSING`.
+- [x] `"FAILED"` is no longer set automatically anywhere — it can only be set by the admin confirmation endpoint (8.2 below)
 
 ---
 
 ### 8.2 — Admin: Confirm Failure Endpoint
 
-- [ ] Add `POST /api/admin/videos/:id/confirm-fail` to a new `apps/api/routes/admin.ts` (operator-secret-gated):
+- [x] Add `POST /api/admin/videos/:id/confirm-fail` to a new `apps/api/routes/admin.ts` (operator-secret-gated):
   - Accepts videos in `CLIPS_NEEDS_REVIEW` state only; returns `400` for any other state
   - Sets `status = 'FAILED'` and optionally accepts a `{ reason: string }` body to store in `videos.error`
   - This is the **only** code path that sets `FAILED` going forward
-- [ ] Register `adminRoutes` in `apps/api/server.ts` (same pattern as other route registrations)
+- [x] Register `adminRoutes` in `apps/api/server.ts` (same pattern as other route registrations)
 
 ---
 
 ### 8.3 — New Retry Endpoint
 
-- [ ] Add `POST /api/operator/clips/:id/retry` to `apps/api/routes/operator.ts` (operator-secret-gated):
+- [x] Add `POST /api/operator/clips/:id/retry` to `apps/api/routes/operator.ts` (operator-secret-gated):
   - Fetches the clip; returns `404` if not found, `409` if status is not `failed`
   - Atomically resets the clip row: `status → 'processing'`, `error → null`, `claimed_at → NOW()`, `processed_at → null`, `clip_url → null`
   - Sets clip to `processing` (not `queued`) because the extension opens a tab immediately — this avoids a race where the normal queue worker also claims the same clip
@@ -193,7 +193,7 @@ Two bugs exist in the current retry flow. First, when the extension's manual "Re
 
 ### 8.4 — Extension: API Client
 
-- [ ] Add `retryClip(clipId: string): Promise<{ sceneIndex: number; videoId: string }>` to `apps/extension/src/lib/api-client.ts`:
+- [x] Add `retryClip(clipId: string): Promise<{ sceneIndex: number; videoId: string }>` to `apps/extension/src/lib/api-client.ts`:
   - `POST /api/operator/clips/${clipId}/retry` via the shared `request()` helper
   - Throws on non-2xx (the caller handles the error)
 
@@ -201,23 +201,23 @@ Two bugs exist in the current retry flow. First, when the extension's manual "Re
 
 ### 8.5 — Extension: RETRY_CLIP Handler
 
-- [ ] In `apps/extension/src/background/index.ts`, rewrite the `RETRY_CLIP` case:
+- [x] In `apps/extension/src/background/index.ts`, rewrite the `RETRY_CLIP` case:
   1. Find the entry in `failedClips` (same as before)
   2. If not found, log and no-op
   3. **Before** opening a tab: call `retryClip(entry.clipId)` and `await` it
   4. If `retryClip` throws: push the entry back into `failedClips` with the new error message (`"Backend retry reset failed: <err>"`) and call `broadcastState()` — do not open a tab
   5. If `retryClip` succeeds: splice entry from `failedClips`, reset `clipRetryCount`, call `openClipTab` as before
-- [ ] Import `retryClip` from `api-client.ts`
-- [ ] The `sendResponse({ ok: true })` call moves to after the async work completes so the popup can detect failure. Because `chrome.runtime.onMessage` requires a synchronous `return true` to keep the channel open for async response, restructure with `return true` at the bottom and call `sendResponse` inside the async chain.
+- [x] Import `retryClip` from `api-client.ts`
+- [x] The `sendResponse({ ok: true })` call moves to after the async work completes so the popup can detect failure. Because `chrome.runtime.onMessage` requires a synchronous `return true` to keep the channel open for async response, restructure with `return true` at the bottom and call `sendResponse` inside the async chain.
 
 ---
 
 ### 8.6 — Frontend: CLIPS_NEEDS_REVIEW Display
 
-- [ ] In the wizard and dashboard, map `VideoStatus.ClipsNeedsReview` to a **yellow "Under Review"** badge — not red, not an error state
-- [ ] Tooltip text: "A few clips need attention — we're on it. No action needed from you."
-- [ ] Do not show a "retry" or "contact support" CTA — this status is fully operator-managed
-- [ ] The `ClipProgressPanel` (Track 7) continues to display with the per-clip failed cards visible so the operator (who is also watching the SSE stream in the popup) can see exactly which scenes failed
+- [x] In the wizard and dashboard, map `VideoStatus.ClipsNeedsReview` to a **yellow "Under Review"** badge — not red, not an error state
+- [x] Tooltip text: "A few clips need attention — we're on it. No action needed from you."
+- [x] Do not show a "retry" or "contact support" CTA — this status is fully operator-managed
+- [x] The `ClipProgressPanel` (Track 7) continues to display with the per-clip failed cards visible so the operator (who is also watching the SSE stream in the popup) can see exactly which scenes failed
 
 ---
 
@@ -233,16 +233,16 @@ The extension's `failedClips` array and session counters live entirely in servic
 
 `StoredClipStatus` (9.2) needs `videoTitle` to label clips by video in the popup. The extension only knows the title at claim time — it is not available on real-time events. This must be added to the queue response so it can be cached when the clip is first claimed.
 
-- [ ] In `GET /api/operator/queue` (operator.ts): extend the CTE `SELECT` to include `v.title AS "videoTitle"` from the already-joined `videos` table
-- [ ] Add `videoTitle: string` to the `ClaimedClip` interface in `apps/extension/src/lib/api-client.ts`
-- [ ] Add `videoTitle: string` to `TabEntry` and `FailedClipEntry` in `apps/extension/src/lib/messages.ts` so the value survives through the tab lifecycle and retry paths
-- [ ] In `sendClipToTab` and the retry path in `background/index.ts`: propagate `videoTitle` alongside the other clip fields
+- [x] In `GET /api/operator/queue` (operator.ts): extend the CTE `SELECT` to include `v.title AS "videoTitle"` from the already-joined `videos` table
+- [x] Add `videoTitle: string` to the `ClaimedClip` interface in `apps/extension/src/lib/api-client.ts`
+- [x] Add `videoTitle: string` to `TabEntry` and `FailedClipEntry` in `apps/extension/src/lib/messages.ts` so the value survives through the tab lifecycle and retry paths
+- [x] In `sendClipToTab` and the retry path in `background/index.ts`: propagate `videoTitle` alongside the other clip fields
 
 ---
 
 ### 9.1 — New Endpoint: Active Clip Statuses
 
-- [ ] Add `GET /api/operator/clips/statuses` to `apps/api/routes/operator.ts` (operator-secret-gated):
+- [x] Add `GET /api/operator/clips/statuses` to `apps/api/routes/operator.ts` (operator-secret-gated):
   - Joins `clip_requests` → `videos` → `scenes` (for `textExcerpt`) for all videos NOT in `COMPLETE`, `DRAFT`, `FAILED` states
   - Returns:
     ```
@@ -266,7 +266,7 @@ The extension's `failedClips` array and session counters live entirely in servic
 
 ### 9.2 — Extension: Persistent Clip Status Storage
 
-- [ ] Define `StoredClipStatus` interface in `apps/extension/src/lib/messages.ts`:
+- [x] Define `StoredClipStatus` interface in `apps/extension/src/lib/messages.ts`:
   ```
   {
     clipId: string;
@@ -279,32 +279,32 @@ The extension's `failedClips` array and session counters live entirely in servic
     updatedAt: number; // Date.now()
   }
   ```
-- [ ] Define `StoredClipStatusMap = Record<clipId, StoredClipStatus>` type alias
-- [ ] Add `clipStatuses: StoredClipStatusMap` to `WorkerState` so the popup always has the latest snapshot
+- [x] Define `StoredClipStatusMap = Record<clipId, StoredClipStatus>` type alias
+- [x] Add `clipStatuses: StoredClipStatusMap` to `WorkerState` so the popup always has the latest snapshot
 
 **In `apps/extension/src/background/index.ts`:**
 
-- [ ] Add module-level `const clipStatuses: StoredClipStatusMap = {}` — loaded from storage on init
-- [ ] On service-worker startup (module top-level): call `chrome.storage.local.get("clipStatuses")` and populate the in-memory map from the stored value; then broadcast state
-- [ ] Add helper `saveClipStatus(entry: StoredClipStatus): void` — updates in-memory map AND calls `chrome.storage.local.set({ clipStatuses })` (fire-and-forget)
-- [ ] In the `CLIP_DONE` handler: call `saveClipStatus` with `status: "done"`
-- [ ] In the `CLIP_FAILED` / `handleTabError` path (when `failClip` is called): call `saveClipStatus` with `status: "failed"` and the error string
-- [ ] In `openClipTab` (when a tab entry is created): call `saveClipStatus` with `status: "processing"` — this covers both fresh claims and retried clips
-- [ ] In `RETRY_CLIP` handler (after successful `retryClip` API call): call `saveClipStatus` with `status: "processing"` and `error: null` before opening the tab
-- [ ] On `CLIP_DONE` in the content-script message handler: additionally call `saveClipStatus` with `status: "done"`
-- [ ] Stale entry pruning: add `pruneOldClipStatuses()` called once on startup — removes entries where `updatedAt` is older than 7 days to prevent `chrome.storage.local` bloat
+- [x] Add module-level `const clipStatuses: StoredClipStatusMap = {}` — loaded from storage on init
+- [x] On service-worker startup (module top-level): call `chrome.storage.local.get("clipStatuses")` and populate the in-memory map from the stored value; then broadcast state
+- [x] Add helper `saveClipStatus(entry: StoredClipStatus): void` — updates in-memory map AND calls `chrome.storage.local.set({ clipStatuses })` (fire-and-forget)
+- [x] In the `CLIP_DONE` handler: call `saveClipStatus` with `status: "done"`
+- [x] In the `CLIP_FAILED` / `handleTabError` path (when `failClip` is called): call `saveClipStatus` with `status: "failed"` and the error string
+- [x] In `openClipTab` (when a tab entry is created): call `saveClipStatus` with `status: "processing"` — this covers both fresh claims and retried clips
+- [x] In `RETRY_CLIP` handler (after successful `retryClip` API call): call `saveClipStatus` with `status: "processing"` and `error: null` before opening the tab
+- [x] On `CLIP_DONE` in the content-script message handler: additionally call `saveClipStatus` with `status: "done"`
+- [x] Stale entry pruning: add `pruneOldClipStatuses()` called once on startup — removes entries where `updatedAt` is older than 7 days to prevent `chrome.storage.local` bloat
 
 **Fetching from API on startup:**
 
-- [ ] After health check succeeds in `start()`: call `GET /api/operator/clips/statuses` and merge results into `clipStatuses` (API is authoritative; local entry wins only if `updatedAt` is newer than `processedAt` from the API — handles offline edits)
-- [ ] Add `fetchClipStatuses(): Promise<void>` to `api-client.ts` that calls the new endpoint
-- [ ] On merge: for each API entry, upsert into `clipStatuses` map and persist to storage
+- [x] After health check succeeds in `start()`: call `GET /api/operator/clips/statuses` and merge results into `clipStatuses` (API is authoritative; local entry wins only if `updatedAt` is newer than `processedAt` from the API — handles offline edits)
+- [x] Add `fetchClipStatuses(): Promise<void>` to `api-client.ts` that calls the new endpoint
+- [x] On merge: for each API entry, upsert into `clipStatuses` map and persist to storage
 
 ---
 
 ### 9.3 — Extension Popup: Clip Status Board
 
-- [ ] Add a **"Clips"** tab (or collapsible section below the session stats) to the popup UI in `apps/extension/src/popup/`:
+- [x] Add a **"Clips"** tab (or collapsible section below the session stats) to the popup UI in `apps/extension/src/popup/`:
   - Reads `workerState.clipStatuses` (available via `GET_STATE` / `STATE_UPDATE`)
   - Groups entries by `videoId` → `videoTitle` as section headers
   - Within each video: renders a table row per clip:
@@ -315,8 +315,8 @@ The extension's `failedClips` array and session counters live entirely in servic
     - Column 5: "Retry" button — only shown when `status === "failed"`; clicking sends `RETRY_CLIP` message to SW
   - Empty state: "No active clips" when map is empty
   - Section is scrollable if many clips (max-height + overflow-y scroll)
-- [ ] The "Retry" button in the popup calls `chrome.runtime.sendMessage({ type: "RETRY_CLIP", clipId })` and immediately shows a spinner on that row until the next `STATE_UPDATE` arrives
-- [ ] `failedClips` array in `WorkerState` (the old session-scoped list) is kept as-is for backward compatibility but the Clip Status Board replaces it as the primary UI surface — the old "Failed clips" section in the popup can be removed or collapsed
+- [x] The "Retry" button in the popup calls `chrome.runtime.sendMessage({ type: "RETRY_CLIP", clipId })` and immediately shows a spinner on that row until the next `STATE_UPDATE` arrives
+- [x] `failedClips` array in `WorkerState` (the old session-scoped list) is kept as-is for backward compatibility but the Clip Status Board replaces it as the primary UI surface — the old "Failed clips" section in the popup can be removed or collapsed
 
 ---
 

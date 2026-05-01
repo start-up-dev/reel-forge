@@ -4,13 +4,14 @@
 **Date:** May 1, 2026  
 **Depends on:** MVP phases 1–9 + FEATURE_SPEC_v3.md tracks 1–6 + FEATURE_SPEC_v4.md tracks 7–9 complete
 
-Three feature tracks:
+Four feature tracks:
 
 | Track | Title | Scope |
 |-------|-------|-------|
 | 10 | Video Type & Style Overhaul | UGC Video + Stories, 15 UGC visual styles, AI Clone |
 | 11 | FFmpeg Pipeline Enhancements | Transitions, volume normalization, subtitle scene-boundary fix |
-| 12 | Extension Manual Submit Mode | Default flip, foreground tab, options UI guidance |
+| 13 | UGC Character Consistency | Dedicated character description generation, neutral character sheet pre-step, server-injected CHARACTER anchor |
+| 14 | Step 6 Clip Generation Live Updates | Fix clip previews not appearing, SSE stream reliability, connection status UX, queue position |
 
 ---
 
@@ -88,8 +89,8 @@ ALTER TABLE "videos" ADD COLUMN "ugc_visual_style" text;
     });
   }
   ```
-- [ ] Grep the entire `apps/api/` directory for `talkingSubtype` and `TalkingSubtype` — update every occurrence
-- [ ] Remove the import of `TalkingSubtype` from `@repo/types` everywhere it was used in the API
+- [ ] Grep the entire repo (`apps/api/`, `apps/web/`, `packages/`) for `talkingSubtype` and `TalkingSubtype` — update every occurrence. The largest surface is `apps/web/components/wizard/steps/step-1-idea.tsx` (which is substantially rewritten by Track 10.4 anyway) and `apps/web/lib/api-client.ts`
+- [ ] Remove the import of `TalkingSubtype` from `@repo/types` everywhere it was used across all workspaces
 
 ---
 
@@ -369,45 +370,296 @@ Apply single-pass EBU R128 loudness normalization to each UGC clip's audio durin
 
 ---
 
-## Track 12 — Extension: Manual Submit Mode
+## Track 13 — UGC Character Consistency
 
 ### Overview
 
-The extension already supports manual submit via the `autoClick: false` code path in `content/index.ts` (lines 132–138): when `autoClick` is false, the extension fills in the image + prompt, **highlights the Generate button in green**, and calls `waitForClick(generateBtn, 120_000)` — waiting up to 2 minutes for the operator to click. This infrastructure is complete. The only changes needed are: flip the default, open the tab in the foreground so the operator sees the highlighted button, and add guidance text in the Options UI.
+Replace the current character approach — where Claude invents a character in scene 0 and is asked to copy it verbatim into subsequent scenes — with a deterministic three-phase pipeline:
+
+- **Phase A** — Claude generates a locked character description in a dedicated pre-call, before scene generation begins
+- **Phase B** — That description drives a clean neutral character sheet image (front-facing, flat lighting, plain gradient background — a stable reference instead of a dramatically composed scene 0 shot)
+- **Phase C** — The server injects the fixed character description into every scene prompt; Claude only writes EXPRESSION, FRAMING, SETTING, LIGHTING, and COLOUR GRADE
+
+**Applies to all `ugcVisualStyle` values except `ai_clone`** — AI Clone already receives a user-uploaded face reference via Track 10.4 and uses the 10.3a CHARACTER override. Both Phase A and Phase B are skipped for `ai_clone`.
+
+**Depends on Track 10** being complete (specifically 10.0, 10.1, 10.2, 10.3).
 
 ---
 
-### 12.0 — Default and Tab Visibility
+### 13.0 — Types + Database
 
-**`apps/extension/src/lib/messages.ts`**
+**`packages/types/src/index.ts`**
 
-- [ ] Change `DEFAULT_SETTINGS.autoClick` from `true` to `false`
-- [ ] No other changes to `ExtensionSettings`, `DEFAULT_SETTINGS`, or `WorkerState`
+- [ ] Add `ugcCharacterDescription: string | null` to the `Video` interface
 
-**`apps/extension/src/background/index.ts`**
+**`apps/api/lib/db/schema.ts`**
 
-- [ ] In `openClipTab`, change the `chrome.tabs.create` call from `active: false` to `active: !settings.autoClick`:
-  ```ts
-  tab = await chrome.tabs.create({
-    url: "https://grok.com/imagine",
-    active: !settings.autoClick,  // foreground in manual mode, background in auto mode
-  });
+- [ ] Add `ugcCharacterDescription: text("ugc_character_description")` column to the `videos` table (nullable text)
+- [ ] `VideoRow` inferred type updates automatically via Drizzle `$inferSelect`
+
+**Migration file: `apps/api/lib/db/migrations/0014_ugc_character_description.sql`**
+
+```sql
+ALTER TABLE "videos" ADD COLUMN "ugc_character_description" text;
+```
+
+- [ ] Add the migration entry to `apps/api/lib/db/migrations/meta/_journal.json` as entry `0014`
+
+---
+
+### 13.1 — Character Description Prompt (`apps/api/prompts/character.ts`)
+
+- [ ] Add `buildUGCCharacterDescriptionPrompt(project: ProjectRow, ugcVisualStyle: string): PromptPair`
+
+- [ ] **System prompt:** "You are a character designer creating a locked visual identity for a short-form video character. Your output will be used as the CHARACTER section of an AI image generation prompt and must produce the same person or character reliably across many different scenes."
+
+- [ ] **User prompt:** instructs Claude to write a 50–80 word character description using exactly these five labelled lines in this order:
   ```
-  When `autoClick` is false: tab opens in the foreground immediately so the operator sees the highlighted Generate button. When `autoClick` is true: tab stays in the background as before.
+  HAIR: [exact colour, length, style, any distinguishing detail]
+  FACE: [skin tone with warmth description, eye colour, brow character]
+  CLOTHING: [specific garment + exact colour + texture detail]
+  FEATURE: [one unique anchoring detail — earring, freckle, beauty mark, tattoo, etc.]
+  BUILD: [brief impression — apparent age, physique]
+  ```
+
+- [ ] The `ugcVisualStyle` value informs the aesthetic. Inject a one-line style context into the user prompt before the output instruction based on the style key:
+
+  | `ugcVisualStyle` | Style context line |
+  |---|---|
+  | `realistic` | Natural proportions, real-world clothing and skin tones, no stylisation |
+  | `anime` | Large expressive eyes, cel-shaded skin tone, stylised hair with sharp highlights, vibrant saturated colour palette |
+  | `ghibli` | Rounded soft features, warm muted natural colours, gentle expressive eyes, painterly soft-outline feel |
+  | `pixar` | Oversized expressive eyes, smooth 3D proportions, physically-based material descriptions (subsurface skin, fabric texture) |
+  | `cartoon` | Exaggerated proportions, bold saturated colours, thick black outline feel, rubbery limbs |
+  | `mascot` | Could be any object or animal brought to life; large simplified head, oversized friendly features, bold flat colour |
+  | `comic_book` | Bold ink-line feel, high-contrast two-tone colouring, heroic or dramatic proportions |
+  | `watercolor` | Soft features, slightly blurred edges, muted pastel palette, loose organic outline |
+  | `oil_painting` | Classical portrait proportions, rich deep colours, painterly impasto texture feel |
+  | `3d_render` | Photorealistic 3D proportions, PBR-appropriate texture descriptions (SSS skin, woven fabric, specular highlights) |
+  | `cyberpunk` | Futuristic clothing with LED accents, neon-lit skin tone descriptions, chrome and glass textures |
+  | `fantasy` | Fantasy costume appropriate to the content, magical or ethereal features, rich saturated colours |
+  | `vintage` | Era-appropriate styling (70s/80s), slightly desaturated warm colour descriptions, retro clothing details |
+  | `neon_synthwave` | Synthwave outfit with neon accents, chrome reflections, electric colour palette (pink/purple/blue) |
+
+- [ ] User prompt ends with: `"Output ONLY the five-line character description. No preamble. No scene context. No explanation."`
 
 ---
 
-### 12.1 — Options UI: Manual Mode Guidance
+### 13.2 — Claude Service (`apps/api/services/claude.ts`)
 
-**`apps/extension/src/options/Options.tsx`**
+- [ ] Add `generateUGCCharacter(project: ProjectRow, ugcVisualStyle: string): Promise<string>` function
+- [ ] Builds prompt via `buildUGCCharacterDescriptionPrompt(project, ugcVisualStyle)`
+- [ ] Calls Claude with `max_tokens: 200` — the output is short and tightly bounded
+- [ ] Returns the raw text content of the response (the five-line character description string, no JSON parsing)
 
-- [ ] Below the `autoClick` toggle, when `autoClick` is `false`, display a guidance callout:
-  > *"Manual mode: the extension fills in the image and prompt, highlights the Generate button in green, then waits up to 2 minutes for you to click it. Works best with Concurrent Tabs and Batch Size both set to 1."*
-- [ ] When `autoClick` is `false` AND `concurrentTabs > 1`, display an inline yellow warning adjacent to the Concurrent Tabs input:
-  > *"Manual mode with multiple tabs is not recommended — you can only click one Generate button at a time."*
-- [ ] When `autoClick` is `false` AND `batchSize > 1`, display an inline yellow warning adjacent to the Batch Size input:
-  > *"With Concurrent Tabs set to 1, only one clip is processed at a time regardless of Batch Size. Set Batch Size to 1 to avoid claiming clips that sit idle."*
-- [ ] Do not force either field to `1` programmatically — leave both configurable. The warnings are sufficient.
+---
+
+### 13.3 — Talking Prompt Update (`apps/api/prompts/talking.ts`)
+
+- [ ] In `buildTalkingSceneMessages`: when `characterNote` (the pre-generated character description from Phase A) is provided, replace the existing CHARACTER LOCK block in the user prompt with:
+
+  ```
+  CHARACTER ANCHOR (FIXED — DO NOT MODIFY):
+  The character has already been defined. Copy the following text verbatim as your CHARACTER section in every single scene — scene 0 and all subsequent scenes. Do not invent, rephrase, summarise, or change a single word.
+
+  CHARACTER: ${characterNote}
+
+  For each scene you write ONLY: EXPRESSION, FRAMING, SETTING, LIGHTING, COLOUR GRADE.
+  The CHARACTER line in every scene is always exactly: "CHARACTER: ${characterNote}"
+  ```
+
+- [ ] Remove the "Scene 0: invent and write the complete character anchor..." and "Scenes 1+: copy the CHARACTER section from scene 0 EXACTLY..." instructions from the CHARACTER LOCK block when `characterNote` is present — they are replaced by the fixed anchor above
+- [ ] When `characterNote` is null (fallback path or non-UGC context): keep the existing CHARACTER LOCK behaviour unchanged
+
+---
+
+### 13.4 — Scene Generation Pipeline (`apps/api/routes/videos.ts`)
+
+This task modifies `processScenes` and the `splitScenes` call it makes. **Tracks 10.2 and 13.4 both touch these function signatures and must be applied together in one edit.** The final signatures after both tracks are applied:
+
+```ts
+// processScenes — talkingSubtype renamed to ugcVisualStyle (Track 10.2), no new params
+async function processScenes(
+  videoId: string,
+  script: string,
+  durationSeconds: number,
+  videoType: string,
+  renderStyle?: string | null,
+  ugcVisualStyle?: string | null,   // was: talkingSubtype
+  characterNote?: string | null,
+): Promise<void>
+
+// splitScenes in claude.ts — same rename, effectiveCharacterNote passed as characterNote
+splitScenes(script, durationSeconds, videoType, renderStyle, ugcVisualStyle, effectiveCharacterNote)
+```
+
+The changes restructure `processScenes` into this execution order:
+
+**Step 1 — Move video row query to top of function (before `splitScenes`):**
+- [ ] The current code queries the video row *after* the scene insert to read `characterBaseGcsPath`. Move this query to the very top of the `try` block — before `splitScenes` is called — and expand it to also select `ugcCharacterDescription` and `projectId`:
+  ```ts
+  const [videoRow] = await db
+    .select({
+      characterBaseGcsPath: videos.characterBaseGcsPath,
+      ugcCharacterDescription: videos.ugcCharacterDescription,
+      projectId: videos.projectId,
+    })
+    .from(videos)
+    .where(eq(videos.id, videoId))
+    .limit(1);
+  let charBase: string | null = videoRow?.characterBaseGcsPath ?? null;
+  let charBaseSignedUrl: string | null = charBase
+    ? await generateSignedReadUrl(charBase, ASSET_URL_TTL_MINUTES)
+    : null;
+  ```
+- [ ] Remove the original video row query that currently sits after the scene insert — it is fully replaced by this earlier query
+
+**Phase A — Character description (runs immediately after the video row query, before `splitScenes`):**
+- [ ] Condition: `videoType === "talking"` AND `ugcVisualStyle !== "ai_clone"`
+- [ ] If `videoRow.ugcCharacterDescription` is null (first generation):
+  - Fetch the project row: `const [project] = await db.select().from(projects).where(eq(projects.id, videoRow.projectId)).limit(1)`
+  - Call `generateUGCCharacter(project, ugcVisualStyle)`
+  - Store: `await db.update(videos).set({ ugcCharacterDescription: result, updatedAt: new Date() }).where(eq(videos.id, videoId))`
+  - Set local: `const effectiveCharacterNote = result`
+- [ ] If `videoRow.ugcCharacterDescription` is already set (re-generation — reuse, no new Claude call):
+  - Set local: `const effectiveCharacterNote = videoRow.ugcCharacterDescription`
+- [ ] For `ai_clone` or non-UGC video types: `const effectiveCharacterNote: string | null = null`
+
+**`splitScenes` call — update the existing call (do not add a new one):**
+- [ ] Pass `ugcVisualStyle` and `effectiveCharacterNote` to the existing `splitScenes` call:
+  ```ts
+  const sceneList = await splitScenes(
+    script, durationSeconds, videoType, renderStyle, ugcVisualStyle, effectiveCharacterNote,
+  );
+  ```
+
+**Phase B — Character sheet image (after scene insert, before image loop):**
+- [ ] Condition: `videoType === "talking"` AND `ugcVisualStyle !== "ai_clone"` AND `charBase` is null
+- [ ] Build the neutral character sheet prompt:
+  ```ts
+  const sheetPrompt = `CHARACTER: ${effectiveCharacterNote}. Front-facing. Neutral resting expression. Soft flat even lighting from front. Plain light gradient background. Full figure visible from head to mid-torso. 9:16 vertical frame. Character reference sheet.`;
+  ```
+- [ ] Call `generateImage(sheetPrompt)`, upload to `videos/${videoId}/character_sheet.jpg`, store as `characterBaseGcsPath` on the video, and update `charBase` / `charBaseSignedUrl` for the loop
+- [ ] If `charBase` was already set (re-generation, or AI Clone upload from Track 10.4): skip entirely
+
+**Phase C — Scene image loop (inside the existing loop):**
+- [ ] Add `const UGC_REFERENCE_STRENGTH = 0.65` constant at module level
+- [ ] Update `imagePrompt` construction — for UGC videos use `scene.visualPrompt` directly (CHARACTER is already embedded by Claude); for all other types keep `withCharacterNote`:
+  ```ts
+  const imagePrompt = videoType === "talking"
+    ? scene.visualPrompt
+    : withCharacterNote(scene.visualPrompt, characterNote);
+  ```
+- [ ] Update the `generateImageFromReference` call to pass UGC strength:
+  ```ts
+  const imageBuffer = useRef
+    ? await generateImageFromReference(
+        imagePrompt,
+        charBaseSignedUrl!,
+        videoType === "talking" ? UGC_REFERENCE_STRENGTH : 0.85,
+      )
+    : await generateImage(imagePrompt);
+  ```
+- [ ] The existing `if (scene.sceneIndex === 0 && !charBase)` block inside the loop is now unreachable for UGC videos — Phase B always sets `charBase` before the loop. Leave it in place as it remains the mechanism for non-UGC styles
+
+---
+
+## Track 14 — Step 6: Clip Generation Live Updates
+
+### Overview
+
+Two bugs prevent the "Generating clips" step from working correctly:
+
+1. **Clip previews don't appear** — completed clip URLs are signed with a short TTL in the operator `complete` endpoint. By the time the SSE event reaches the browser and React renders the `<video>` element, the URL has already expired.
+2. **Progress stops updating** — the SSE connection is established with the Clerk session token fetched at hook initialisation. Clerk tokens expire (~1 hour). When the token expires the stream silently dies; the reconnection logic re-fires but reuses the same cached stale token, so every reconnect attempt fails too.
+
+This track fixes both root causes and adds the UX polish that makes the step feel live: real connection status feedback, a heartbeat watchdog, and a working queue position indicator.
+
+No DB changes required. This track is independent of Tracks 10–13 and can be implemented in any order.
+
+---
+
+### 14.0 — Fix clip preview URL TTL (`apps/api/routes/operator.ts`)
+
+The `POST /api/operator/clips/:id/complete` endpoint signs the clip URL before embedding it in the SSE `CLIP_DONE` event. That signed URL is the one the frontend `<video>` element uses to render the preview.
+
+- [ ] Import `ASSET_URL_TTL_MINUTES` (already defined in `apps/api/routes/videos.ts`) or move it to a shared constant in `apps/api/lib/storage.ts` so both files can use it without duplication
+- [ ] In the `complete` handler, replace the short TTL used for the clip signed read URL with `ASSET_URL_TTL_MINUTES` (7 days). This single change fixes the primary bug — previews will load and remain valid for the full duration of the wizard session and beyond
+
+---
+
+### 14.1 — Fix SNAPSHOT clip URLs (`apps/api/routes/videos.ts`)
+
+The `GET /api/videos/:id/progress` SSE endpoint sends a `SNAPSHOT` event on initial connection containing all clips and their current status. For clips already in `"done"` state this snapshot includes the stored `clipUrl`. If that stored URL was signed with the short TTL it is already expired when the SNAPSHOT arrives after a reconnect.
+
+- [ ] In the SNAPSHOT builder, for any clip with `status === "done"` and a non-null `clipUrl` (GCS path): generate a fresh signed read URL using `ASSET_URL_TTL_MINUTES` instead of using the stored URL directly
+- [ ] This ensures that reconnecting to the stream after a network blip or token refresh immediately delivers valid, loadable clip previews without requiring a page reload
+
+---
+
+### 14.2 — Auth token refresh on reconnect (`apps/web/lib/hooks/useClipProgress.ts`)
+
+The hook opens the SSE stream with `Authorization: Bearer <token>` in the fetch headers. The token is obtained once and reused across reconnect attempts — if it has expired, every reconnect attempt returns a 401 and the exponential backoff eventually gives up.
+
+- [ ] On **every** reconnect attempt (including the initial connection), call `await getToken({ skipCache: true })` to obtain a guaranteed-fresh Clerk token immediately before the `fetch` call
+- [ ] Do **not** cache the token in a ref or state variable between connections — always request it fresh per connection attempt
+- [ ] This makes the SSE stream survive across the full clip generation session regardless of how long it takes
+
+---
+
+### 14.3 — Heartbeat watchdog (`apps/web/lib/hooks/useClipProgress.ts`)
+
+The SSE heartbeat is emitted every 15 seconds by the server. If the connection silently drops (TCP timeout, mobile network switch, laptop sleep), no error event fires — the fetch stream just stops producing data. The current code has no mechanism to detect this.
+
+- [ ] Add a watchdog timer: reset a 45-second `setTimeout` on every received SSE event (any type — SNAPSHOT, CLIP_DONE, HEARTBEAT, etc.)
+- [ ] If the timer fires without being reset, the stream is considered stale: cancel the current fetch, clear the timer, and trigger the same reconnect path used for explicit errors (exponential backoff starting at 1 s)
+- [ ] Clear the watchdog timer on unmount so it does not fire after the component is gone
+
+---
+
+### 14.4 — Connection status UI (`apps/web/components/wizard/ClipProgressPanel.tsx`)
+
+The panel already has a pulsing green dot for "connected". Add two additional states so the user knows when updates have paused.
+
+- [ ] Expose a `connectionStatus: "connected" | "reconnecting" | "lost"` prop on `ClipProgressPanel`. The hook (`useClipProgress`) must return this value in addition to the clips map:
+  - `"connected"` — stream is active and receiving events
+  - `"reconnecting"` — a reconnect attempt is in progress (backoff timer running or fetch in flight)
+  - `"lost"` — reconnect attempts have been exhausted (current max retries exceeded)
+- [ ] Render the connection indicator based on this value:
+  - `"connected"` → pulsing green dot + "Live" label (existing behaviour)
+  - `"reconnecting"` → pulsing amber dot + "Reconnecting…" label
+  - `"lost"` → static grey dot + "Connection lost" label + a "Retry" button that resets the backoff counter and triggers a fresh connection attempt
+- [ ] The `"lost"` state should not auto-advance to a broken Step 7 — keep the user on Step 6 with the retry option visible
+
+---
+
+### 14.5 — Queue position (`apps/web/components/wizard/steps/step-6-processing.tsx` + `apps/api/routes/videos.ts`)
+
+The queue position is currently hardcoded to `useState(0)` and never updates. The timeline shows "Position #N in queue" but N is always 0.
+
+**Backend — add `queuePosition` to the SSE SNAPSHOT:**
+- [ ] In the `GET /api/videos/:id/progress` SNAPSHOT builder, compute the video's queue position: count the number of distinct videos whose clips are ahead in the queue. Wrap the subquery in a `CASE` to guard against NULL when the video has no queued clips (all clips already processing or done):
+  ```sql
+  SELECT CASE
+    WHEN NOT EXISTS (
+      SELECT 1 FROM clip_requests WHERE video_id = $1 AND status = 'queued'
+    ) THEN 0
+    ELSE (
+      SELECT COUNT(DISTINCT video_id) FROM clip_requests
+      WHERE status = 'queued'
+        AND queued_at < (
+          SELECT MIN(queued_at) FROM clip_requests
+          WHERE video_id = $1 AND status = 'queued'
+        )
+    )
+  END AS queue_position
+  ```
+- [ ] Include `queuePosition: number` in the SNAPSHOT event payload. The `CASE` guard ensures this always returns `0` (never NULL) when the video's clips have already started processing
+- [ ] Add a new `QUEUE_POSITION` SSE event type emitted from the operator `GET /queue` claim endpoint: after claiming clips, emit a `QUEUE_POSITION: 0` event to the video's SSE subscribers to signal it has reached the front. No additional DB query needed — the claim itself proves position 0
+
+**Frontend — consume `queuePosition` from SNAPSHOT:**
+- [ ] In `useClipProgress`, add `queuePosition: number` to the returned state, initialised from the SNAPSHOT payload and updated by `QUEUE_POSITION` events
+- [ ] In `step-6-processing.tsx`, replace `const [queuePosition] = useState(0)` with the value from `useClipProgress`. The existing queue position display and estimated wait time calculation are already wired to this variable — no further UI changes needed
 
 ---
 
@@ -417,32 +669,42 @@ The extension already supports manual submit via the `autoClick: false` code pat
 Day 1 — Types and DB (no runtime impact, unblocks everything)
   10.0 — UGCVisualStyle enum, remove TalkingSubtype, update Video interface in @repo/types
   10.1 — schema.ts update + migration 0013_ugc_visual_style.sql
+  13.0 — ugcCharacterDescription column in schema.ts + Video interface + migration 0014_ugc_character_description.sql
   Run: pnpm --filter @repo/api db:migrate
 
 Day 2 — Backend prompt and API
-  10.2 — Replace talkingSubtype with ugcVisualStyle in all API routes (grep-driven) + AI Clone guard
+  10.2 — Replace talkingSubtype with ugcVisualStyle in all routes + grep apps/api/ apps/web/ packages/ (Track 10.2 and 13.4 share processScenes/splitScenes — apply both signature changes in one edit)
   10.2 — New endpoint: POST /api/videos/:id/character-image/upload-url
   10.3 — talking.ts: UGC_VISUAL_STYLE_MODIFIERS (14 standard styles) + AI Clone override (10.3a)
+  13.1 — character.ts: buildUGCCharacterDescriptionPrompt (14 style context entries)
+  13.2 — claude.ts: generateUGCCharacter service function
+  13.3 — talking.ts: fixed-anchor CHARACTER LOCK block when characterNote is provided
+  13.4 — videos.ts: move video row query to top, Phase A before splitScenes, Phase B after scene insert, Phase C in image loop
+
+Day 2.5 (independent of Track 10/13 — can run in parallel) — Step 6 live updates
+  14.0 — operator.ts: fix clip complete endpoint to use ASSET_URL_TTL_MINUTES (quickest fix, highest impact)
+  14.1 — videos.ts: fix SNAPSHOT to re-sign done clip URLs with ASSET_URL_TTL_MINUTES
+  14.2 — useClipProgress.ts: getToken({ skipCache: true }) on every reconnect attempt
+  14.3 — useClipProgress.ts: 45-second heartbeat watchdog + reconnect trigger
+  14.4 — ClipProgressPanel.tsx: connectionStatus prop + amber/grey dot states + Retry button
+  14.5 — Backend SNAPSHOT queuePosition (with NULL guard) + QUEUE_POSITION event; frontend useClipProgress + step-6 wiring
 
 Day 3 — FFmpeg enhancements (all three are independent)
   11.1 — Volume normalization: normalizeAudio flag in normalizeClip / normalizeAllClips (quickest)
   11.0 — concatenateWithTransitions + getTransitionPreset + wire into assemble.ts
   11.2 — Subtitle scene boundary fix: groupWords + generateSubtitles + assemble.ts wiring
 
-Day 4 — Extension
-  12.0 — DEFAULT_SETTINGS.autoClick = false + active: !settings.autoClick in openClipTab
-  12.1 — Options UI guidance text and warning
+Day 4 — Frontend wizard
+  10.4 — Type picker + UGC visual style grid + AI Clone upload sub-step + label updates throughout (step-1-idea.tsx is a near-full rewrite; TalkingSubtype cleanup in this file was already handled in Day 2 grep pass)
 
-Day 5 — Frontend wizard
-  10.4 — Type picker + UGC visual style grid + AI Clone upload sub-step + label updates throughout
-
-Day 6 — End-to-end verification
-  UGC Anime style: verify scene prompts include anime visual modifier
-  UGC AI Clone: upload base image → verify all clip_requests use it as baseImageUrl
+Day 5 — End-to-end verification
+  UGC Anime style: verify scene prompts include anime visual modifier; verify ugcCharacterDescription stored on video row with HAIR/FACE/CLOTHING/FEATURE/BUILD fields; verify character_sheet.jpg generated in GCS; verify all scene images use strength 0.65
+  UGC AI Clone: upload base image → verify Phase A and Phase B skipped; verify all clip_requests use user-uploaded image as baseImageUrl
+  UGC Realistic: check that CHARACTER section is identical word-for-word in every scene's visualPrompt
   Transitions: assembled video has smooth fades between clips; single-clip video assembles cleanly
   Volume: UGC assembled video has consistent loudness across clips; verify loudnorm in FFmpeg stderr
   Subtitles: 4-clip video with GroupedBold style never shows a group spanning a scene cut
-  Manual submit: extension fills image+prompt, tab opens in foreground, Generate button glows green, clicking it proceeds to capture; auto mode still works in background tabs
+  Step 6: completed clip <video> elements load and play immediately after CLIP_DONE event; reconnecting after killing API server shows amber dot then green dot with clips intact; queue position shows correct number on initial load and drops to 0 once clips start processing
 ```
 
 ---
@@ -453,12 +715,21 @@ Day 6 — End-to-end verification
 |------|-----------|
 | **10.0 Types** | `UGCVisualStyle` enum with 15 values exported from `@repo/types`; `TalkingSubtype` removed; `Video.ugcVisualStyle: UGCVisualStyle \| null` exists; `pnpm check-types` passes across all workspaces with zero errors |
 | **10.1 Migration** | `pnpm --filter @repo/api db:migrate` runs cleanly; `videos.ugc_visual_style` column exists as `text`; `videos.talking_subtype` column is gone; `talking_subtype` pg enum type is dropped |
-| **10.2 API** | Video create and patch accept `ugcVisualStyle`; scene generation reads `video.ugcVisualStyle`; attempting scene generation on an ai_clone video with no `characterBaseGcsPath` returns HTTP 400 with code `AI_CLONE_IMAGE_REQUIRED`; no remaining references to `talkingSubtype` in `apps/api/` |
+| **10.2 API** | Video create and patch accept `ugcVisualStyle`; scene generation reads `video.ugcVisualStyle`; attempting scene generation on an ai_clone video with no `characterBaseGcsPath` returns HTTP 400 with code `AI_CLONE_IMAGE_REQUIRED`; no remaining references to `talkingSubtype` or `TalkingSubtype` anywhere in `apps/api/`, `apps/web/`, or `packages/` |
 | **10.3 Prompts** | All 14 standard `UGC_VISUAL_STYLE_MODIFIERS` entries defined; selecting Anime produces a scene prompt containing cel-shading and anime colour palette language; selecting Ghibli produces watercolour and painterly language; `ai_clone` map entry is present but the override check fires first so it is never reached |
 | **10.3a AI Clone** | When `ugcVisualStyle === "ai_clone"`, the CHARACTER section in every generated scene says "Use the face, hair, skin tone, and identity from the uploaded reference image" — not an invented character |
 | **10.4 Frontend** | Wizard opens with UGC/Stories type picker; selecting UGC shows 15-card visual style grid; selecting AI Clone reveals image upload sub-step; `POST /api/videos/:id/character-image/upload-url` returns a signed URL; upload stores path as `characterBaseGcsPath`; advance button disabled until image uploaded; selecting Stories shows RenderStyle grid; re-entering the wizard for an existing video pre-selects the saved type and style; all wizard labels say "UGC Video" and "Stories" |
 | **11.0 Transitions** | Assembled UGC video shows smooth 0.3 s cross-dissolve between clips; assembled Stories/Cinematic video shows 0.5 s fade; single-clip video assembles without error; a video where `preset.duration` would exceed shortest clip duration assembles successfully (clamped) |
 | **11.1 Volume** | UGC assembled video has consistent perceived loudness when clips had different original volumes; FFmpeg args for each UGC normalizeClip call include `-af loudnorm=...` (not `-filter_complex`); Stories clip normalization does NOT include loudnorm |
 | **11.2 Subtitles** | A UGC video with GroupedBold subtitles has no subtitle group whose start time is from one scene and end time from a different scene; subtitle `.ass` file for a 4-clip video has forced group breaks at each cumulative clip boundary |
-| **12.0 Extension** | `DEFAULT_SETTINGS.autoClick` is `false`; with autoClick off, a new Grok tab opens in the foreground with the Generate button highlighted green and the tab stays open waiting; with autoClick on, tab opens in background and auto-submits as before |
-| **12.1 Options UI** | Options page shows guidance callout when autoClick is off; yellow warning appears when autoClick is off AND concurrentTabs > 1; no forced constraint on concurrentTabs |
+| **13.0 Types + DB** | `Video.ugcCharacterDescription: string \| null` in `@repo/types`; `videos.ugc_character_description` text column exists after migration 0014; `pnpm check-types` passes across all workspaces |
+| **13.1 Character prompt** | `buildUGCCharacterDescriptionPrompt` exists in `character.ts`; realistic style produces natural-proportions language; anime style produces large-eyes/cel-shaded language; output format is exactly five labelled lines (HAIR, FACE, CLOTHING, FEATURE, BUILD) |
+| **13.2 Claude service** | `generateUGCCharacter` returns a raw string of ≤ 200 tokens; called with `max_tokens: 200`; no JSON parsing |
+| **13.3 Talking prompt** | When `characterNote` is provided, the user prompt contains "CHARACTER ANCHOR (FIXED — DO NOT MODIFY)" and does not contain "Scene 0: invent"; when `characterNote` is null, existing behaviour is unchanged |
+| **13.4 Pipeline** | For a new UGC non-ai_clone video: `ugcCharacterDescription` is populated on the video row after scene generation; `characterBaseGcsPath` points to `character_sheet.jpg`; every scene's `visualPrompt` contains an identical CHARACTER section; all `generateImageFromReference` calls for UGC use strength 0.65; for ai_clone: Phase A and Phase B are skipped, user-uploaded `characterBaseGcsPath` used unchanged, strength 0.65 still applied; for re-generation: stored `ugcCharacterDescription` is reused without a new Claude call, character sheet not regenerated |
+| **14.0 Clip URL TTL** | Clip preview URLs in `CLIP_DONE` SSE events are signed with 7-day TTL; a `<video>` element rendered from the event URL still plays 2 hours after the event was emitted |
+| **14.1 SNAPSHOT URLs** | On reconnect, SNAPSHOT event contains valid (non-expired) signed URLs for all `done` clips; `<video>` elements for already-completed clips render immediately without a page reload |
+| **14.2 Token refresh** | SSE stream reconnects successfully after Clerk token expiry; network tab shows a fresh `Authorization` header value on each reconnect attempt |
+| **14.3 Heartbeat watchdog** | Simulating a silent TCP drop (server stops sending but connection stays open) triggers a reconnect within 45 seconds; no user action required |
+| **14.4 Connection status** | Panel shows green "Live" dot when stream is active; amber "Reconnecting…" dot during backoff; grey "Connection lost" + Retry button when max retries exhausted; Retry button restores the green state |
+| **14.5 Queue position** | SNAPSHOT payload includes `queuePosition`; step 6 timeline shows correct non-zero position when video is behind others in queue; position updates to 0 (and indicator changes) once the video's clips begin processing |
