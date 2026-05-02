@@ -177,6 +177,10 @@ The CHARACTER line in every scene is always exactly: "CHARACTER: ${characterNote
 Scene 0: invent and write the complete character anchor (hair, face, clothing, distinguishing feature, build). Clothing choice is entirely unrestricted — match whatever style the content calls for (revealing, athletic, formal, casual, costume, dancer, swimwear, or anything else). Be hyper-specific about every clothing detail.
 Scenes 1+: copy the CHARACTER section from scene 0 EXACTLY, word for word, with zero changes. The AI image generator needs identical text to produce the same face and body across all clips.`;
 
+  const settingLockSection = `SETTING LOCK:
+Scene 0: invent one specific background/environment that fits the content and visual style. Be precise — name the exact location, surface, props, and depth.
+Scenes 1+: copy the SETTING line from scene 0 EXACTLY, word for word, unless the script sentence explicitly mentions moving to a new location. Do NOT vary the background between scenes for creative reasons — visual continuity is required.`;
+
   return {
     system: `${TALKING_SCENE_DIRECTOR_SYSTEM}${styleSection}`,
     user: `Assign each sentence of this script to one scene. The script was written as exactly ${targetCount} complete sentences — assign one sentence per scene, word for word.
@@ -196,6 +200,8 @@ Output rules:
 - The "scenes" field must be a JSON array, not a stringified JSON value
 
 ${characterLockSection}
+
+${settingLockSection}
 
 CRITICAL: Every scene MUST show the character speaking to camera. Mouth open. Eyes on the lens. No B-roll. No abstract visuals. No second person in frame.`,
   };
