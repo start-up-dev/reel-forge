@@ -42,6 +42,16 @@ export const subtitleStyleEnum = pgEnum("subtitle_style", [
   "karaoke",
 ]);
 
+export const renderStyleEnum = pgEnum("render_style", [
+  "mascot",
+  "cartoon",
+  "animation_2d",
+  "motion_graphics",
+  "cinematic",
+  "stock_footage",
+  "whiteboard",
+]);
+
 export const videoTypeEnum = pgEnum("video_type", ["generated", "talking"]);
 
 export const users = pgTable("users", {
@@ -63,6 +73,7 @@ export const videos = pgTable("videos", {
   bgmAssetId: text("bgm_asset_id"),
   bgmVolume: integer("bgm_volume").notNull().default(15),
   videoType: videoTypeEnum("video_type").notNull().default("generated"),
+  renderStyle: renderStyleEnum("render_style"),
   voiceSpeed: real("voice_speed").notNull().default(1.0),
   characterBaseGcsPath: text("character_base_gcs_path"),
   outputUrl: text("output_url"),

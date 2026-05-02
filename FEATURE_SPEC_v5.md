@@ -30,7 +30,7 @@ The `VideoType` enum DB values (`"generated"`, `"talking"`) do not change — on
 
 ### 10.0 — Shared Types (`packages/types/src/index.ts`)
 
-- [ ] Add `UGCVisualStyle` enum **before** the `VideoType` enum:
+- [x] Add `UGCVisualStyle` enum **before** the `VideoType` enum:
   ```ts
   export enum UGCVisualStyle {
     Realistic     = "realistic",
@@ -50,9 +50,9 @@ The `VideoType` enum DB values (`"generated"`, `"talking"`) do not change — on
     AIClone       = "ai_clone",
   }
   ```
-- [ ] Remove `TalkingSubtype` enum entirely (breaking; handled by DB migration 10.1 and prompt change 10.3)
-- [ ] In the `Video` interface: replace `talkingSubtype: TalkingSubtype | null` with `ugcVisualStyle: UGCVisualStyle | null`
-- [ ] The `VideoType` enum values stay unchanged (`Generated = "generated"`, `Talking = "talking"`)
+- [x] Remove `TalkingSubtype` enum entirely (breaking; handled by DB migration 10.1 and prompt change 10.3)
+- [x] In the `Video` interface: replace `talkingSubtype: TalkingSubtype | null` with `ugcVisualStyle: UGCVisualStyle | null`
+- [x] The `VideoType` enum values stay unchanged (`Generated = "generated"`, `Talking = "talking"`)
 
 ---
 
@@ -60,10 +60,10 @@ The `VideoType` enum DB values (`"generated"`, `"talking"`) do not change — on
 
 **`apps/api/lib/db/schema.ts`**
 
-- [ ] Remove the `talkingSubtypeEnum` pgEnum declaration
-- [ ] Remove the `talkingSubtype: talkingSubtypeEnum("talking_subtype")` column from the `videos` table definition
-- [ ] Add `ugcVisualStyle: text("ugc_visual_style")` column to the `videos` table (nullable text — not a pgEnum, avoids migrations when adding future styles)
-- [ ] `VideoRow` inferred type updates automatically via Drizzle `$inferSelect`
+- [x] Remove the `talkingSubtypeEnum` pgEnum declaration
+- [x] Remove the `talkingSubtype: talkingSubtypeEnum("talking_subtype")` column from the `videos` table definition
+- [x] Add `ugcVisualStyle: text("ugc_visual_style")` column to the `videos` table (nullable text — not a pgEnum, avoids migrations when adding future styles)
+- [x] `VideoRow` inferred type updates automatically via Drizzle `$inferSelect`
 
 **Migration file: `apps/api/lib/db/migrations/0013_ugc_visual_style.sql`**
 
@@ -73,15 +73,15 @@ DROP TYPE IF EXISTS "public"."talking_subtype";
 ALTER TABLE "videos" ADD COLUMN "ugc_visual_style" text;
 ```
 
-- [ ] Add the migration entry to `apps/api/lib/db/migrations/meta/_journal.json` as entry `0013`
+- [x] Add the migration entry to `apps/api/lib/db/migrations/meta/_journal.json` as entry `0013`
 
 ---
 
 ### 10.2 — API: Replace `talkingSubtype` with `ugcVisualStyle`
 
-- [ ] In all video create and patch request body schemas (`apps/api/routes/videos.ts` and any other route that accepts video fields): replace the `talkingSubtype` field with `ugcVisualStyle` (type: string, optional)
-- [ ] In the scene-generation pipeline (wherever `video.talkingSubtype` was read to select the prompt modifier): replace with `video.ugcVisualStyle`
-- [ ] **AI Clone guard** — in the scene-generation route, before dispatching to the prompt builder, add a validation check:
+- [x] In all video create and patch request body schemas (`apps/api/routes/videos.ts` and any other route that accepts video fields): replace the `talkingSubtype` field with `ugcVisualStyle` (type: string, optional)
+- [x] In the scene-generation pipeline (wherever `video.talkingSubtype` was read to select the prompt modifier): replace with `video.ugcVisualStyle`
+- [x] **AI Clone guard** — in the scene-generation route, before dispatching to the prompt builder, add a validation check:
   ```ts
   if (video.ugcVisualStyle === "ai_clone" && !video.characterBaseGcsPath) {
     return reply.code(400).send({
@@ -89,8 +89,8 @@ ALTER TABLE "videos" ADD COLUMN "ugc_visual_style" text;
     });
   }
   ```
-- [ ] Grep the entire repo (`apps/api/`, `apps/web/`, `packages/`) for `talkingSubtype` and `TalkingSubtype` — update every occurrence. The largest surface is `apps/web/components/wizard/steps/step-1-idea.tsx` (which is substantially rewritten by Track 10.4 anyway) and `apps/web/lib/api-client.ts`
-- [ ] Remove the import of `TalkingSubtype` from `@repo/types` everywhere it was used across all workspaces
+- [x] Grep the entire repo (`apps/api/`, `apps/web/`, `packages/`) for `talkingSubtype` and `TalkingSubtype` — update every occurrence. The largest surface is `apps/web/components/wizard/steps/step-1-idea.tsx` (which is substantially rewritten by Track 10.4 anyway) and `apps/web/lib/api-client.ts`
+- [x] Remove the import of `TalkingSubtype` from `@repo/types` everywhere it was used across all workspaces
 
 ---
 
@@ -98,9 +98,9 @@ ALTER TABLE "videos" ADD COLUMN "ugc_visual_style" text;
 
 Replace `TALKING_SUBTYPE_MODIFIERS` with `UGC_VISUAL_STYLE_MODIFIERS` keyed by `UGCVisualStyle` values.
 
-- [ ] Remove `TalkingSubtypeModifier` interface and `TALKING_SUBTYPE_MODIFIERS` export
-- [ ] Add `UGCVisualStyleModifier` interface (same shape as the removed one: `{ visual: string; motion: string }`)
-- [ ] Add `UGC_VISUAL_STYLE_MODIFIERS: Record<string, UGCVisualStyleModifier>` with one entry per `UGCVisualStyle` value. Use the `visual` field to describe the art-direction for the CHARACTER and SETTING sections of the scene prompt; use the `motion` field for delivery and camera style. Full values:
+- [x] Remove `TalkingSubtypeModifier` interface and `TALKING_SUBTYPE_MODIFIERS` export
+- [x] Add `UGCVisualStyleModifier` interface (same shape as the removed one: `{ visual: string; motion: string }`)
+- [x] Add `UGC_VISUAL_STYLE_MODIFIERS: Record<string, UGCVisualStyleModifier>` with one entry per `UGCVisualStyle` value. Use the `visual` field to describe the art-direction for the CHARACTER and SETTING sections of the scene prompt; use the `motion` field for delivery and camera style. Full values:
 
   | Key | `visual` | `motion` |
   |-----|----------|---------|
@@ -120,14 +120,14 @@ Replace `TALKING_SUBTYPE_MODIFIERS` with `UGC_VISUAL_STYLE_MODIFIERS` keyed by `
   | `neon_synthwave` | Retrowave aesthetic: neon pinks, purples, and electric blues against a dark grid-horizon background. Chrome and glass textures. Character has synthwave outfit with neon accents. Deep shadow with coloured rim lights. | High-energy, confident delivery. The character owns every word. Slow camera pull-back to reveal the neon landscape. |
   | `ai_clone` | **Intentionally unreachable — see 10.3a.** This entry exists only as documentation. The `buildTalkingSceneMessages` function checks `if (ugcVisualStyle === "ai_clone")` before consulting the map and injects the override block instead. This map entry is never evaluated at runtime. | *(same — unreachable)* |
 
-- [ ] Update `buildTalkingSceneMessages` signature: replace `subtype?: string` parameter with `ugcVisualStyle?: string`; use `UGC_VISUAL_STYLE_MODIFIERS[ugcVisualStyle]` to look up the modifier
-- [ ] Update the section header in the injected prompt: replace `## Subtype rules: ${subtype}` with `## Visual style: ${ugcVisualStyle?.replace(/_/g, " ").toUpperCase()}`
+- [x] Update `buildTalkingSceneMessages` signature: replace `subtype?: string` parameter with `ugcVisualStyle?: string`; use `UGC_VISUAL_STYLE_MODIFIERS[ugcVisualStyle]` to look up the modifier
+- [x] Update the section header in the injected prompt: replace `## Subtype rules: ${subtype}` with `## Visual style: ${ugcVisualStyle?.replace(/_/g, " ").toUpperCase()}`
 
 **10.3a — AI Clone special case**
 
 The `ai_clone` style does not generate a character description — the character's appearance comes from the uploaded reference image.
 
-- [ ] When `ugcVisualStyle === "ai_clone"`: inject a different section into the system prompt instead of the normal visual modifier:
+- [x] When `ugcVisualStyle === "ai_clone"`: inject a different section into the system prompt instead of the normal visual modifier:
 
   ```
   ## Visual style: AI CLONE
@@ -141,7 +141,7 @@ The `ai_clone` style does not generate a character description — the character
   All other sections (EXPRESSION, FRAMING, SETTING, LIGHTING, COLOUR GRADE) follow the standard realistic rules.
   ```
 
-- [ ] Implement this override in `buildTalkingSceneMessages`: check `if (ugcVisualStyle === "ai_clone")` before looking up `UGC_VISUAL_STYLE_MODIFIERS`, and inject the override block instead
+- [x] Implement this override in `buildTalkingSceneMessages`: check `if (ugcVisualStyle === "ai_clone")` before looking up `UGC_VISUAL_STYLE_MODIFIERS`, and inject the override block instead
 
 ---
 
@@ -149,10 +149,10 @@ The `ai_clone` style does not generate a character description — the character
 
 **Step 1 of the video creation wizard (`apps/web/`)**
 
-- [ ] Add a top-level **video type picker** as the first choice when creating a video. Two options:
+- [x] Add a top-level **video type picker** as the first choice when creating a video. Two options:
   - **UGC Video** — "AI-generated talking character with lipsync. Pick your visual style below."
   - **Stories** — "Voiceover-driven B-roll. No on-screen character speaking."
-- [ ] When **UGC Video** is selected: show a 15-card visual style grid (one card per `UGCVisualStyle`). Each card shows: style name + one-line description. Cards are organised in a 3-column grid. Selected card uses the `--accent-primary` border highlight (same pattern as other wizard pickers).
+- [x] When **UGC Video** is selected: show a 15-card visual style grid (one card per `UGCVisualStyle`). Each card shows: style name + one-line description. Cards are organised in a 3-column grid. Selected card uses the `--accent-primary` border highlight (same pattern as other wizard pickers).
   - **AI Clone card special behaviour**: when selected, show an inline image upload sub-step below the grid — "Upload your character image (face reference)". Flow:
     1. Frontend calls `POST /api/videos/:id/character-image/upload-url` (new endpoint — see below) → receives `{ uploadUrl: string; gcsPath: string }`
     2. Frontend `PUT`s the image bytes directly to the signed GCS `uploadUrl`
@@ -160,16 +160,16 @@ The `ai_clone` style does not generate a character description — the character
     4. Advance button is disabled until `characterBaseGcsPath` is set on the video
   - Accepted file types: `image/jpeg`, `image/png`, `image/webp`. Max size: 10 MB. Required before advancing.
   - All other UGC style cards advance without extra sub-steps.
-- [ ] **New API endpoint: `POST /api/videos/:id/character-image/upload-url`** (add to `apps/api/routes/videos.ts`, Clerk-auth-gated, same ownership check as other video routes):
+- [x] **New API endpoint: `POST /api/videos/:id/character-image/upload-url`** (add to `apps/api/routes/videos.ts`, Clerk-auth-gated, same ownership check as other video routes):
   - Generates a GCS signed PUT URL for `videos/${videoId}/character_base.<ext>` (derive extension from the `contentType` body param)
   - Body: `{ contentType: "image/jpeg" | "image/png" | "image/webp" }`
   - Returns: `{ data: { uploadUrl: string; gcsPath: string } }`
   - Uses the existing `generateSignedUploadUrl` helper from `apps/api/lib/storage.ts` (same pattern as clip upload-url endpoint in operator routes)
-- [ ] When **Stories** is selected: show the existing `RenderStyle` 7-card grid unchanged.
-- [ ] Update all wizard labels: everywhere "Talking Video" appears, replace with "UGC Video"; everywhere "Generated Video" appears, replace with "Stories".
-- [ ] Remove all references to `TalkingSubtype` in wizard components. The `ugcVisualStyle` field is the new field sent to the API on video creation/patch.
-- [ ] **Wizard state restoration** — when a user opens the wizard for an existing video (e.g. navigating back, or re-entering the wizard), pre-select the saved values: if `video.videoType === "talking"` pre-select UGC Video and highlight `video.ugcVisualStyle` in the style grid; if `video.videoType === "generated"` pre-select Stories and highlight `video.renderStyle`. If `video.ugcVisualStyle === "ai_clone"` and `video.characterBaseGcsPath` is already set, show a thumbnail of the uploaded image with a "Replace" option instead of the blank upload prompt.
-- [ ] `characterBaseGcsPath` note: this field already exists on `Video` and was previously described as "cartoon/mascot only". Remove that restriction — it is now used for AI Clone as the face reference image. No DB change needed.
+- [x] When **Stories** is selected: show the existing `RenderStyle` 7-card grid unchanged.
+- [x] Update all wizard labels: everywhere "Talking Video" appears, replace with "UGC Video"; everywhere "Generated Video" appears, replace with "Stories".
+- [x] Remove all references to `TalkingSubtype` in wizard components. The `ugcVisualStyle` field is the new field sent to the API on video creation/patch.
+- [x] **Wizard state restoration** — when a user opens the wizard for an existing video (e.g. navigating back, or re-entering the wizard), pre-select the saved values: if `video.videoType === "talking"` pre-select UGC Video and highlight `video.ugcVisualStyle` in the style grid; if `video.videoType === "generated"` pre-select Stories and highlight `video.renderStyle`. If `video.ugcVisualStyle === "ai_clone"` and `video.characterBaseGcsPath` is already set, show a thumbnail of the uploaded image with a "Replace" option instead of the blank upload prompt.
+- [x] `characterBaseGcsPath` note: this field already exists on `Video` and was previously described as "cartoon/mascot only". Remove that restriction — it is now used for AI Clone as the face reference image. No DB change needed.
 
 ---
 
@@ -203,10 +203,10 @@ All three changes are independent and can be implemented in any order.
 
 **Changes:**
 
-- [ ] Add `TransitionPreset` type: `{ transition: string; duration: number }`
-- [ ] Add `TRANSITION_PRESETS` constant that encodes the table above as a lookup structure
-- [ ] Add `getTransitionPreset(videoType: string, renderStyle: string | null): TransitionPreset` — returns the preset from the table; falls back to `{ transition: "fade", duration: 0.4 }` for unrecognised values
-- [ ] Add `concatenateWithTransitions(normalizedPaths: string[], preset: TransitionPreset, dir: string): Promise<string>`:
+- [x] Add `TransitionPreset` type: `{ transition: string; duration: number }`
+- [x] Add `TRANSITION_PRESETS` constant that encodes the table above as a lookup structure
+- [x] Add `getTransitionPreset(videoType: string, renderStyle: string | null): TransitionPreset` — returns the preset from the table; falls back to `{ transition: "fade", duration: 0.4 }` for unrecognised values
+- [x] Add `concatenateWithTransitions(normalizedPaths: string[], preset: TransitionPreset, dir: string): Promise<string>`:
 
   **Algorithm:**
 
@@ -248,13 +248,13 @@ All three changes are independent and can be implemented in any order.
      > **CRF 18 here, not 23.** `burnSubtitles` (and `mixAudio` for generated videos) will re-encode this output again. Using CRF 18 for the intermediate file preserves more quality headroom before the second encode. The final output (`burnSubtitles`) uses CRF 23 as before.
   7. Return `join(dir, "concatenated.mp4")`.
 
-- [ ] Keep the existing `concatenateClips` function in place — it is still referenced in tests or may be needed as a fallback. Do not delete it.
-- [ ] Note: `xfade` and `acrossfade` require FFmpeg ≥ 4.3. The Docker image (`jrottenberg/ffmpeg:latest`) satisfies this. No Dockerfile changes needed.
+- [x] Keep the existing `concatenateClips` function in place — it is still referenced in tests or may be needed as a fallback. Do not delete it.
+- [x] Note: `xfade` and `acrossfade` require FFmpeg ≥ 4.3. The Docker image (`jrottenberg/ffmpeg:latest`) satisfies this. No Dockerfile changes needed.
 
 **`apps/worker/src/assemble.ts`**
 
-- [ ] Import `concatenateWithTransitions` and `getTransitionPreset` from `./ffmpeg.js`
-- [ ] In **both** the UGC/talking branch and the generated/stories branch: replace the call to `concatenateClips(normalizedPaths, assets.dir)` with:
+- [x] Import `concatenateWithTransitions` and `getTransitionPreset` from `./ffmpeg.js`
+- [x] In **both** the UGC/talking branch and the generated/stories branch: replace the call to `concatenateClips(normalizedPaths, assets.dir)` with:
   ```ts
   const transitionPreset = getTransitionPreset(video.videoType, video.renderStyle ?? null);
   const concatenatedPath = await concatenateWithTransitions(normalizedPaths, transitionPreset, assets.dir);
@@ -266,8 +266,8 @@ All three changes are independent and can be implemented in any order.
 
 Apply single-pass EBU R128 loudness normalization to each UGC clip's audio during the normalize step, so clips with different recorded loudness levels play at consistent perceived volume in the final assembled video.
 
-- [ ] Add `normalizeAudio: boolean = false` parameter to `normalizeClip(clip: ClipEntry, dir: string, normalizeAudio = false): Promise<string>`
-- [ ] When `normalizeAudio === true` AND the clip has audio (`hasAudio === true`): add `-af "loudnorm=I=-23:TP=-1.5:LRA=11"` to the FFmpeg args alongside the existing `-vf` video filter. **Do not use `-filter_complex` here** — it conflicts with `-vf` and FFmpeg will reject the command. `-af` and `-vf` coexist correctly as separate filter chains.
+- [x] Add `normalizeAudio: boolean = false` parameter to `normalizeClip(clip: ClipEntry, dir: string, normalizeAudio = false): Promise<string>`
+- [x] When `normalizeAudio === true` AND the clip has audio (`hasAudio === true`): add `-af "loudnorm=I=-23:TP=-1.5:LRA=11"` to the FFmpeg args alongside the existing `-vf` video filter. **Do not use `-filter_complex` here** — it conflicts with `-vf` and FFmpeg will reject the command. `-af` and `-vf` coexist correctly as separate filter chains.
   The relevant args section becomes:
   ```
   "-vf", "scale=1080:1920:force_original_aspect_ratio=increase,crop=1080:1920",
@@ -276,16 +276,16 @@ Apply single-pass EBU R128 loudness normalization to each UGC clip's audio durin
   "-map", "0:a:0",
   "-c:a", "aac", "-b:a", "192k", "-ar", "44100",
   ```
-- [ ] When `normalizeAudio === true` AND the clip has NO audio (`hasAudio === false`): do not add `-af loudnorm` — the injected `anullsrc` silent stream is already silent; normalising it achieves nothing and wastes CPU. Keep `-map 1:a:0` as-is.
-- [ ] Add `normalizeAudio: boolean = false` parameter to `normalizeAllClips(clips, dir, normalizeAudio = false): Promise<string[]>` and thread it through to each `normalizeClip` call.
+- [x] When `normalizeAudio === true` AND the clip has NO audio (`hasAudio === false`): do not add `-af loudnorm` — the injected `anullsrc` silent stream is already silent; normalising it achieves nothing and wastes CPU. Keep `-map 1:a:0` as-is.
+- [x] Add `normalizeAudio: boolean = false` parameter to `normalizeAllClips(clips, dir, normalizeAudio = false): Promise<string[]>` and thread it through to each `normalizeClip` call.
 
 **`apps/worker/src/assemble.ts`**
 
-- [ ] In the **UGC/talking branch**: pass `true` for `normalizeAudio`:
+- [x] In the **UGC/talking branch**: pass `true` for `normalizeAudio`:
   ```ts
   const normalizedPaths = await normalizeAllClips(untrimmedClips, assets.dir, true);
   ```
-- [ ] In the **generated/stories branch**: pass `false` (or omit — default is false). Generated clip audio is fully muted in `mixAudio` anyway, so normalization there has no effect and would waste CPU.
+- [x] In the **generated/stories branch**: pass `false` (or omit — default is false). Generated clip audio is fully muted in `mixAudio` anyway, so normalization there has no effect and would waste CPU.
 
 ---
 
@@ -297,7 +297,7 @@ Apply single-pass EBU R128 loudness normalization to each UGC clip's audio durin
 
 **`apps/worker/src/subtitles.ts`**
 
-- [ ] Update `groupWords` signature:
+- [x] Update `groupWords` signature:
   ```ts
   function groupWords(
     words: WordTimestamp[],
@@ -305,7 +305,7 @@ Apply single-pass EBU R128 loudness normalization to each UGC clip's audio durin
     sceneBoundaries?: number[],
   ): WordTimestamp[][]
   ```
-- [ ] Updated `groupWords` logic:
+- [x] Updated `groupWords` logic:
   ```
   sorted boundaries = [...(sceneBoundaries ?? [])].sort ascending
   boundaryIdx = 0
@@ -320,7 +320,7 @@ Apply single-pass EBU R128 loudness normalization to each UGC clip's audio durin
 
   if current is non-empty → push as final group
   ```
-- [ ] Update `generateSubtitles` signature:
+- [x] Update `generateSubtitles` signature:
   ```ts
   export async function generateSubtitles(
     words: WordTimestamp[],
@@ -329,12 +329,12 @@ Apply single-pass EBU R128 loudness normalization to each UGC clip's audio durin
     sceneBoundaries?: number[],
   ): Promise<string>
   ```
-- [ ] Pass `sceneBoundaries` through from `generateSubtitles` into every grouped style builder that calls `groupWords`: `buildMinimal`, `buildCinematic`, `buildGroupedBold`, `buildGroupedCinematic`, `buildKaraoke`
-- [ ] Single-word style builders (`buildBoldPop`, `buildWordHighlight`, `buildNeonGlow`, `buildOversizedPop`) do not call `groupWords` and are unchanged
+- [x] Pass `sceneBoundaries` through from `generateSubtitles` into every grouped style builder that calls `groupWords`: `buildMinimal`, `buildCinematic`, `buildGroupedBold`, `buildGroupedCinematic`, `buildKaraoke`
+- [x] Single-word style builders (`buildBoldPop`, `buildWordHighlight`, `buildNeonGlow`, `buildOversizedPop`) do not call `groupWords` and are unchanged
 
 **`apps/worker/src/assemble.ts`**
 
-- [ ] For **UGC/talking videos**: after `normalizeAllClips` and before `extractAudio`, probe the actual duration of each normalized clip in parallel (batches of `NORMALIZE_CONCURRENCY = 3`), then compute cumulative scene end times (all but the last clip — there is no cut after the final clip):
+- [x] For **UGC/talking videos**: after `normalizeAllClips` and before `extractAudio`, probe the actual duration of each normalized clip in parallel (batches of `NORMALIZE_CONCURRENCY = 3`), then compute cumulative scene end times (all but the last clip — there is no cut after the final clip):
   ```ts
   const clipDurations = await ... // probeDuration for each normalizedPath, in sceneIndex order
   const sceneBoundaries: number[] = [];
@@ -344,7 +344,7 @@ Apply single-pass EBU R128 loudness normalization to each UGC clip's audio durin
     sceneBoundaries.push(cumulative);
   }
   ```
-- [ ] Pass `sceneBoundaries` to `generateSubtitles` in the UGC branch:
+- [x] Pass `sceneBoundaries` to `generateSubtitles` in the UGC branch:
   ```ts
   const subtitlesPath = await generateSubtitles(
     whisperTimestamps,
@@ -353,7 +353,7 @@ Apply single-pass EBU R128 loudness normalization to each UGC clip's audio durin
     sceneBoundaries,
   );
   ```
-- [ ] For **generated/stories videos**: also compute `sceneBoundaries` from the `sceneDurations` map (already built from word timestamps). This is optional but recommended for correctness:
+- [x] For **generated/stories videos**: also compute `sceneBoundaries` from the `sceneDurations` map (already built from word timestamps). This is optional but recommended for correctness:
   ```ts
   // sceneDurations is a Map<sceneIndex, durationSeconds> already computed above
   const sortedIndices = [...sceneDurations.keys()].sort((a, b) => a - b);
@@ -390,12 +390,12 @@ Replace the current character approach — where Claude invents a character in s
 
 **`packages/types/src/index.ts`**
 
-- [ ] Add `ugcCharacterDescription: string | null` to the `Video` interface
+- [x] Add `ugcCharacterDescription: string | null` to the `Video` interface
 
 **`apps/api/lib/db/schema.ts`**
 
-- [ ] Add `ugcCharacterDescription: text("ugc_character_description")` column to the `videos` table (nullable text)
-- [ ] `VideoRow` inferred type updates automatically via Drizzle `$inferSelect`
+- [x] Add `ugcCharacterDescription: text("ugc_character_description")` column to the `videos` table (nullable text)
+- [x] `VideoRow` inferred type updates automatically via Drizzle `$inferSelect`
 
 **Migration file: `apps/api/lib/db/migrations/0014_ugc_character_description.sql`**
 
@@ -403,17 +403,17 @@ Replace the current character approach — where Claude invents a character in s
 ALTER TABLE "videos" ADD COLUMN "ugc_character_description" text;
 ```
 
-- [ ] Add the migration entry to `apps/api/lib/db/migrations/meta/_journal.json` as entry `0014`
+- [x] Add the migration entry to `apps/api/lib/db/migrations/meta/_journal.json` as entry `0014`
 
 ---
 
 ### 13.1 — Character Description Prompt (`apps/api/prompts/character.ts`)
 
-- [ ] Add `buildUGCCharacterDescriptionPrompt(project: ProjectRow, ugcVisualStyle: string): PromptPair`
+- [x] Add `buildUGCCharacterDescriptionPrompt(project: ProjectRow, ugcVisualStyle: string): PromptPair`
 
-- [ ] **System prompt:** "You are a character designer creating a locked visual identity for a short-form video character. Your output will be used as the CHARACTER section of an AI image generation prompt and must produce the same person or character reliably across many different scenes."
+- [x] **System prompt:** "You are a character designer creating a locked visual identity for a short-form video character. Your output will be used as the CHARACTER section of an AI image generation prompt and must produce the same person or character reliably across many different scenes."
 
-- [ ] **User prompt:** instructs Claude to write a 50–80 word character description using exactly these five labelled lines in this order:
+- [x] **User prompt:** instructs Claude to write a 50–80 word character description using exactly these five labelled lines in this order:
   ```
   HAIR: [exact colour, length, style, any distinguishing detail]
   FACE: [skin tone with warmth description, eye colour, brow character]
@@ -422,7 +422,7 @@ ALTER TABLE "videos" ADD COLUMN "ugc_character_description" text;
   BUILD: [brief impression — apparent age, physique]
   ```
 
-- [ ] The `ugcVisualStyle` value informs the aesthetic. Inject a one-line style context into the user prompt before the output instruction based on the style key:
+- [x] The `ugcVisualStyle` value informs the aesthetic. Inject a one-line style context into the user prompt before the output instruction based on the style key:
 
   | `ugcVisualStyle` | Style context line |
   |---|---|
@@ -441,22 +441,22 @@ ALTER TABLE "videos" ADD COLUMN "ugc_character_description" text;
   | `vintage` | Era-appropriate styling (70s/80s), slightly desaturated warm colour descriptions, retro clothing details |
   | `neon_synthwave` | Synthwave outfit with neon accents, chrome reflections, electric colour palette (pink/purple/blue) |
 
-- [ ] User prompt ends with: `"Output ONLY the five-line character description. No preamble. No scene context. No explanation."`
+- [x] User prompt ends with: `"Output ONLY the five-line character description. No preamble. No scene context. No explanation."`
 
 ---
 
 ### 13.2 — Claude Service (`apps/api/services/claude.ts`)
 
-- [ ] Add `generateUGCCharacter(project: ProjectRow, ugcVisualStyle: string): Promise<string>` function
-- [ ] Builds prompt via `buildUGCCharacterDescriptionPrompt(project, ugcVisualStyle)`
-- [ ] Calls Claude with `max_tokens: 200` — the output is short and tightly bounded
-- [ ] Returns the raw text content of the response (the five-line character description string, no JSON parsing)
+- [x] Add `generateUGCCharacter(project: ProjectRow, ugcVisualStyle: string): Promise<string>` function
+- [x] Builds prompt via `buildUGCCharacterDescriptionPrompt(project, ugcVisualStyle)`
+- [x] Calls Claude with `max_tokens: 200` — the output is short and tightly bounded
+- [x] Returns the raw text content of the response (the five-line character description string, no JSON parsing)
 
 ---
 
 ### 13.3 — Talking Prompt Update (`apps/api/prompts/talking.ts`)
 
-- [ ] In `buildTalkingSceneMessages`: when `characterNote` (the pre-generated character description from Phase A) is provided, replace the existing CHARACTER LOCK block in the user prompt with:
+- [x] In `buildTalkingSceneMessages`: when `characterNote` (the pre-generated character description from Phase A) is provided, replace the existing CHARACTER LOCK block in the user prompt with:
 
   ```
   CHARACTER ANCHOR (FIXED — DO NOT MODIFY):
@@ -468,8 +468,8 @@ ALTER TABLE "videos" ADD COLUMN "ugc_character_description" text;
   The CHARACTER line in every scene is always exactly: "CHARACTER: ${characterNote}"
   ```
 
-- [ ] Remove the "Scene 0: invent and write the complete character anchor..." and "Scenes 1+: copy the CHARACTER section from scene 0 EXACTLY..." instructions from the CHARACTER LOCK block when `characterNote` is present — they are replaced by the fixed anchor above
-- [ ] When `characterNote` is null (fallback path or non-UGC context): keep the existing CHARACTER LOCK behaviour unchanged
+- [x] Remove the "Scene 0: invent and write the complete character anchor..." and "Scenes 1+: copy the CHARACTER section from scene 0 EXACTLY..." instructions from the CHARACTER LOCK block when `characterNote` is present — they are replaced by the fixed anchor above
+- [x] When `characterNote` is null (fallback path or non-UGC context): keep the existing CHARACTER LOCK behaviour unchanged
 
 ---
 
@@ -496,7 +496,7 @@ splitScenes(script, durationSeconds, videoType, renderStyle, ugcVisualStyle, eff
 The changes restructure `processScenes` into this execution order:
 
 **Step 1 — Move video row query to top of function (before `splitScenes`):**
-- [ ] The current code queries the video row *after* the scene insert to read `characterBaseGcsPath`. Move this query to the very top of the `try` block — before `splitScenes` is called — and expand it to also select `ugcCharacterDescription` and `projectId`:
+- [x] The current code queries the video row *after* the scene insert to read `characterBaseGcsPath`. Move this query to the very top of the `try` block — before `splitScenes` is called — and expand it to also select `ugcCharacterDescription` and `projectId`:
   ```ts
   const [videoRow] = await db
     .select({
@@ -512,21 +512,21 @@ The changes restructure `processScenes` into this execution order:
     ? await generateSignedReadUrl(charBase, ASSET_URL_TTL_MINUTES)
     : null;
   ```
-- [ ] Remove the original video row query that currently sits after the scene insert — it is fully replaced by this earlier query
+- [x] Remove the original video row query that currently sits after the scene insert — it is fully replaced by this earlier query
 
 **Phase A — Character description (runs immediately after the video row query, before `splitScenes`):**
-- [ ] Condition: `videoType === "talking"` AND `ugcVisualStyle !== "ai_clone"`
-- [ ] If `videoRow.ugcCharacterDescription` is null (first generation):
+- [x] Condition: `videoType === "talking"` AND `ugcVisualStyle !== "ai_clone"`
+- [x] If `videoRow.ugcCharacterDescription` is null (first generation):
   - Fetch the project row: `const [project] = await db.select().from(projects).where(eq(projects.id, videoRow.projectId)).limit(1)`
   - Call `generateUGCCharacter(project, ugcVisualStyle)`
   - Store: `await db.update(videos).set({ ugcCharacterDescription: result, updatedAt: new Date() }).where(eq(videos.id, videoId))`
   - Set local: `const effectiveCharacterNote = result`
-- [ ] If `videoRow.ugcCharacterDescription` is already set (re-generation — reuse, no new Claude call):
+- [x] If `videoRow.ugcCharacterDescription` is already set (re-generation — reuse, no new Claude call):
   - Set local: `const effectiveCharacterNote = videoRow.ugcCharacterDescription`
-- [ ] For `ai_clone` or non-UGC video types: `const effectiveCharacterNote: string | null = null`
+- [x] For `ai_clone` or non-UGC video types: `const effectiveCharacterNote: string | null = null`
 
 **`splitScenes` call — update the existing call (do not add a new one):**
-- [ ] Pass `ugcVisualStyle` and `effectiveCharacterNote` to the existing `splitScenes` call:
+- [x] Pass `ugcVisualStyle` and `effectiveCharacterNote` to the existing `splitScenes` call:
   ```ts
   const sceneList = await splitScenes(
     script, durationSeconds, videoType, renderStyle, ugcVisualStyle, effectiveCharacterNote,
@@ -534,23 +534,23 @@ The changes restructure `processScenes` into this execution order:
   ```
 
 **Phase B — Character sheet image (after scene insert, before image loop):**
-- [ ] Condition: `videoType === "talking"` AND `ugcVisualStyle !== "ai_clone"` AND `charBase` is null
-- [ ] Build the neutral character sheet prompt:
+- [x] Condition: `videoType === "talking"` AND `ugcVisualStyle !== "ai_clone"` AND `charBase` is null
+- [x] Build the neutral character sheet prompt:
   ```ts
   const sheetPrompt = `CHARACTER: ${effectiveCharacterNote}. Front-facing. Neutral resting expression. Soft flat even lighting from front. Plain light gradient background. Full figure visible from head to mid-torso. 9:16 vertical frame. Character reference sheet.`;
   ```
-- [ ] Call `generateImage(sheetPrompt)`, upload to `videos/${videoId}/character_sheet.jpg`, store as `characterBaseGcsPath` on the video, and update `charBase` / `charBaseSignedUrl` for the loop
-- [ ] If `charBase` was already set (re-generation, or AI Clone upload from Track 10.4): skip entirely
+- [x] Call `generateImage(sheetPrompt)`, upload to `videos/${videoId}/character_sheet.jpg`, store as `characterBaseGcsPath` on the video, and update `charBase` / `charBaseSignedUrl` for the loop
+- [x] If `charBase` was already set (re-generation, or AI Clone upload from Track 10.4): skip entirely
 
 **Phase C — Scene image loop (inside the existing loop):**
-- [ ] Add `const UGC_REFERENCE_STRENGTH = 0.65` constant at module level
-- [ ] Update `imagePrompt` construction — for UGC videos use `scene.visualPrompt` directly (CHARACTER is already embedded by Claude); for all other types keep `withCharacterNote`:
+- [x] Add `const UGC_REFERENCE_STRENGTH = 0.65` constant at module level
+- [x] Update `imagePrompt` construction — for UGC videos use `scene.visualPrompt` directly (CHARACTER is already embedded by Claude); for all other types keep `withCharacterNote`:
   ```ts
   const imagePrompt = videoType === "talking"
     ? scene.visualPrompt
     : withCharacterNote(scene.visualPrompt, characterNote);
   ```
-- [ ] Update the `generateImageFromReference` call to pass UGC strength:
+- [x] Update the `generateImageFromReference` call to pass UGC strength:
   ```ts
   const imageBuffer = useRef
     ? await generateImageFromReference(
@@ -560,7 +560,7 @@ The changes restructure `processScenes` into this execution order:
       )
     : await generateImage(imagePrompt);
   ```
-- [ ] The existing `if (scene.sceneIndex === 0 && !charBase)` block inside the loop is now unreachable for UGC videos — Phase B always sets `charBase` before the loop. Leave it in place as it remains the mechanism for non-UGC styles
+- [x] The existing `if (scene.sceneIndex === 0 && !charBase)` block inside the loop is now unreachable for UGC videos — Phase B always sets `charBase` before the loop. Leave it in place as it remains the mechanism for non-UGC styles
 
 ---
 
@@ -583,8 +583,8 @@ No DB changes required. This track is independent of Tracks 10–13 and can be i
 
 The `POST /api/operator/clips/:id/complete` endpoint signs the clip URL before embedding it in the SSE `CLIP_DONE` event. That signed URL is the one the frontend `<video>` element uses to render the preview.
 
-- [ ] Import `ASSET_URL_TTL_MINUTES` (already defined in `apps/api/routes/videos.ts`) or move it to a shared constant in `apps/api/lib/storage.ts` so both files can use it without duplication
-- [ ] In the `complete` handler, replace the short TTL used for the clip signed read URL with `ASSET_URL_TTL_MINUTES` (7 days). This single change fixes the primary bug — previews will load and remain valid for the full duration of the wizard session and beyond
+- [x] Import `ASSET_URL_TTL_MINUTES` (already defined in `apps/api/routes/videos.ts`) or move it to a shared constant in `apps/api/lib/storage.ts` so both files can use it without duplication
+- [x] In the `complete` handler, replace the short TTL used for the clip signed read URL with `ASSET_URL_TTL_MINUTES` (7 days). This single change fixes the primary bug — previews will load and remain valid for the full duration of the wizard session and beyond
 
 ---
 
@@ -592,8 +592,8 @@ The `POST /api/operator/clips/:id/complete` endpoint signs the clip URL before e
 
 The `GET /api/videos/:id/progress` SSE endpoint sends a `SNAPSHOT` event on initial connection containing all clips and their current status. For clips already in `"done"` state this snapshot includes the stored `clipUrl`. If that stored URL was signed with the short TTL it is already expired when the SNAPSHOT arrives after a reconnect.
 
-- [ ] In the SNAPSHOT builder, for any clip with `status === "done"` and a non-null `clipUrl` (GCS path): generate a fresh signed read URL using `ASSET_URL_TTL_MINUTES` instead of using the stored URL directly
-- [ ] This ensures that reconnecting to the stream after a network blip or token refresh immediately delivers valid, loadable clip previews without requiring a page reload
+- [x] In the SNAPSHOT builder, for any clip with `status === "done"` and a non-null `clipUrl` (GCS path): generate a fresh signed read URL using `ASSET_URL_TTL_MINUTES` instead of using the stored URL directly
+- [x] This ensures that reconnecting to the stream after a network blip or token refresh immediately delivers valid, loadable clip previews without requiring a page reload
 
 ---
 
@@ -601,9 +601,9 @@ The `GET /api/videos/:id/progress` SSE endpoint sends a `SNAPSHOT` event on init
 
 The hook opens the SSE stream with `Authorization: Bearer <token>` in the fetch headers. The token is obtained once and reused across reconnect attempts — if it has expired, every reconnect attempt returns a 401 and the exponential backoff eventually gives up.
 
-- [ ] On **every** reconnect attempt (including the initial connection), call `await getToken({ skipCache: true })` to obtain a guaranteed-fresh Clerk token immediately before the `fetch` call
-- [ ] Do **not** cache the token in a ref or state variable between connections — always request it fresh per connection attempt
-- [ ] This makes the SSE stream survive across the full clip generation session regardless of how long it takes
+- [x] On **every** reconnect attempt (including the initial connection), call `await getToken({ skipCache: true })` to obtain a guaranteed-fresh Clerk token immediately before the `fetch` call
+- [x] Do **not** cache the token in a ref or state variable between connections — always request it fresh per connection attempt
+- [x] This makes the SSE stream survive across the full clip generation session regardless of how long it takes
 
 ---
 
@@ -611,9 +611,9 @@ The hook opens the SSE stream with `Authorization: Bearer <token>` in the fetch 
 
 The SSE heartbeat is emitted every 15 seconds by the server. If the connection silently drops (TCP timeout, mobile network switch, laptop sleep), no error event fires — the fetch stream just stops producing data. The current code has no mechanism to detect this.
 
-- [ ] Add a watchdog timer: reset a 45-second `setTimeout` on every received SSE event (any type — SNAPSHOT, CLIP_DONE, HEARTBEAT, etc.)
-- [ ] If the timer fires without being reset, the stream is considered stale: cancel the current fetch, clear the timer, and trigger the same reconnect path used for explicit errors (exponential backoff starting at 1 s)
-- [ ] Clear the watchdog timer on unmount so it does not fire after the component is gone
+- [x] Add a watchdog timer: reset a 45-second `setTimeout` on every received SSE event (any type — SNAPSHOT, CLIP_DONE, HEARTBEAT, etc.)
+- [x] If the timer fires without being reset, the stream is considered stale: cancel the current fetch, clear the timer, and trigger the same reconnect path used for explicit errors (exponential backoff starting at 1 s)
+- [x] Clear the watchdog timer on unmount so it does not fire after the component is gone
 
 ---
 
@@ -621,15 +621,15 @@ The SSE heartbeat is emitted every 15 seconds by the server. If the connection s
 
 The panel already has a pulsing green dot for "connected". Add two additional states so the user knows when updates have paused.
 
-- [ ] Expose a `connectionStatus: "connected" | "reconnecting" | "lost"` prop on `ClipProgressPanel`. The hook (`useClipProgress`) must return this value in addition to the clips map:
+- [x] Expose a `connectionStatus: "connected" | "reconnecting" | "lost"` prop on `ClipProgressPanel`. The hook (`useClipProgress`) must return this value in addition to the clips map:
   - `"connected"` — stream is active and receiving events
   - `"reconnecting"` — a reconnect attempt is in progress (backoff timer running or fetch in flight)
   - `"lost"` — reconnect attempts have been exhausted (current max retries exceeded)
-- [ ] Render the connection indicator based on this value:
+- [x] Render the connection indicator based on this value:
   - `"connected"` → pulsing green dot + "Live" label (existing behaviour)
   - `"reconnecting"` → pulsing amber dot + "Reconnecting…" label
   - `"lost"` → static grey dot + "Connection lost" label + a "Retry" button that resets the backoff counter and triggers a fresh connection attempt
-- [ ] The `"lost"` state should not auto-advance to a broken Step 7 — keep the user on Step 6 with the retry option visible
+- [x] The `"lost"` state should not auto-advance to a broken Step 7 — keep the user on Step 6 with the retry option visible
 
 ---
 
@@ -638,7 +638,7 @@ The panel already has a pulsing green dot for "connected". Add two additional st
 The queue position is currently hardcoded to `useState(0)` and never updates. The timeline shows "Position #N in queue" but N is always 0.
 
 **Backend — add `queuePosition` to the SSE SNAPSHOT:**
-- [ ] In the `GET /api/videos/:id/progress` SNAPSHOT builder, compute the video's queue position: count the number of distinct videos whose clips are ahead in the queue. Wrap the subquery in a `CASE` to guard against NULL when the video has no queued clips (all clips already processing or done):
+- [x] In the `GET /api/videos/:id/progress` SNAPSHOT builder, compute the video's queue position: count the number of distinct videos whose clips are ahead in the queue. Wrap the subquery in a `CASE` to guard against NULL when the video has no queued clips (all clips already processing or done):
   ```sql
   SELECT CASE
     WHEN NOT EXISTS (
@@ -654,12 +654,12 @@ The queue position is currently hardcoded to `useState(0)` and never updates. Th
     )
   END AS queue_position
   ```
-- [ ] Include `queuePosition: number` in the SNAPSHOT event payload. The `CASE` guard ensures this always returns `0` (never NULL) when the video's clips have already started processing
-- [ ] Add a new `QUEUE_POSITION` SSE event type emitted from the operator `GET /queue` claim endpoint: after claiming clips, emit a `QUEUE_POSITION: 0` event to the video's SSE subscribers to signal it has reached the front. No additional DB query needed — the claim itself proves position 0
+- [x] Include `queuePosition: number` in the SNAPSHOT event payload. The `CASE` guard ensures this always returns `0` (never NULL) when the video's clips have already started processing
+- [x] Add a new `QUEUE_POSITION` SSE event type emitted from the operator `GET /queue` claim endpoint: after claiming clips, emit a `QUEUE_POSITION: 0` event to the video's SSE subscribers to signal it has reached the front. No additional DB query needed — the claim itself proves position 0
 
 **Frontend — consume `queuePosition` from SNAPSHOT:**
-- [ ] In `useClipProgress`, add `queuePosition: number` to the returned state, initialised from the SNAPSHOT payload and updated by `QUEUE_POSITION` events
-- [ ] In `step-6-processing.tsx`, replace `const [queuePosition] = useState(0)` with the value from `useClipProgress`. The existing queue position display and estimated wait time calculation are already wired to this variable — no further UI changes needed
+- [x] In `useClipProgress`, add `queuePosition: number` to the returned state, initialised from the SNAPSHOT payload and updated by `QUEUE_POSITION` events
+- [x] In `step-6-processing.tsx`, replace `const [queuePosition] = useState(0)` with the value from `useClipProgress`. The existing queue position display and estimated wait time calculation are already wired to this variable — no further UI changes needed
 
 ---
 

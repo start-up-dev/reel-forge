@@ -476,6 +476,7 @@ export async function videosRoutes(fastify: FastifyInstance): Promise<void> {
         videoType: z.enum(["generated", "talking"]).optional(),
         ugcVisualStyle: z.string().nullable().optional(),
         voiceSpeed: z.number().min(0.5).max(2.0).optional(),
+        characterBaseGcsPath: z.string().nullable().optional(),
       });
 
       const parsed = patchBody.safeParse(request.body);

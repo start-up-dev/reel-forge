@@ -23,7 +23,7 @@ WEB_IMAGE="${REGISTRY}/web:latest"
 # Exact URLs and Keys from the manual guide
 CLERK_PUB_KEY="pk_live_Y2xlcmsudmlyYWxzaG9ydGFpLmFwcCQ"
 API_URL="https://api.viralshortai.app"
-WEB_URL="https://aireelforge.com"
+WEB_URL="https://viralshortai.app"
 WORKER_URL="https://worker.viralshortai.app"
 RESEND_EMAIL="hello@viralshortai.app"
 

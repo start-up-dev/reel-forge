@@ -38,11 +38,21 @@ function toAssTime(seconds: number): string {
   return `${h}:${String(m).padStart(2, "0")}:${String(s).padStart(2, "0")}.${String(c).padStart(2, "0")}`;
 }
 
-function groupWords(words: WordTimestamp[], maxSize: number): WordTimestamp[][] {
+function groupWords(words: WordTimestamp[], maxSize: number, sceneBoundaries?: number[]): WordTimestamp[][] {
   const groups: WordTimestamp[][] = [];
   let current: WordTimestamp[] = [];
+  const boundaries = [...(sceneBoundaries ?? [])].sort((a, b) => a - b);
+  let boundaryIdx = 0;
 
   for (const word of words) {
+    // Flush current group at each scene boundary before adding this word
+    while (boundaryIdx < boundaries.length && word.start >= boundaries[boundaryIdx]!) {
+      if (current.length > 0) {
+        groups.push(current);
+        current = [];
+      }
+      boundaryIdx++;
+    }
     current.push(word);
     const endsWithBreak = /[.!?;:]$/.test(word.word);
     if (current.length >= maxSize || endsWithBreak) {
@@ -126,16 +136,16 @@ function buildWordHighlight(words: WordTimestamp[]): string {
   return buildAssFile(style, events);
 }
 
-function buildMinimal(words: WordTimestamp[]): string {
+function buildMinimal(words: WordTimestamp[], sceneBoundaries?: number[]): string {
   const style = makeStyle("Default", 56, COLOR_WHITE, COLOR_WHITE, COLOR_BLACK, COLOR_TRANSPARENT, false, false, 2, 0, 2, 150);
-  const groups = groupWords(words, 5);
+  const groups = groupWords(words, 5, sceneBoundaries);
   const events: AssEvent[] = groups.map((g) => ({ start: g[0]!.start, end: g[g.length - 1]!.end, text: g.map((w) => w.word).join(" ") }));
   return buildAssFile(style, events);
 }
 
-function buildCinematic(words: WordTimestamp[]): string {
+function buildCinematic(words: WordTimestamp[], sceneBoundaries?: number[]): string {
   const style = makeStyle("Default", 64, COLOR_WARM_WHITE, COLOR_WARM_WHITE, COLOR_BLACK, COLOR_TRANSPARENT, false, true, 2, 4, 2, 120);
-  const groups = groupWords(words, 4);
+  const groups = groupWords(words, 4, sceneBoundaries);
   const events: AssEvent[] = groups.map((g) => ({ start: g[0]!.start, end: g[g.length - 1]!.end, text: g.map((w) => w.word).join(" ") }));
   return buildAssFile(style, events);
 }
@@ -154,26 +164,26 @@ function buildOversizedPop(words: WordTimestamp[]): string {
   return buildAssFile(style, events);
 }
 
-function buildGroupedBold(words: WordTimestamp[]): string {
+function buildGroupedBold(words: WordTimestamp[], sceneBoundaries?: number[]): string {
   const style = makeStyle("Default", 72, COLOR_WHITE, COLOR_WHITE, COLOR_BLACK, COLOR_SHADOW, true, false, 3, 2, 2, 180);
-  const groups = groupWords(words, 3);
+  const groups = groupWords(words, 3, sceneBoundaries);
   const events: AssEvent[] = groups.map((g) => ({ start: g[0]!.start, end: g[g.length - 1]!.end, text: g.map((w) => w.word).join(" ") }));
   return buildAssFile(style, events);
 }
 
-function buildGroupedCinematic(words: WordTimestamp[]): string {
+function buildGroupedCinematic(words: WordTimestamp[], sceneBoundaries?: number[]): string {
   const style = makeStyle("Default", 60, COLOR_WARM_WHITE, COLOR_WARM_WHITE, COLOR_BLACK, COLOR_TRANSPARENT, false, true, 2, 6, 2, 100);
-  const groups = groupWords(words, 4);
+  const groups = groupWords(words, 4, sceneBoundaries);
   const events: AssEvent[] = groups.map((g) => ({ start: g[0]!.start, end: g[g.length - 1]!.end, text: g.map((w) => w.word).join(" ") }));
   return buildAssFile(style, events);
 }
 
-function buildKaraoke(words: WordTimestamp[]): string {
+function buildKaraoke(words: WordTimestamp[], sceneBoundaries?: number[]): string {
   // Groups of 4 words; active word highlighted in accent orange via inline {\ } override tags.
   // Each word in the group gets its own Dialogue event covering word.start → next word.start,
   // so the highlight switches word-by-word while the full group stays visible.
   const style = makeStyle("Default", 72, COLOR_WHITE, COLOR_WHITE, COLOR_BLACK, COLOR_SHADOW, true, false, 3, 2, 2, 180);
-  const groups = groupWords(words, 4);
+  const groups = groupWords(words, 4, sceneBoundaries);
   const events: AssEvent[] = [];
 
   for (const group of groups) {
@@ -201,6 +211,7 @@ export async function generateSubtitles(
   words: WordTimestamp[],
   style: SubtitleStyle,
   dir: string,
+  sceneBoundaries?: number[],
 ): Promise<string> {
   // Strip empty/whitespace-only words and entries where end <= start
   const validWords = words.filter((w) => w.word.trim() !== "" && w.end > w.start);
@@ -209,13 +220,13 @@ export async function generateSubtitles(
   switch (style) {
     case "bold_pop":         content = buildBoldPop(validWords); break;
     case "word_highlight":   content = buildWordHighlight(validWords); break;
-    case "minimal":          content = buildMinimal(validWords); break;
-    case "cinematic":        content = buildCinematic(validWords); break;
+    case "minimal":          content = buildMinimal(validWords, sceneBoundaries); break;
+    case "cinematic":        content = buildCinematic(validWords, sceneBoundaries); break;
     case "neon_glow":        content = buildNeonGlow(validWords); break;
     case "oversized_pop":    content = buildOversizedPop(validWords); break;
-    case "grouped_bold":     content = buildGroupedBold(validWords); break;
-    case "grouped_cinematic":content = buildGroupedCinematic(validWords); break;
-    case "karaoke":          content = buildKaraoke(validWords); break;
+    case "grouped_bold":     content = buildGroupedBold(validWords, sceneBoundaries); break;
+    case "grouped_cinematic":content = buildGroupedCinematic(validWords, sceneBoundaries); break;
+    case "karaoke":          content = buildKaraoke(validWords, sceneBoundaries); break;
     default: {
       const _exhaustive: never = style;
       throw new Error(`Unknown subtitle style: ${String(_exhaustive)}`);

@@ -35,6 +35,8 @@ const allowedOrigins = [
   env.NEXT_PUBLIC_APP_URL.replace(/\/$/, ""), // Configured URL without trailing slash
   "http://localhost:3000",
   "http://127.0.0.1:3000",
+  "https://aireelforge.com",
+  "https://viralshortai.app",
 ];
 
 await app.register(cors, {

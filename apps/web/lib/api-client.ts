@@ -186,6 +186,7 @@ export function createApiClient(getToken: () => Promise<string | null>) {
             | "videoType"
             | "ugcVisualStyle"
             | "voiceSpeed"
+            | "characterBaseGcsPath"
           >
         > & { renderStyle?: RenderStyle | null; videoType?: VideoType }
       ): Promise<ApiResponse<Video>> {
@@ -223,6 +224,15 @@ export function createApiClient(getToken: () => Promise<string | null>) {
       },
       generateScenes(id: string): Promise<ApiResponse<VideoDetail>> {
         return authedRequest(`/api/videos/${id}/scenes`, { method: "POST" });
+      },
+      characterImageUploadUrl(
+        id: string,
+        contentType: "image/jpeg" | "image/png" | "image/webp"
+      ): Promise<ApiResponse<{ uploadUrl: string; gcsPath: string }>> {
+        return authedRequest(`/api/videos/${id}/character-image/upload-url`, {
+          method: "POST",
+          body: JSON.stringify({ contentType }),
+        });
       },
     },
 

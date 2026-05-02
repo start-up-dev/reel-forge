@@ -29,7 +29,7 @@ export async function probeHasAudio(filePath: string): Promise<boolean> {
 // Step 1 — Normalize a single clip to 1080×1920 at 30fps, trimmed to durationHint.
 // Clips without an audio track (common for Grok generated clips) get a silent audio stream
 // so that concatenation and mixing always work with a consistent stream layout.
-export async function normalizeClip(clip: ClipEntry, dir: string): Promise<string> {
+export async function normalizeClip(clip: ClipEntry, dir: string, normalizeAudio = false): Promise<string> {
   const outPath = join(dir, "clips", `clip_${clip.sceneIndex}_norm.mp4`);
   const hasAudio = await probeHasAudio(clip.path);
 
@@ -46,6 +46,14 @@ export async function normalizeClip(clip: ClipEntry, dir: string): Promise<strin
     "-c:v", "libx264",
     "-crf", "23",
     "-preset", "fast",
+  );
+
+  // EBU R128 loudness normalization — only when clip has real audio to normalize
+  if (normalizeAudio && hasAudio) {
+    args.push("-af", "loudnorm=I=-23:TP=-1.5:LRA=11");
+  }
+
+  args.push(
     "-map", "0:v:0",
     "-map", hasAudio ? "0:a:0" : "1:a:0",
     "-c:a", "aac",
@@ -81,15 +89,114 @@ export async function normalizeClip(clip: ClipEntry, dir: string): Promise<strin
 export async function normalizeAllClips(
   clips: ClipEntry[],
   dir: string,
+  normalizeAudio = false,
 ): Promise<string[]> {
   const sorted = [...clips].sort((a, b) => a.sceneIndex - b.sceneIndex);
   const results: string[] = [];
   for (let i = 0; i < sorted.length; i += NORMALIZE_CONCURRENCY) {
     const batch = sorted.slice(i, i + NORMALIZE_CONCURRENCY);
-    const batchResults = await Promise.all(batch.map((clip) => normalizeClip(clip, dir)));
+    const batchResults = await Promise.all(batch.map((clip) => normalizeClip(clip, dir, normalizeAudio)));
     results.push(...batchResults);
   }
   return results;
+}
+
+export type TransitionPreset = { transition: string; duration: number };
+
+const TRANSITION_PRESETS: { condition: (vt: string, rs: string | null) => boolean; preset: TransitionPreset }[] = [
+  { condition: (vt) => vt === "talking",                                                                  preset: { transition: "fade",    duration: 0.3 } },
+  { condition: (vt, rs) => vt === "generated" && (rs === "cinematic" || rs === "stock_footage"),          preset: { transition: "fade",    duration: 0.5 } },
+  { condition: (vt, rs) => vt === "generated" && (rs === "cartoon" || rs === "animation_2d"),             preset: { transition: "dissolve", duration: 0.4 } },
+  { condition: (vt, rs) => vt === "generated" && rs === "motion_graphics",                                preset: { transition: "zoomin",  duration: 0.3 } },
+  { condition: (vt, rs) => vt === "generated" && rs === "mascot",                                         preset: { transition: "dissolve", duration: 0.4 } },
+  { condition: (vt, rs) => vt === "generated" && rs === "whiteboard",                                     preset: { transition: "fade",    duration: 0.3 } },
+];
+
+export function getTransitionPreset(videoType: string, renderStyle: string | null): TransitionPreset {
+  for (const { condition, preset } of TRANSITION_PRESETS) {
+    if (condition(videoType, renderStyle)) return preset;
+  }
+  return { transition: "fade", duration: 0.4 };
+}
+
+// Step 2 — Concatenate with xfade/acrossfade transitions between clips.
+// CRF 18 here (not 23) because burnSubtitles re-encodes this output — preserves quality headroom.
+export async function concatenateWithTransitions(
+  normalizedPaths: string[],
+  preset: TransitionPreset,
+  dir: string,
+): Promise<string> {
+  if (normalizedPaths.length === 0) throw new Error("No clips to concatenate");
+
+  const outPath = join(dir, "concatenated.mp4");
+
+  if (normalizedPaths.length === 1) {
+    await execa("ffmpeg", ["-y", "-i", normalizedPaths[0]!, "-c", "copy", outPath], { stderr: "pipe" }).catch((err) => {
+      throw new Error(`FFmpeg copy single clip failed: ${(err as Error).message}`);
+    });
+    return outPath;
+  }
+
+  // Probe durations in batches to stay within Cloud Run memory limits
+  const durations: number[] = [];
+  for (let i = 0; i < normalizedPaths.length; i += NORMALIZE_CONCURRENCY) {
+    const batch = normalizedPaths.slice(i, i + NORMALIZE_CONCURRENCY);
+    const batchDurations = await Promise.all(batch.map(probeDuration));
+    durations.push(...batchDurations);
+  }
+
+  // Clamp guard: prevents xfade offset from going negative when clips are very short
+  const minDuration = Math.min(...durations);
+  let transitionDuration = preset.duration;
+  if (transitionDuration >= minDuration) {
+    transitionDuration = minDuration * 0.4;
+  }
+
+  const N = normalizedPaths.length;
+  const filterParts: string[] = [];
+
+  for (let i = 1; i < N; i++) {
+    const prevVLabel = i === 1 ? "0:v" : `v${i - 1}`;
+    const nextVLabel = i === N - 1 ? "vfinal" : `v${i}`;
+    // offset = sum(durations[0..i-1]) - i * transitionDuration, clamped > 0
+    const sumPrev = durations.slice(0, i).reduce((a, b) => a + b, 0);
+    const offset = Math.max(sumPrev - i * transitionDuration, 0.001);
+    filterParts.push(
+      `[${prevVLabel}][${i}:v]xfade=transition=${preset.transition}:duration=${transitionDuration.toFixed(3)}:offset=${offset.toFixed(3)}[${nextVLabel}]`,
+    );
+
+    const prevALabel = i === 1 ? "0:a" : `a${i - 1}`;
+    const nextALabel = i === N - 1 ? "afinal" : `a${i}`;
+    filterParts.push(
+      `[${prevALabel}][${i}:a]acrossfade=d=${transitionDuration.toFixed(3)}:c1=tri:c2=tri[${nextALabel}]`,
+    );
+  }
+
+  const inputArgs = normalizedPaths.flatMap((p) => ["-i", p]);
+
+  await execa(
+    "ffmpeg",
+    [
+      "-y",
+      ...inputArgs,
+      "-filter_complex", filterParts.join(";"),
+      "-map", "[vfinal]",
+      "-map", "[afinal]",
+      "-c:v", "libx264",
+      "-crf", "18",
+      "-preset", "fast",
+      "-c:a", "aac",
+      "-b:a", "192k",
+      "-ar", "44100",
+      "-pix_fmt", "yuv420p",
+      outPath,
+    ],
+    { stderr: "pipe" },
+  ).catch((err) => {
+    throw new Error(`FFmpeg transitions concat failed: ${(err as Error).message}`);
+  });
+
+  return outPath;
 }
 
 // Step 2 — Concatenate normalized clips into a single video.

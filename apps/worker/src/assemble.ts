@@ -5,7 +5,8 @@ import { db, videos, scenes, users } from "./db.js";
 import { downloadAssetsFromGCS } from "./download.js";
 import {
   normalizeAllClips,
-  concatenateClips,
+  concatenateWithTransitions,
+  getTransitionPreset,
   mixAudio,
   speedAudio,
   extractAudio,
@@ -101,13 +102,29 @@ export async function assembleVideo(videoId: string): Promise<void> {
       // Step 1: Normalize — don't trim talking clips. The lipsync voice is baked
       // into each Grok clip, so the character finishes speaking at the natural
       // end of the clip. Trimming to Claude's estimate would cut them off mid-word.
+      // EBU R128 loudness normalization applied so perceived volume is consistent across clips.
       const untrimmedClips = assets.clipPaths.map((c) => ({ ...c, durationHint: null }));
-      console.log(`[assemble] Normalizing ${untrimmedClips.length} clips (talking, no trim)`);
-      const normalizedPaths = await normalizeAllClips(untrimmedClips, assets.dir);
+      console.log(`[assemble] Normalizing ${untrimmedClips.length} clips (talking, no trim, loudnorm)`);
+      const normalizedPaths = await normalizeAllClips(untrimmedClips, assets.dir, true);
 
-      // Step 2: Concatenate
-      console.log("[assemble] Concatenating clips");
-      const concatenatedPath = await concatenateClips(normalizedPaths, assets.dir);
+      // Probe clip durations for scene boundary computation (batches of 3)
+      const clipDurations: number[] = [];
+      for (let i = 0; i < normalizedPaths.length; i += 3) {
+        const batch = normalizedPaths.slice(i, i + 3);
+        const batchDurations = await Promise.all(batch.map(probeDuration));
+        clipDurations.push(...batchDurations);
+      }
+      const sceneBoundaries: number[] = [];
+      let cumulative = 0;
+      for (let i = 0; i < clipDurations.length - 1; i++) {
+        cumulative += clipDurations[i]!;
+        sceneBoundaries.push(cumulative);
+      }
+
+      // Step 2: Concatenate with smooth transitions
+      console.log("[assemble] Concatenating clips with transitions");
+      const transitionPreset = getTransitionPreset(video.videoType, video.renderStyle ?? null);
+      const concatenatedPath = await concatenateWithTransitions(normalizedPaths, transitionPreset, assets.dir);
 
       console.log("[assemble] Talking video — extracting audio for Whisper");
       const talkingAudioPath = await extractAudio(concatenatedPath, assets.dir);
@@ -120,6 +137,7 @@ export async function assembleVideo(videoId: string): Promise<void> {
         whisperTimestamps,
         video.subtitleStyle,
         assets.dir,
+        sceneBoundaries,
       );
 
       console.log("[assemble] Burning subtitles");
@@ -165,9 +183,19 @@ export async function assembleVideo(videoId: string): Promise<void> {
       console.log(`[assemble] Normalizing ${timedClips.length} clips (generated)`);
       const normalizedPaths = await normalizeAllClips(timedClips, assets.dir);
 
-      // Step 2: Concatenate
-      console.log("[assemble] Concatenating clips");
-      const concatenatedPath = await concatenateClips(normalizedPaths, assets.dir);
+      // Compute scene boundaries from word-timestamp-derived scene durations
+      const sortedSceneIndices = [...sceneDurations.keys()].sort((a, b) => a - b);
+      const storiesBoundaries: number[] = [];
+      let storiesCum = 0;
+      for (let i = 0; i < sortedSceneIndices.length - 1; i++) {
+        storiesCum += sceneDurations.get(sortedSceneIndices[i]!)!;
+        storiesBoundaries.push(storiesCum);
+      }
+
+      // Step 2: Concatenate with smooth transitions
+      console.log("[assemble] Concatenating clips with transitions");
+      const generatedTransitionPreset = getTransitionPreset(video.videoType, video.renderStyle ?? null);
+      const concatenatedPath = await concatenateWithTransitions(normalizedPaths, generatedTransitionPreset, assets.dir);
 
       // Step 3: Mix ElevenLabs voice over video; Grok clip audio fully muted —
       // the clip audio contains AI-generated ambient noise we don't want.
@@ -186,6 +214,7 @@ export async function assembleVideo(videoId: string): Promise<void> {
         wordTimestamps,
         video.subtitleStyle,
         assets.dir,
+        storiesBoundaries,
       );
 
       // Step 5: Burn subtitles
