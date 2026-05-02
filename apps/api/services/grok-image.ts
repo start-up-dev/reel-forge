@@ -38,17 +38,17 @@ export async function generateImage(prompt: string): Promise<Buffer> {
 }
 
 // Image-to-image generation using a reference image for visual consistency.
-// The prompt is prefixed with an explicit style-match instruction so Grok
-// carries the color grade, lighting, and art direction from the reference.
-// Falls back to standard generateImage if the Grok API rejects the img2img call.
+// Uses /v1/images/edits (not /v1/images/generations) with image: { url, type } body shape.
+// Falls back to standard generateImage if the edits call fails.
 export async function generateImageFromReference(
   prompt: string,
   referenceImageUrl: string,
-  strength = 0.85,
+  // strength param kept for call-site compatibility but edits API doesn't use it
+  _strength = 0.85,
 ): Promise<Buffer> {
   const consistentPrompt = `Maintain the exact same visual style, color grade, lighting, and art direction as the reference image. ${prompt}`;
   try {
-    const response = await fetch("https://api.x.ai/v1/images/generations", {
+    const response = await fetch("https://api.x.ai/v1/images/edits", {
       method: "POST",
       headers: {
         Authorization: `Bearer ${env.XAI_API_KEY}`,
@@ -56,12 +56,14 @@ export async function generateImageFromReference(
       },
       body: JSON.stringify({
         model: GROK_IMAGE_MODEL,
-        prompt: consistentPrompt,
+        prompt: consistentPrompt + ANTI_OVERLAY_SUFFIX,
+        image: {
+          url: referenceImageUrl,
+          type: "image_url",
+        },
         n: 1,
         aspect_ratio: "9:16",
         response_format: "b64_json",
-        image_url: referenceImageUrl,
-        strength,
       }),
     });
 

@@ -170,7 +170,8 @@ async function processScenes(
         const imagePrompt = videoType === "talking"
           ? scene.visualPrompt
           : withCharacterNote(scene.visualPrompt, effectiveCharacterNote);
-        const useRef = charBaseSignedUrl !== null && scene.sceneIndex > 0;
+        const isAiClone = videoType === "talking" && ugcVisualStyle === "ai_clone";
+        const useRef = charBaseSignedUrl !== null && (scene.sceneIndex > 0 || isAiClone);
         const imageBuffer = useRef
           ? await generateImageFromReference(
               imagePrompt,
