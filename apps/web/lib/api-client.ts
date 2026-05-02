@@ -8,7 +8,6 @@ import type {
   RenderStyle,
   Scene,
   SubtitleStyle,
-  TalkingSubtype,
   User,
   Video,
   VideoType,
@@ -185,10 +184,10 @@ export function createApiClient(getToken: () => Promise<string | null>) {
             | "targetDurationSeconds"
             | "renderStyle"
             | "videoType"
-            | "talkingSubtype"
+            | "ugcVisualStyle"
             | "voiceSpeed"
           >
-        > & { renderStyle?: RenderStyle | null; videoType?: VideoType; talkingSubtype?: TalkingSubtype | null }
+        > & { renderStyle?: RenderStyle | null; videoType?: VideoType }
       ): Promise<ApiResponse<Video>> {
         return authedRequest(`/api/videos/${id}`, {
           method: "PATCH",

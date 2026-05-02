@@ -1,11 +1,11 @@
 export { buildIdeasMessages } from "./ideas.js";
 export { buildScriptMessages, BENGALI_SCRIPT_SYSTEM, RENDER_STYLE_SCRIPT_MODIFIERS, WORDS_FOR_DURATION } from "./script.js";
 export { buildScenesMessages, SCENE_DIRECTOR_SYSTEM, RENDER_STYLE_SCENE_SYSTEMS } from "./scenes.js";
-export { buildCharacterSheetPrompt } from "./character.js";
-export { buildTalkingSceneMessages, TALKING_SCENE_DIRECTOR_SYSTEM, TALKING_SUBTYPE_MODIFIERS } from "./talking.js";
+export { buildCharacterSheetPrompt, buildUGCCharacterDescriptionPrompt } from "./character.js";
+export { buildTalkingSceneMessages, TALKING_SCENE_DIRECTOR_SYSTEM, UGC_VISUAL_STYLE_MODIFIERS } from "./talking.js";
 export { projectContext, isBengali } from "./utils.js";
 export type { PromptPair } from "./script.js";
-export type { TalkingSubtypeModifier } from "./talking.js";
+export type { UGCVisualStyleModifier } from "./talking.js";
 
 // ─── Prompt registry ──────────────────────────────────────────────────────────
 // Informational metadata only — no runtime behaviour.

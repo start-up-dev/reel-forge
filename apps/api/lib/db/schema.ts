@@ -110,14 +110,6 @@ export const renderStyleEnum = pgEnum("render_style", [
 
 export const videoTypeEnum = pgEnum("video_type", ["generated", "talking"]);
 
-export const talkingSubtypeEnum = pgEnum("talking_subtype", [
-  "ugc",
-  "short_film",
-  "interview",
-  "explainer",
-  "podcast_clip",
-]);
-
 // ─── Tables ───────────────────────────────────────────────────────────────────
 
 /**
@@ -217,9 +209,10 @@ export const videos = pgTable(
     bgmVolume: integer("bgm_volume").notNull().default(15),   // integer 0–100; 15 = 15% BGM mix
     targetDurationSeconds: integer("target_duration_seconds").notNull().default(30),
     videoType: videoTypeEnum("video_type").notNull().default("generated"),
-    talkingSubtype: talkingSubtypeEnum("talking_subtype"),
+    ugcVisualStyle: text("ugc_visual_style"),
+    ugcCharacterDescription: text("ugc_character_description"),
     voiceSpeed: real("voice_speed").notNull().default(1.0),  // 0.5–2.0; applied via FFmpeg atempo at render
-    characterBaseGcsPath: text("character_base_gcs_path"),   // GCS path of the character reference image (cartoon/mascot only)
+    characterBaseGcsPath: text("character_base_gcs_path"),   // GCS path of the character reference image
     sceneCount: integer("scene_count").notNull().default(0),
     renderStyle: renderStyleEnum("render_style"),
     voiceId: text("voice_id"),

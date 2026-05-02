@@ -304,7 +304,7 @@ The extension's `failedClips` array and session counters live entirely in servic
 
 ### 9.3 — Extension Popup: Clip Status Board
 
-- [x] Add a **"Clips"** tab (or collapsible section below the session stats) to the popup UI in `apps/extension/src/popup/`:
+- [ ] Add a **"Clips"** tab (or collapsible section below the session stats) to the popup UI in `apps/extension/src/popup/`:
   - Reads `workerState.clipStatuses` (available via `GET_STATE` / `STATE_UPDATE`)
   - Groups entries by `videoId` → `videoTitle` as section headers
   - Within each video: renders a table row per clip:
@@ -315,8 +315,8 @@ The extension's `failedClips` array and session counters live entirely in servic
     - Column 5: "Retry" button — only shown when `status === "failed"`; clicking sends `RETRY_CLIP` message to SW
   - Empty state: "No active clips" when map is empty
   - Section is scrollable if many clips (max-height + overflow-y scroll)
-- [x] The "Retry" button in the popup calls `chrome.runtime.sendMessage({ type: "RETRY_CLIP", clipId })` and immediately shows a spinner on that row until the next `STATE_UPDATE` arrives
-- [x] `failedClips` array in `WorkerState` (the old session-scoped list) is kept as-is for backward compatibility but the Clip Status Board replaces it as the primary UI surface — the old "Failed clips" section in the popup can be removed or collapsed
+- [ ] The "Retry" button in the popup calls `chrome.runtime.sendMessage({ type: "RETRY_CLIP", clipId })` and immediately shows a spinner on that row until the next `STATE_UPDATE` arrives
+- [ ] `failedClips` array in `WorkerState` (the old session-scoped list) is kept as-is for backward compatibility but the Clip Status Board replaces it as the primary UI surface — the old "Failed clips" section in the popup can be removed or collapsed
 
 ---
 
@@ -357,23 +357,23 @@ Day 5
 
 ## Acceptance Criteria
 
-| Task | Done when |
-|------|-----------|
-| 7.0 sceneCount | `videos.scene_count` column exists in DB; `Video.sceneCount` in types; `POST /videos/:id/scenes` writes the correct count |
-| 7.1 Types | `ClipProgressEvent`, `SnapshotClip`, `ClipStatusMap` exported from `@repo/types`; `pnpm check-types` passes |
-| 7.2 Event bus | `subscribeToVideo` / `emitClipEvent` importable; subscribing then emitting calls the callback synchronously |
-| 7.3 SSE endpoint | `curl -N -H "Authorization: Bearer <token>" /api/videos/:id/progress` streams events; heartbeat appears every 15 s; closing the curl kills the subscription cleanly |
-| 7.4 Emit | Completing a clip via `POST /api/operator/clips/:id/complete` triggers a `CLIP_DONE` event on any open SSE stream for that video within 100 ms |
-| 7.5 Hook | On page refresh during active generation, the hook receives the SNAPSHOT and immediately renders current state without waiting for the next event |
-| 7.6 Panel | `done` cards show an autoplaying looping video preview; `processing` cards pulse; progress bar advances in real time |
-| 7.7 Wizard | Panel is visible during `CLIPS_PROCESSING`; disappears and shows assembly spinner once all clips are done; no SSE connection open when video is in any other status |
-| 7.8 Proxy | Long-running SSE connections survive through the Next.js dev proxy without being cut at 30 s |
-| 8.1 Schema | `pnpm --filter @repo/api db:migrate` runs cleanly; `VideoStatus.ClipsNeedsReview` usable in TypeScript |
-| 8.2 Admin endpoint | `POST /api/admin/videos/:id/confirm-fail` moves video from `CLIPS_NEEDS_REVIEW` → `FAILED`; returns `400` for any other current status |
-| 8.3 Retry endpoint | `POST /api/operator/clips/:id/retry` on a `failed` clip resets it to `processing` and resets the video to `CLIPS_PROCESSING`; returns `409` if clip is not in `failed` state |
-| 8.4–8.5 Extension retry | Clicking Retry in the popup on a failed clip calls the backend reset, then opens a new Grok tab; the clip completes and is marked `done` without touching the DB manually |
-| 8.6 Frontend | `CLIPS_NEEDS_REVIEW` status renders as yellow "Under Review" badge in wizard and dashboard; no error CTA shown to user |
-| 9.0 videoTitle | `GET /api/operator/queue` response includes `videoTitle`; `ClaimedClip` and `TabEntry` carry it through the full lifecycle |
-| 9.1 Statuses endpoint | `GET /api/operator/clips/statuses` returns correct status for all clips across all active videos |
-| 9.2 Persistence | After Chrome closes and reopens, the extension popup shows the correct last-known status for every clip without needing the API |
-| 9.3 Status Board | Popup shows clips grouped by video; failed clips have a working Retry button; the board reflects fresh API data within 5 s of opening the popup |
+| Task                    | Done when                                                                                                                                                                    |
+| ----------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| 7.0 sceneCount          | `videos.scene_count` column exists in DB; `Video.sceneCount` in types; `POST /videos/:id/scenes` writes the correct count                                                    |
+| 7.1 Types               | `ClipProgressEvent`, `SnapshotClip`, `ClipStatusMap` exported from `@repo/types`; `pnpm check-types` passes                                                                  |
+| 7.2 Event bus           | `subscribeToVideo` / `emitClipEvent` importable; subscribing then emitting calls the callback synchronously                                                                  |
+| 7.3 SSE endpoint        | `curl -N -H "Authorization: Bearer <token>" /api/videos/:id/progress` streams events; heartbeat appears every 15 s; closing the curl kills the subscription cleanly          |
+| 7.4 Emit                | Completing a clip via `POST /api/operator/clips/:id/complete` triggers a `CLIP_DONE` event on any open SSE stream for that video within 100 ms                               |
+| 7.5 Hook                | On page refresh during active generation, the hook receives the SNAPSHOT and immediately renders current state without waiting for the next event                            |
+| 7.6 Panel               | `done` cards show an autoplaying looping video preview; `processing` cards pulse; progress bar advances in real time                                                         |
+| 7.7 Wizard              | Panel is visible during `CLIPS_PROCESSING`; disappears and shows assembly spinner once all clips are done; no SSE connection open when video is in any other status          |
+| 7.8 Proxy               | Long-running SSE connections survive through the Next.js dev proxy without being cut at 30 s                                                                                 |
+| 8.1 Schema              | `pnpm --filter @repo/api db:migrate` runs cleanly; `VideoStatus.ClipsNeedsReview` usable in TypeScript                                                                       |
+| 8.2 Admin endpoint      | `POST /api/admin/videos/:id/confirm-fail` moves video from `CLIPS_NEEDS_REVIEW` → `FAILED`; returns `400` for any other current status                                       |
+| 8.3 Retry endpoint      | `POST /api/operator/clips/:id/retry` on a `failed` clip resets it to `processing` and resets the video to `CLIPS_PROCESSING`; returns `409` if clip is not in `failed` state |
+| 8.4–8.5 Extension retry | Clicking Retry in the popup on a failed clip calls the backend reset, then opens a new Grok tab; the clip completes and is marked `done` without touching the DB manually    |
+| 8.6 Frontend            | `CLIPS_NEEDS_REVIEW` status renders as yellow "Under Review" badge in wizard and dashboard; no error CTA shown to user                                                       |
+| 9.0 videoTitle          | `GET /api/operator/queue` response includes `videoTitle`; `ClaimedClip` and `TabEntry` carry it through the full lifecycle                                                   |
+| 9.1 Statuses endpoint   | `GET /api/operator/clips/statuses` returns correct status for all clips across all active videos                                                                             |
+| 9.2 Persistence         | After Chrome closes and reopens, the extension popup shows the correct last-known status for every clip without needing the API                                              |
+| 9.3 Status Board        | Popup shows clips grouped by video; failed clips have a working Retry button; the board reflects fresh API data within 5 s of opening the popup                              |

@@ -8,6 +8,7 @@ import {
   buildScriptMessages,
   buildScenesMessages,
   buildTalkingSceneMessages,
+  buildUGCCharacterDescriptionPrompt,
   isBengali,
 } from "../prompts/index.js";
 
@@ -89,6 +90,26 @@ export async function generateCharacterSheet(
 
   const text = message.content[0]?.type === "text" ? message.content[0].text.trim() : "";
   if (!text) throw new Error("Character sheet generation returned empty.");
+  return text;
+}
+
+// ─── UGC character description generation ─────────────────────────────────────
+
+export async function generateUGCCharacter(
+  project: ProjectRow,
+  ugcVisualStyle: string,
+): Promise<string> {
+  const { system, user } = buildUGCCharacterDescriptionPrompt(project, ugcVisualStyle);
+
+  const message = await client.messages.create({
+    model: "claude-sonnet-4-6",
+    max_tokens: 200,
+    system,
+    messages: [{ role: "user", content: user }],
+  });
+
+  const text = message.content[0]?.type === "text" ? message.content[0].text.trim() : "";
+  if (!text) throw new Error("UGC character generation returned empty.");
   return text;
 }
 
@@ -179,12 +200,12 @@ async function callSplitScenes(
   targetCount: number,
   videoType: string,
   renderStyle?: string,
-  talkingSubtype?: string,
+  ugcVisualStyle?: string,
   characterNote?: string | null,
 ): Promise<unknown> {
   const { system, user } =
     videoType === "talking"
-      ? buildTalkingSceneMessages(script, audioDurationSeconds, targetCount, talkingSubtype, characterNote)
+      ? buildTalkingSceneMessages(script, audioDurationSeconds, targetCount, ugcVisualStyle, characterNote)
       : buildScenesMessages(script, audioDurationSeconds, targetCount, renderStyle, characterNote);
 
   const message = await client.messages.stream({
@@ -266,7 +287,7 @@ export async function splitScenes(
   audioDurationSeconds: number,
   videoType: string,
   renderStyle?: string | null,
-  talkingSubtype?: string | null,
+  ugcVisualStyle?: string | null,
   characterNote?: string | null,
 ): Promise<SceneSplit[]> {
   // Talking videos: each Grok clip is exactly 6s, so scene count = ceil(duration/6)
@@ -286,7 +307,7 @@ export async function splitScenes(
       targetCount,
       videoType,
       renderStyle ?? undefined,
-      talkingSubtype ?? undefined,
+      ugcVisualStyle ?? undefined,
       characterNote,
     );
     const scenes = extractScenes(raw);

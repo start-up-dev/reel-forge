@@ -3,7 +3,7 @@ import { z } from "zod";
 import { and, count, eq, sql } from "drizzle-orm";
 import { db } from "../lib/db/index.js";
 import { clipRequests, scenes, videos } from "../lib/db/schema.js";
-import { generateSignedReadUrl, generateSignedUploadUrl } from "../lib/storage.js";
+import { ASSET_URL_TTL_MINUTES, generateSignedReadUrl, generateSignedUploadUrl } from "../lib/storage.js";
 import { dispatchAssemblyTask } from "../lib/cloud-tasks.js";
 import { emitClipEvent } from "../lib/clip-events.js";
 import { env } from "../lib/env.js";
@@ -101,6 +101,10 @@ export async function operatorRoutes(fastify: FastifyInstance): Promise<void> {
         for (const row of claimed) {
           emitClipEvent({ type: "CLIP_PROCESSING", videoId: row.videoId, sceneIndex: row.sceneIndex });
         }
+        // Signal to each affected video that it has reached position 0
+        for (const videoId of videoIds) {
+          emitClipEvent({ type: "QUEUE_POSITION", videoId, queuePosition: 0 });
+        }
       }
 
       return reply.send({ data: claimed });
@@ -192,7 +196,7 @@ export async function operatorRoutes(fastify: FastifyInstance): Promise<void> {
       // Signed URL is best-effort — a signing failure must not block assembly dispatch.
       let signedClipUrl = body.gcsPath;
       try {
-        signedClipUrl = await generateSignedReadUrl(body.gcsPath, 60);
+        signedClipUrl = await generateSignedReadUrl(body.gcsPath, ASSET_URL_TTL_MINUTES);
       } catch (err) {
         console.error("[operator] Failed to sign clip URL for SSE:", err);
       }

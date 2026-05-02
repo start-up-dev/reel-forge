@@ -107,17 +107,27 @@ export enum ClipRequestStatus {
   Failed = "failed",
 }
 
+export enum UGCVisualStyle {
+  Realistic     = "realistic",
+  Anime         = "anime",
+  Ghibli        = "ghibli",
+  Mascot        = "mascot",
+  Cartoon       = "cartoon",
+  Pixar         = "pixar",
+  ComicBook     = "comic_book",
+  Watercolor    = "watercolor",
+  OilPainting   = "oil_painting",
+  Render3D      = "3d_render",
+  Cyberpunk     = "cyberpunk",
+  Fantasy       = "fantasy",
+  Vintage       = "vintage",
+  NeonSynthwave = "neon_synthwave",
+  AIClone       = "ai_clone",
+}
+
 export enum VideoType {
   Generated = "generated",
   Talking = "talking",
-}
-
-export enum TalkingSubtype {
-  UGC = "ugc",
-  ShortFilm = "short_film",
-  Interview = "interview",
-  Explainer = "explainer",
-  PodcastClip = "podcast_clip",
 }
 
 // ─── Domain Types ─────────────────────────────────────────────────────────────
@@ -187,10 +197,11 @@ export interface Video {
   bgmVolume: number;                // integer 0–100, default 15 (15% BGM mix)
   targetDurationSeconds: number;    // 15 | 30 | 45 | 60
   videoType: VideoType;             // "generated" | "talking"
-  talkingSubtype: TalkingSubtype | null; // only set when videoType === "talking"
+  ugcVisualStyle: UGCVisualStyle | null; // only set when videoType === "talking"
+  ugcCharacterDescription: string | null; // pre-generated character description for UGC consistency
   sceneCount: number;                // total scenes; set when scenes are inserted
   voiceSpeed: number;               // 0.5–2.0; default 1.0; applied via FFmpeg atempo
-  characterBaseGcsPath: string | null; // GCS path of the base character image (cartoon/mascot only)
+  characterBaseGcsPath: string | null; // GCS path of the base character image
   renderStyle: RenderStyle | null;  // visual/render style for script + scene prompts
   voiceId: string | null;           // overrides project voiceId when set
   outputUrl: string | null;
@@ -283,4 +294,5 @@ export type ClipProgressEvent =
   | { type: "CLIP_DONE"; videoId: string; sceneIndex: number; clipUrl: string }
   | { type: "CLIP_FAILED"; videoId: string; sceneIndex: number; error: string }
   | { type: "HEARTBEAT" }
-  | { type: "SNAPSHOT"; clips: SnapshotClip[] };
+  | { type: "SNAPSHOT"; clips: SnapshotClip[]; queuePosition: number }
+  | { type: "QUEUE_POSITION"; videoId: string; queuePosition: number };

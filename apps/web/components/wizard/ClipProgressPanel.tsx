@@ -2,11 +2,15 @@
 
 import type { ClipStatusMap, SnapshotClip } from "@repo/types";
 import { cn } from "@repo/ui/utils";
+import type { ConnectionStatus } from "@/lib/hooks/useClipProgress";
+import { Button } from "@repo/ui/button";
 
 interface ClipProgressPanelProps {
   totalScenes: number;
   clips: ClipStatusMap;
   connected: boolean;
+  connectionStatus: ConnectionStatus;
+  onRetry: () => void;
 }
 
 function StatusBadge({ status }: { status: SnapshotClip["status"] }) {
@@ -38,7 +42,8 @@ function StatusBadge({ status }: { status: SnapshotClip["status"] }) {
 export function ClipProgressPanel({
   totalScenes,
   clips,
-  connected,
+  connectionStatus,
+  onRetry,
 }: ClipProgressPanelProps) {
   if (totalScenes === 0) return null;
 
@@ -49,17 +54,27 @@ export function ClipProgressPanel({
       {/* Header */}
       <div className="flex items-center justify-between px-4 py-3 border-b border-[var(--bg-border)]">
         <div className="flex items-center gap-2">
-          <span
-            className={cn(
-              "h-2 w-2 rounded-full shrink-0",
-              connected
-                ? "bg-[var(--accent-success)] animate-pulse"
-                : "bg-[var(--text-muted)]",
-            )}
-          />
-          <span className="text-sm font-medium text-[var(--text-primary)]">
-            Generating clips
-          </span>
+          {connectionStatus === "connected" && (
+            <>
+              <span className="h-2 w-2 rounded-full shrink-0 bg-[var(--accent-success)] animate-pulse" />
+              <span className="text-sm font-medium text-[var(--text-primary)]">Live</span>
+            </>
+          )}
+          {connectionStatus === "reconnecting" && (
+            <>
+              <span className="h-2 w-2 rounded-full shrink-0 bg-[var(--accent-warning)] animate-pulse" />
+              <span className="text-sm font-medium text-[var(--text-secondary)]">Reconnecting…</span>
+            </>
+          )}
+          {connectionStatus === "lost" && (
+            <>
+              <span className="h-2 w-2 rounded-full shrink-0 bg-[var(--text-muted)]" />
+              <span className="text-sm font-medium text-[var(--text-muted)]">Connection lost</span>
+              <Button variant="secondary" size="sm" onClick={onRetry} className="ml-2 h-6 px-2 text-xs">
+                Retry
+              </Button>
+            </>
+          )}
         </div>
         <span className="text-xs tabular-nums text-[var(--text-secondary)]">
           {doneCount} / {totalScenes} complete

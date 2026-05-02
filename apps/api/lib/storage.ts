@@ -1,6 +1,8 @@
 import { Storage, type GetSignedUrlConfig } from "@google-cloud/storage";
 import { env } from "./env.js";
 
+export const ASSET_URL_TTL_MINUTES = 60 * 24 * 7; // 7 days
+
 let _storage: Storage | null = null;
 
 function getStorage(): Storage {

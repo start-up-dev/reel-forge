@@ -1,9 +1,6 @@
 import type { PromptPair } from "./script.js";
 
 // ─── Talking video scene director ─────────────────────────────────────────────
-// Used when videoType === "talking". The opposite of cinematic B-roll rules:
-// characters MUST face camera, speak with visible mouth, and have accurate lipsync.
-// Applies to UGC, short films, interviews, explainers, and podcast clips.
 
 export const TALKING_SCENE_DIRECTOR_SYSTEM = `You are a director specialising in talking-head and lipsync short-form video content for TikTok, Instagram Reels, and YouTube Shorts. Your videos feature a human speaking directly to camera with natural, accurate lipsync.
 
@@ -13,28 +10,16 @@ export const TALKING_SCENE_DIRECTOR_SYSTEM = `You are a director specialising in
 - Authenticity over production value. Real emotion reads better than polished staging.
 - Eye contact with the camera = trust. The character must always look directly at the lens.
 
-## CHARACTER ANCHOR — the most critical rule in this entire prompt
-In scene 0 you MUST establish a complete character anchor: every physical detail locked down so precisely that an AI image generator produces the SAME person in every scene.
-
-Required character anchor elements (all mandatory):
-- HAIR: exact colour (e.g. "warm chestnut brown"), length ("collar-length"), style ("loose waves"), and any distinguishing detail ("slight side part")
-- FACE: skin tone with warmth description (e.g. "medium olive skin, warm undertone"), eye colour ("deep brown eyes"), eyebrow character ("full natural brows")
-- CLOTHING: specific garment + exact colour + texture detail ("fitted dusty-rose crew-neck knit sweater" / "white oversized button-down shirt, top two buttons undone")
-- DISTINGUISHING FEATURE: one unique detail that anchors identity across scenes ("small silver hoop in left ear" / "faint freckles across the nose bridge" / "subtle beauty mark above right lip")
-- BUILD: brief impression ("slim build, appears mid-20s")
-
-Once established in scene 0, copy the CHARACTER section WORD FOR WORD into every subsequent scene. The expression, framing, setting, and camera may change — the CHARACTER text must NOT change by a single word. This is how you guarantee the same face across all scenes.
-
 ## visualPrompt — how to write it
 Target: AI video generator, 9:16 vertical portrait frame.
 Structure every visualPrompt with these exact labelled sections in this order:
 
-CHARACTER: [full character anchor — copy verbatim from scene 0 in every scene]
+CHARACTER: [full character anchor — copy verbatim from the fixed anchor in every scene]
 EXPRESSION: [current emotional state — excited, serious, shocked, conspiratorial, warm, urgent, amused]
 FRAMING: [medium close-up (shoulders to top of head) as default / ECU for peak emotion / medium shot for gestures]
-SETTING: [specific background appropriate to subtype — see subtype rules below]
+SETTING: [specific background appropriate to visual style — see style rules below]
 LIGHTING: [motivated and flattering — soft front fill + subtle rim light; specify warmth or coolness]
-COLOUR GRADE: [clean warm for UGC/explainer; cooler high-contrast for short film/interview]
+COLOUR GRADE: [match the visual style]
 
 ## motionPrompt — how to write it
 2–3 sentences covering all three elements:
@@ -49,48 +34,114 @@ COLOUR GRADE: [clean warm for UGC/explainer; cooler high-contrast for short film
 - No B-roll, no silhouettes, no abstract visuals, no second characters
 - No text, subtitles, logos, or UI in frame`;
 
-// ─── Per-subtype visual and motion modifiers ──────────────────────────────────
-// Injected into the scene director prompt based on video.talkingSubtype.
-// Add new subtypes here.
+// ─── Per-style visual and motion modifiers ────────────────────────────────────
 
-export interface TalkingSubtypeModifier {
+export interface UGCVisualStyleModifier {
   visual: string;
   motion: string;
 }
 
-export const TALKING_SUBTYPE_MODIFIERS: Record<string, TalkingSubtypeModifier> =
-  {
-    ugc: {
-      visual:
-        "casual or performance setting — living room, kitchen, park, gym, bedroom, rooftop, or outdoor location. No studio polish. Authentic, slightly imperfect practical lighting. Clothing is completely unconstrained — crop top, dancewear, swimwear, streetwear, fitness wear, or whatever the content calls for. The character should look like a real creator or performer filming their own content.",
-      motion:
-        "handheld energy with natural movement — the character is fully animated and expressive. Dance moves, body rolls, arm gestures, leaning into the lens, bouncing to the beat, or spontaneous pointing are all encouraged. The performance energy is unscripted, personal, and direct. Camera keeps up with the character's movement.",
-    },
-    short_film: {
-      visual:
-        "cinematic framing with motivated practical lighting from a specific in-scene source. Character blocking is intentional — positioned deliberately within the environment. Slight film grain overlay. Location feels lived-in and specific, not generic.",
-      motion:
-        "precise camera movement that serves the emotional narrative — slow push-in for a confession, subtle pull-back for a realisation. Character's physical performance is controlled and deliberate. Every movement is motivated by the subtext.",
-    },
-    interview: {
-      visual:
-        "clean mid-depth background — blurred bokeh of an office, café, or simple neutral wall. Subject at eye level in medium close-up. Warm documentary colour grade. Professional but approachable clothing — not overly formal.",
-      motion:
-        "locked-off or very subtle slow push-in. Subject's natural interview mannerisms — occasional pause, thoughtful nod, measured hand gestures. Camera feels respectful and observational, never intrusive.",
-    },
-    explainer: {
-      visual:
-        "neutral bright background — clean white, soft light grey, or minimal gradient. Character centred with room to gesture on both sides. Focused composition, no distracting elements. Clean, professional styling that builds authority.",
-      motion:
-        "character uses deliberate, purposeful hand gestures to emphasise specific words in the textExcerpt. Slow camera push-in as the key takeaway lands. Posture is upright, engaged, and forward-leaning — confident teacher energy.",
-    },
-    podcast_clip: {
-      visual:
-        "minimal low-key set — microphone visible or implied. Relaxed seated posture. Professional home environment: wooden desk, bookshelf with selective objects, or a dark acoustic-treated studio wall. Lapel mic or quality headphones as a prop signals authenticity.",
-      motion:
-        "static or near-static camera with one slow subtle push-in. Conversational delivery with natural mid-sentence pauses. Occasional lean forward when making the strongest point. The physical stillness makes the spoken energy land harder.",
-    },
-  };
+export const UGC_VISUAL_STYLE_MODIFIERS: Record<string, UGCVisualStyleModifier> = {
+  realistic: {
+    visual:
+      "Natural skin tones and practical lighting. Clothing and setting are unconstrained — match the content mood. No stylisation, no filters. The character looks like a real human on camera.",
+    motion:
+      "Natural handheld or subtle push-in camera. Character delivery is grounded and conversational — real expressions, real energy.",
+  },
+  anime: {
+    visual:
+      "Flat cel-shaded character with bold black outlines, large expressive eyes, vibrant Japanese anime colour palette, and high-contrast dramatic lighting. Hair is stylised with sharp highlights. Background is semi-detailed anime environment.",
+    motion:
+      "Energetic anime-style delivery with exaggerated expressions — wide eyes on shock, narrow eyes for intensity. Camera stays tight on the face. Fast cuts in motion are implied by the pose.",
+  },
+  ghibli: {
+    visual:
+      "Soft watercolour painterly aesthetic in the style of Studio Ghibli. Rounded warm character design, hand-painted backgrounds, muted natural colour palette with warm highlights. Character has gentle expressive eyes and soft outlines.",
+    motion:
+      "Warm, unhurried delivery — the character speaks with genuine emotion and slight hesitation. Camera is a gentle slow push-in that feels handcrafted and human.",
+  },
+  mascot: {
+    visual:
+      "Bold simplified character design with thick black outlines, oversized head, exaggerated friendly features, and brand-mascot proportions. Could be any object, animal, or abstract shape brought to life as a mascot. Flat or lightly shaded. Colour-popping background.",
+    motion:
+      "Bouncy, enthusiastic delivery with broad physical gestures. The character's whole body reacts. Camera is locked-off or very slightly zoomed in — lets the mascot's movement carry the frame.",
+  },
+  cartoon: {
+    visual:
+      "Saturated cartoon colour palette, exaggerated proportions, classic 2D cartoon style with smooth clean lines. Expressive rubber-hose limbs. Background is illustrated cartoon environment.",
+    motion:
+      "Classic cartoon energy — rubbery movement, big facial reactions, comedic timing. Camera is punchy and direct.",
+  },
+  pixar: {
+    visual:
+      "High-quality 3D CGI render in the style of Pixar Animation. Subsurface scattering on skin, physically based materials, expressive oversized eyes, smooth character design. Studio-quality HDRI lighting.",
+    motion:
+      "Emotionally rich delivery — the character's face conveys every micro-expression. Camera does a slow cinematic push-in to emphasise the emotional peak.",
+  },
+  comic_book: {
+    visual:
+      "Halftone dot pattern overlay, bold black ink outlines in Marvel/DC comic style, high-contrast two-tone colouring with dramatic shadows. Action lines and panel-border feel. Speech-bubble energy without actual text bubbles.",
+    motion:
+      "Dramatic, punchy delivery with bold gesture. Character leans into the frame like a panel hero. Camera angle is slightly heroic — low angle or Dutch tilt.",
+  },
+  watercolor: {
+    visual:
+      "Soft wet-on-wet watercolour washes with visible paper texture and paint bleed at edges. Muted pastel palette. Loose outlines. Background bleeds into character edges.",
+    motion:
+      "Gentle, reflective delivery. Soft body language — slight lean, quiet gestures. Camera barely moves — a delicate held frame.",
+  },
+  oil_painting: {
+    visual:
+      "Visible impasto brushstrokes and rich oil paint texture. Classical portrait style with dramatic chiaroscuro lighting. Deep saturated background with shallow depth of field. Character looks painted from life.",
+    motion:
+      "Deliberate, measured delivery — like a classical subject sitting for a portrait. One slow push-in over the duration of the scene.",
+  },
+  "3d_render": {
+    visual:
+      "Photorealistic 3D CGI render. Detailed PBR textures on skin, hair, and clothing. Studio HDRI three-point lighting with subtle specular highlights. Background is a rendered environment with depth.",
+    motion:
+      "Clean, polished delivery that matches the high-fidelity look. Subtle camera movement — slight push or rotation — that showcases the 3D space.",
+  },
+  cyberpunk: {
+    visual:
+      "Neon-lit dark urban environment with holographic overlays, rain-slicked reflections, and high-tech low-life aesthetic. Character has LED accent lighting and futuristic clothing. Deep shadow with neon pink/blue/green rim light.",
+    motion:
+      "Intense, urgent delivery with a conspiratorial edge. Camera is close — ECU is appropriate for this style. Slight handheld shake.",
+  },
+  fantasy: {
+    visual:
+      "High fantasy setting with magical particle effects, bioluminescent ambient lighting, and ethereal glow. Character wears fantasy costume appropriate to the content. Rich saturated colour with magical realism.",
+    motion:
+      "Awe-inspiring or dramatic delivery depending on script. Character's gestures have weight and purpose. Camera does a slow reveal-style push-in.",
+  },
+  vintage: {
+    visual:
+      "Film grain overlay, desaturated warm sepia-and-amber tone, retro 70s/80s photography aesthetic. Light leaks at frame edges. Character styling appropriate to the era. Slightly soft focus.",
+    motion:
+      "Warm, nostalgic delivery — relaxed pace, authentic feeling. Camera is slightly unsteady as if shot on Super 8.",
+  },
+  neon_synthwave: {
+    visual:
+      "Retrowave aesthetic: neon pinks, purples, and electric blues against a dark grid-horizon background. Chrome and glass textures. Character has synthwave outfit with neon accents. Deep shadow with coloured rim lights.",
+    motion:
+      "High-energy, confident delivery. The character owns every word. Slow camera pull-back to reveal the neon landscape.",
+  },
+  // ai_clone is handled by a special override in buildTalkingSceneMessages — this entry is never reached at runtime
+  ai_clone: {
+    visual: "See 10.3a AI Clone override — this entry is never evaluated.",
+    motion: "See 10.3a AI Clone override — this entry is never evaluated.",
+  },
+};
+
+const AI_CLONE_OVERRIDE = `## Visual style: AI CLONE
+The character's appearance comes entirely from the uploaded reference image provided by the user.
+DO NOT invent any character details (hair, skin, face, clothing, build).
+
+CHARACTER ANCHOR RULE OVERRIDE — applies only to this style:
+- Scene 0: write CHARACTER section as exactly: "CHARACTER: Use the face, hair, skin tone, and identity from the uploaded reference image verbatim. Do not alter or describe any physical features."
+- Scenes 1+: copy that CHARACTER line word for word — identical across every scene.
+
+All other sections (EXPRESSION, FRAMING, SETTING, LIGHTING, COLOUR GRADE) follow the standard realistic rules.`;
 
 // ─── Builder ──────────────────────────────────────────────────────────────────
 
@@ -98,19 +149,36 @@ export function buildTalkingSceneMessages(
   script: string,
   audioDurationSeconds: number,
   targetCount: number,
-  subtype?: string,
+  ugcVisualStyle?: string,
   characterNote?: string | null,
 ): PromptPair {
-  const modifier = subtype
-    ? (TALKING_SUBTYPE_MODIFIERS[subtype] ?? null)
-    : null;
+  let styleSection: string;
 
-  const subtypeSection = modifier
-    ? `\n## Subtype rules: ${subtype?.replace(/_/g, " ").toUpperCase()}\nVisual: ${modifier.visual}\nMotion: ${modifier.motion}`
-    : "";
+  if (ugcVisualStyle === "ai_clone") {
+    styleSection = `\n${AI_CLONE_OVERRIDE}`;
+  } else if (ugcVisualStyle) {
+    const modifier = UGC_VISUAL_STYLE_MODIFIERS[ugcVisualStyle] ?? null;
+    styleSection = modifier
+      ? `\n## Visual style: ${ugcVisualStyle.replace(/_/g, " ").toUpperCase()}\nVisual: ${modifier.visual}\nMotion: ${modifier.motion}`
+      : "";
+  } else {
+    styleSection = "";
+  }
+
+  const characterLockSection = characterNote
+    ? `CHARACTER ANCHOR (FIXED — DO NOT MODIFY):
+The character has already been defined. Copy the following text verbatim as your CHARACTER section in every single scene — scene 0 and all subsequent scenes. Do not invent, rephrase, summarise, or change a single word.
+
+CHARACTER: ${characterNote}
+
+For each scene you write ONLY: EXPRESSION, FRAMING, SETTING, LIGHTING, COLOUR GRADE.
+The CHARACTER line in every scene is always exactly: "CHARACTER: ${characterNote}"`
+    : `CHARACTER LOCK:
+Scene 0: invent and write the complete character anchor (hair, face, clothing, distinguishing feature, build). Clothing choice is entirely unrestricted — match whatever style the content calls for (revealing, athletic, formal, casual, costume, dancer, swimwear, or anything else). Be hyper-specific about every clothing detail.
+Scenes 1+: copy the CHARACTER section from scene 0 EXACTLY, word for word, with zero changes. The AI image generator needs identical text to produce the same face and body across all clips.`;
 
   return {
-    system: `${TALKING_SCENE_DIRECTOR_SYSTEM}${subtypeSection}`,
+    system: `${TALKING_SCENE_DIRECTOR_SYSTEM}${styleSection}`,
     user: `Assign each sentence of this script to one scene. The script was written as exactly ${targetCount} complete sentences — assign one sentence per scene, word for word.
 
 SCRIPT:
@@ -118,7 +186,6 @@ ${script}
 
 Total duration: ${audioDurationSeconds} seconds (${targetCount} clips × 6 seconds each)
 Required scene count: exactly ${targetCount}
-${characterNote ? `\nCHARACTER & STYLE NOTE — use this to define the character anchor in scene 0 and carry it through every scene:\n${characterNote}\n` : ""}
 
 Output rules:
 - EXACTLY ${targetCount} scene${targetCount === 1 ? "" : "s"} — one per sentence in the script
@@ -128,9 +195,7 @@ Output rules:
 - durationHintSeconds: always exactly 6 — every Grok clip is exactly 6 seconds, no exceptions
 - The "scenes" field must be a JSON array, not a stringified JSON value
 
-CHARACTER LOCK:
-Scene 0: invent and write the complete character anchor (hair, face, clothing, distinguishing feature, build). Clothing choice is entirely unrestricted — match whatever style the content calls for (revealing, athletic, formal, casual, costume, dancer, swimwear, or anything else). Be hyper-specific about every clothing detail.
-Scenes 1+: copy the CHARACTER section from scene 0 EXACTLY, word for word, with zero changes. The AI image generator needs identical text to produce the same face and body across all clips.
+${characterLockSection}
 
 CRITICAL: Every scene MUST show the character speaking to camera. Mouth open. Eyes on the lens. No B-roll. No abstract visuals. No second person in frame.`,
   };

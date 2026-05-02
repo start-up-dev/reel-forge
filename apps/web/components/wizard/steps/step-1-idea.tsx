@@ -3,7 +3,7 @@
 import { useState, useEffect, useRef } from "react";
 import { ChevronDown, ChevronUp, Check, Loader2, Play, Square } from "lucide-react";
 import { toast } from "sonner";
-import { RenderStyle, TalkingSubtype, VideoStatus, VideoType } from "@repo/types";
+import { RenderStyle, UGCVisualStyle, VideoStatus, VideoType } from "@repo/types";
 import type { Project } from "@repo/types";
 import { Button } from "@repo/ui/button";
 import { useApiClient, withToast } from "@/lib/api-client";
@@ -14,7 +14,7 @@ interface Step1IdeaProps {
   video: VideoDetail;
   project: Project | null;
   onVideoUpdate: (v: VideoDetail) => void;
-  onScheduleSave: (data: { idea?: string; voiceId?: string | null; targetDurationSeconds?: number; renderStyle?: RenderStyle | null; videoType?: VideoType; talkingSubtype?: TalkingSubtype | null }) => void;
+  onScheduleSave: (data: { idea?: string; voiceId?: string | null; targetDurationSeconds?: number; renderStyle?: RenderStyle | null; videoType?: VideoType; ugcVisualStyle?: UGCVisualStyle | null }) => void;
   onAdvance: () => void;
 }
 
@@ -42,12 +42,12 @@ const VIDEO_STYLE_OPTIONS: { value: RenderStyle; label: string; emoji: string }[
   { value: RenderStyle.Whiteboard,    label: "Whiteboard",     emoji: "📋" },
 ];
 
-const TALKING_SUBTYPE_OPTIONS: { value: TalkingSubtype; label: string; emoji: string; hint: string }[] = [
-  { value: TalkingSubtype.UGC,        label: "UGC",          emoji: "📱", hint: "Casual creator-style, direct to camera" },
-  { value: TalkingSubtype.ShortFilm,  label: "Short Film",   emoji: "🎥", hint: "Scripted narrative, cinematic feel" },
-  { value: TalkingSubtype.Interview,  label: "Interview",    emoji: "🎙️", hint: "Conversational, documentary style" },
-  { value: TalkingSubtype.Explainer,  label: "Explainer",    emoji: "🧠", hint: "Educational, character explains clearly" },
-  { value: TalkingSubtype.PodcastClip,label: "Podcast Clip", emoji: "🎧", hint: "Minimal set, relaxed talking head" },
+const TALKING_SUBTYPE_OPTIONS: { value: UGCVisualStyle; label: string; emoji: string; hint: string }[] = [
+  { value: UGCVisualStyle.Realistic,  label: "Realistic",   emoji: "🎥", hint: "Natural human look and feel" },
+  { value: UGCVisualStyle.Anime,      label: "Anime",       emoji: "⛩️", hint: "Cel-shaded anime style" },
+  { value: UGCVisualStyle.Ghibli,     label: "Ghibli",      emoji: "🌿", hint: "Painterly Ghibli aesthetic" },
+  { value: UGCVisualStyle.Pixar,      label: "Pixar",       emoji: "🎪", hint: "3D CGI animated style" },
+  { value: UGCVisualStyle.Cartoon,    label: "Cartoon",     emoji: "🎨", hint: "Classic 2D cartoon" },
 ];
 
 const TIPS = [
@@ -81,7 +81,7 @@ export function Step1Idea({
 
   // Video type (generated vs talking)
   const [videoType, setVideoType] = useState<VideoType>(video.videoType ?? VideoType.Generated);
-  const [talkingSubtype, setTalkingSubtype] = useState<TalkingSubtype | null>(video.talkingSubtype ?? null);
+  const [talkingSubtype, setTalkingSubtype] = useState<UGCVisualStyle | null>(video.ugcVisualStyle ?? null);
 
   // Render style
   const [renderStyle, setRenderStyle] = useState<RenderStyle | null>(video.renderStyle ?? null);
@@ -170,7 +170,7 @@ export function Step1Idea({
 
   async function handleUseIdea(idea: IdeaCard) {
     if (isTalking && !talkingSubtype) {
-      toast.error("Select a talking video subtype before continuing");
+      toast.error("Select a UGC visual style before continuing");
       return;
     }
     if (!isTalking && !renderStyle) {
@@ -196,7 +196,7 @@ export function Step1Idea({
         ...video,
         ...result.data,
         videoType,
-        talkingSubtype,
+        ugcVisualStyle: talkingSubtype,
         renderStyle,
         scenes: video.scenes,
       });
@@ -211,7 +211,7 @@ export function Step1Idea({
       return;
     }
     if (isTalking && !talkingSubtype) {
-      toast.error("Select a talking video subtype before continuing");
+      toast.error("Select a UGC visual style before continuing");
       return;
     }
     if (!isTalking && !renderStyle) {
@@ -234,7 +234,7 @@ export function Step1Idea({
         ...video,
         ...result.data,
         videoType,
-        talkingSubtype,
+        ugcVisualStyle: talkingSubtype,
         renderStyle,
         scenes: video.scenes,
       });
@@ -337,7 +337,7 @@ export function Step1Idea({
                 title={opt.hint}
                 onClick={() => {
                   setTalkingSubtype(opt.value);
-                  onScheduleSave({ talkingSubtype: opt.value });
+                  onScheduleSave({ ugcVisualStyle: opt.value });
                 }}
                 className={cn(
                   "flex items-center gap-1.5 rounded-full border px-3 py-1.5 text-sm font-medium transition-all",

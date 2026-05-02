@@ -2,6 +2,53 @@ import type { ProjectRow } from "../lib/db/schema.js";
 import { projectContext } from "./utils.js";
 import type { PromptPair } from "./script.js";
 
+// ─── UGC character description prompt builder ─────────────────────────────────
+// Phase A of Track 13: generate a locked five-line character description before
+// scene generation. The output is stored on the video row and injected into every
+// scene prompt as a fixed CHARACTER anchor.
+
+const UGC_STYLE_CONTEXT: Record<string, string> = {
+  realistic:     "Natural proportions, real-world clothing and skin tones, no stylisation",
+  anime:         "Large expressive eyes, cel-shaded skin tone, stylised hair with sharp highlights, vibrant saturated colour palette",
+  ghibli:        "Rounded soft features, warm muted natural colours, gentle expressive eyes, painterly soft-outline feel",
+  pixar:         "Oversized expressive eyes, smooth 3D proportions, physically-based material descriptions (subsurface skin, fabric texture)",
+  cartoon:       "Exaggerated proportions, bold saturated colours, thick black outline feel, rubbery limbs",
+  mascot:        "Could be any object or animal brought to life; large simplified head, oversized friendly features, bold flat colour",
+  comic_book:    "Bold ink-line feel, high-contrast two-tone colouring, heroic or dramatic proportions",
+  watercolor:    "Soft features, slightly blurred edges, muted pastel palette, loose organic outline",
+  oil_painting:  "Classical portrait proportions, rich deep colours, painterly impasto texture feel",
+  "3d_render":   "Photorealistic 3D proportions, PBR-appropriate texture descriptions (SSS skin, woven fabric, specular highlights)",
+  cyberpunk:     "Futuristic clothing with LED accents, neon-lit skin tone descriptions, chrome and glass textures",
+  fantasy:       "Fantasy costume appropriate to the content, magical or ethereal features, rich saturated colours",
+  vintage:       "Era-appropriate styling (70s/80s), slightly desaturated warm colour descriptions, retro clothing details",
+  neon_synthwave: "Synthwave outfit with neon accents, chrome reflections, electric colour palette (pink/purple/blue)",
+};
+
+export function buildUGCCharacterDescriptionPrompt(
+  project: ProjectRow,
+  ugcVisualStyle: string,
+): PromptPair {
+  const styleContext = UGC_STYLE_CONTEXT[ugcVisualStyle] ?? "Natural proportions, real-world clothing and skin tones";
+
+  return {
+    system: "You are a character designer creating a locked visual identity for a short-form video character. Your output will be used as the CHARACTER section of an AI image generation prompt and must produce the same person or character reliably across many different scenes.",
+    user: `Project context:
+${projectContext(project)}
+
+Visual style: ${ugcVisualStyle.replace(/_/g, " ")}
+Style context: ${styleContext}
+
+Write a 50–80 word character description using exactly these five labelled lines in this order:
+HAIR: [exact colour, length, style, any distinguishing detail]
+FACE: [skin tone with warmth description, eye colour, brow character]
+CLOTHING: [specific garment + exact colour + texture detail]
+FEATURE: [one unique anchoring detail — earring, freckle, beauty mark, tattoo, etc.]
+BUILD: [brief impression — apparent age, physique]
+
+Output ONLY the five-line character description. No preamble. No scene context. No explanation.`,
+  };
+}
+
 // ─── Character sheet prompt builder ──────────────────────────────────────────
 // Used by Track 2 (cartoon/mascot consistency) to generate a base character
 // description that gets injected into every subsequent scene's visualPrompt.

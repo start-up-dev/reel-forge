@@ -94,7 +94,6 @@ export function Step6Processing({
   onAdvance,
 }: Step6ProcessingProps) {
   const api = useApiClient();
-  const [queuePosition] = useState(0);
   const [retrying, setRetrying] = useState(false);
   const isFailed = video.status === VideoStatus.Failed;
   const isComplete = video.status === VideoStatus.Complete;
@@ -103,7 +102,7 @@ export function Step6Processing({
     video.status === VideoStatus.ClipsProcessing;
   const isUnderReview = video.status === VideoStatus.ClipsNeedsReview;
 
-  const { clips, connected } = useClipProgress(
+  const { clips, connected, connectionStatus, queuePosition, retryConnection } = useClipProgress(
     isClipsActive || isUnderReview ? video.id : null,
   );
 
@@ -241,6 +240,8 @@ export function Step6Processing({
             totalScenes={totalScenes}
             clips={clips}
             connected={connected}
+            connectionStatus={connectionStatus}
+            onRetry={retryConnection}
           />
         </div>
       )}
