@@ -40,6 +40,31 @@ const WHISPER_LANGUAGE_MAP: Record<string, string> = {
   sv: "sv", // Swedish
 };
 
+// Fallback for full language names stored in the DB (e.g. "english" → "en").
+const LANGUAGE_NAME_MAP: Record<string, string> = {
+  english: "en",
+  bengali: "bn",
+  hindi: "hi",
+  urdu: "ur",
+  arabic: "ar",
+  chinese: "zh",
+  japanese: "ja",
+  korean: "ko",
+  french: "fr",
+  german: "de",
+  spanish: "es",
+  portuguese: "pt",
+  russian: "ru",
+  turkish: "tr",
+  vietnamese: "vi",
+  thai: "th",
+  indonesian: "id",
+  dutch: "nl",
+  italian: "it",
+  polish: "pl",
+  swedish: "sv",
+};
+
 // Transcribe an audio file via OpenAI Whisper and return word-level timestamps.
 // Returns an empty array (no subtitles) if OPENAI_API_KEY is not configured.
 export async function transcribeAudio(audioPath: string, language?: string): Promise<WordTimestamp[]> {
@@ -61,7 +86,10 @@ export async function transcribeAudio(audioPath: string, language?: string): Pro
   form.append("timestamp_granularities[]", "word");
 
   // Pin the language so Whisper never auto-detects — prevents Bengali→Hindi misclassification
-  const langCode = language ? (WHISPER_LANGUAGE_MAP[language.split("-")[0]!] ?? language.split("-")[0]!) : null;
+  const rawTag = language ? language.split("-")[0]!.toLowerCase() : null;
+  const langCode = rawTag
+    ? (WHISPER_LANGUAGE_MAP[rawTag] ?? LANGUAGE_NAME_MAP[rawTag] ?? rawTag)
+    : null;
   if (langCode && langCode !== "en") form.append("language", langCode);
 
   const res = await fetch("https://api.openai.com/v1/audio/transcriptions", {

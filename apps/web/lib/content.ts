@@ -63,7 +63,8 @@ export const SHOWCASE = {
       gradientFrom: "#0f172a",
       gradientTo: "#1e3a5f",
       accentColor: "#4a90e2",
-      videoUrl: "https://storage.googleapis.com/reelforge-marketing/videos/createdbyreelforge.mp4",
+      videoUrl:
+        "https://storage.googleapis.com/reelforge-marketing/videos/Cinematic.mp4",
     },
     {
       style: "Cartoon",
@@ -74,7 +75,8 @@ export const SHOWCASE = {
       gradientFrom: "#1a0a05",
       gradientTo: "#3d1a0a",
       accentColor: "#f55c2a",
-      videoUrl: "https://storage.googleapis.com/reelforge-marketing/videos/createdbyreelforge.mp4",
+      videoUrl:
+        "https://storage.googleapis.com/reelforge-marketing/videos/createdbyreelforge.mp4",
     },
     {
       style: "Motion Graphics",
@@ -85,7 +87,8 @@ export const SHOWCASE = {
       gradientFrom: "#0d0d1a",
       gradientTo: "#1a1040",
       accentColor: "#a78bfa",
-      videoUrl: "https://storage.googleapis.com/reelforge-marketing/videos/createdbyreelforge.mp4",
+      videoUrl:
+        "https://storage.googleapis.com/reelforge-marketing/videos/createdbyreelforge.mp4",
     },
     {
       style: "Mascot",
@@ -96,7 +99,8 @@ export const SHOWCASE = {
       gradientFrom: "#0f1a0a",
       gradientTo: "#1e3d10",
       accentColor: "#34d399",
-      videoUrl: "https://storage.googleapis.com/reelforge-marketing/videos/createdbyreelforge.mp4",
+      videoUrl:
+        "https://storage.googleapis.com/reelforge-marketing/videos/createdbyreelforge.mp4",
     },
     {
       style: "Whiteboard",
@@ -107,7 +111,8 @@ export const SHOWCASE = {
       gradientFrom: "#1a1500",
       gradientTo: "#3d3000",
       accentColor: "#fbbf24",
-      videoUrl: "https://storage.googleapis.com/reelforge-marketing/videos/createdbyreelforge.mp4",
+      videoUrl:
+        "https://storage.googleapis.com/reelforge-marketing/videos/claude%20wrong.mp4",
     },
     {
       style: "Cinematic",
@@ -118,7 +123,8 @@ export const SHOWCASE = {
       gradientFrom: "#001a1a",
       gradientTo: "#003d3d",
       accentColor: "#2dd4bf",
-      videoUrl: "https://storage.googleapis.com/reelforge-marketing/videos/createdbyreelforge.mp4",
+      videoUrl:
+        "https://storage.googleapis.com/reelforge-marketing/videos/daily-routine.mp4",
     },
     {
       style: "2D Animation",
@@ -129,7 +135,8 @@ export const SHOWCASE = {
       gradientFrom: "#0a1a2e",
       gradientTo: "#1a2e4a",
       accentColor: "#4a90e2",
-      videoUrl: "https://storage.googleapis.com/reelforge-marketing/videos/createdbyreelforge.mp4",
+      videoUrl:
+        "https://storage.googleapis.com/reelforge-marketing/videos/createdbyreelforge.mp4",
     },
     {
       style: "Stock Footage",
@@ -140,7 +147,8 @@ export const SHOWCASE = {
       gradientFrom: "#1a1a1a",
       gradientTo: "#2a2a2a",
       accentColor: "#f4f4f8",
-      videoUrl: "https://storage.googleapis.com/reelforge-marketing/videos/createdbyreelforge.mp4",
+      videoUrl:
+        "https://storage.googleapis.com/reelforge-marketing/videos/interview%20mistake.mp4",
     },
     {
       style: "Mascot",
@@ -151,10 +159,11 @@ export const SHOWCASE = {
       gradientFrom: "#1a1505",
       gradientTo: "#2a200a",
       accentColor: "#fbbf24",
-      videoUrl: "https://storage.googleapis.com/reelforge-marketing/videos/createdbyreelforge.mp4",
+      videoUrl:
+        "https://storage.googleapis.com/reelforge-marketing/videos/createdbyreelforge.mp4",
     },
     {
-      style: "Cartoon",
+      style: "UGC",
       niche: "Self-Improvement",
       platform: "TikTok",
       views: "950K views",
@@ -162,7 +171,8 @@ export const SHOWCASE = {
       gradientFrom: "#1a051a",
       gradientTo: "#2a0a2a",
       accentColor: "#a78bfa",
-      videoUrl: "https://storage.googleapis.com/reelforge-marketing/videos/createdbyreelforge.mp4",
+      videoUrl:
+        "https://storage.googleapis.com/reelforge-marketing/videos/learn%20ai.mp4",
     },
     {
       style: "Motion Graphics",
@@ -173,7 +183,8 @@ export const SHOWCASE = {
       gradientFrom: "#051a05",
       gradientTo: "#0a2a0a",
       accentColor: "#34d399",
-      videoUrl: "https://storage.googleapis.com/reelforge-marketing/videos/createdbyreelforge.mp4",
+      videoUrl:
+        "https://storage.googleapis.com/reelforge-marketing/videos/createdbyreelforge.mp4",
     },
     {
       style: "Cinematic",
@@ -184,7 +195,8 @@ export const SHOWCASE = {
       gradientFrom: "#1a0505",
       gradientTo: "#2a0a0a",
       accentColor: "#f87171",
-      videoUrl: "https://storage.googleapis.com/reelforge-marketing/videos/createdbyreelforge.mp4",
+      videoUrl:
+        "https://storage.googleapis.com/reelforge-marketing/videos/createdbyreelforge.mp4",
     },
   ],
 };

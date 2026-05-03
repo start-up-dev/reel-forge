@@ -109,21 +109,16 @@ Join 5–6 here. Post value content, softer promotion.
 **Template A1 — Problem-First Demo**
 *(Best for general creator groups)*
 ```
-Most content creators spend 2–4 hours making ONE short-form video.
+I used to spend 3 hours making one video.
 
-I built something that cuts that to under 10 minutes.
+Now it's under 10 minutes. Here's one I just made 👇
+[attach demo video]
 
-Here's a reel I just made with it 👇 [attach demo video]
+Type the idea → AI writes the script → voiceover done → visuals generated scene by scene → finished MP4 in my email. I didn't touch an editor once.
 
-→ Script written by AI in 8 seconds
-→ Voiceover generated in 15 seconds
-→ Visuals AI-generated per scene
-→ Subtitles synced to the millisecond
-→ Final MP4 delivered to my email in under an hour
+Built this tool myself. $5 to try it — you get 3 full videos, no subscription.
 
-If you're tired of spending your whole week just on production — I opened up a $5 try-out: 3 complete videos, no subscription, all 7 visual styles.
-
-Drop "link" in the comments and I'll send it over.
+Drop "link" below and I'll send it over.
 ```
 
 ---
@@ -133,15 +128,13 @@ Drop "link" in the comments and I'll send it over.
 ```
 [attach demo video]
 
-This took me less than 10 minutes of actual work.
+Made this in under 10 minutes. Didn't edit anything. Didn't record anything.
 
-Not editing time. Not scripting time. 10 minutes TOTAL — then I closed the tab and the finished video arrived in my email.
+Typed the idea, reviewed the script, hit submit. Video showed up in my email.
 
-The tool is called ReelForge. You type the idea. AI writes the script, generates the voice, creates the visuals scene by scene, and assembles the final MP4.
+It's called ReelForge. $5 gets you 3 full videos to test it yourself — no monthly commitment, try it once and see.
 
-Running a $5 try-out right now — 3 full videos, no monthly commitment.
-
-Comment "try" and I'll drop the link below 👇
+Comment "try" and I'll drop the link 👇
 ```
 
 ---
@@ -149,17 +142,15 @@ Comment "try" and I'll drop the link below 👇
 **Template A3 — Story Format**
 *(Best for entrepreneurship, business, and founder groups)*
 ```
-6 months ago I was spending 15+ hours a week just making videos for my content channels.
+I was spending 15 hours a week just making videos. Not growing. Not engaging. Just production.
 
-Not growing them. Not engaging. Just production.
-
-So I stopped and built the solution instead.
+So I built something instead.
 
 [attach demo video]
 
-This is ReelForge. You type an idea. It produces a finished short-form video — script, voiceover, AI visuals, subtitles, music — completely automated. Under 10 minutes of your attention.
+This is ReelForge — you give it an idea, it comes back with a finished short-form video. Script, voice, visuals, subtitles, the whole thing. Under 10 minutes of your time.
 
-I'm running a $5 try-out: 3 complete videos with no subscription. Try it once and you'll understand why I built it.
+Running a $5 try-out right now, 3 videos, no subscription. Try it once.
 
 Link in first comment 👇
 ```
@@ -167,17 +158,15 @@ Link in first comment 👇
 ---
 
 **Template A4 — Niche-Specific Demo**
-*(Customise the niche for Tier 2 groups — real estate, fitness, coaching, etc.)*
+*(Swap in the niche for Tier 2 groups — real estate, fitness, coaching, etc.)*
 ```
-[attach the most relevant niche demo video — e.g. real estate for real estate groups]
+[attach niche demo video]
 
-I made this video for a [real estate / fitness / finance] channel in under 10 minutes.
+Made this [real estate / fitness / finance] video in under 10 minutes. No editing, no recording.
 
-No editing. No recording. No B-roll hunting. I typed the idea, reviewed the script, and submitted. The finished video hit my inbox in 45 minutes.
+Typed the topic. Reviewed the script. Hit submit. Got the MP4 in my email 45 minutes later.
 
-The tool is called ReelForge — full AI video pipeline: script → voice → visuals → subtitles → MP4.
-
-If you're posting content for your [niche] business and production is the bottleneck, this is worth $5 to test. 3 complete videos, no commitment.
+Tool is called ReelForge — $5 to test it, 3 full videos, no commitment. Worth it just to see what it makes for your niche.
 
 Comment below and I'll send the link.
 ```
@@ -190,123 +179,103 @@ Comment below and I'll send the link.
 ---
 
 **Template B1 — Tips Post**
-*(Generates goodwill; mention ReelForge naturally at the end)*
 ```
-3 things that actually move short-form video growth:
+3 things that actually grow short-form accounts:
 
-1. Post 5x/week minimum — the algorithm rewards consistency, not perfection
-2. First 2 seconds = everything. If your hook doesn't land, nothing else matters
-3. Subtitles. 85% of short-form is watched on mute. If it's not readable, it's invisible.
+1. Consistency beats quality every time. 5 good videos > 1 perfect one.
+2. The hook is everything. You have 2 seconds. Not 5. 2.
+3. Subtitles. 85% of people scroll on mute. No subtitles = invisible.
 
-The biggest barrier to #1 is production time. If one video costs you 3 hours, you'll never hit 5/week without burning out.
+The killer is #1. Hard to post 5x/week when each video takes 3 hours.
 
-What's everyone using to speed up production? (I built a tool for this but genuinely curious what's working for others)
+What's everyone using to speed up production? Genuinely curious what's working.
 ```
 
 ---
 
 **Template B2 — Question Post**
-*(Generates comments → you reply with ReelForge to each person who says they spend a long time)*
+*(Reply to every "2-3 hours" comment with: "That was me too — I built something that cuts this way down, want me to share?")*
 ```
-Honest question for this group:
+Real question for this group —
 
-How long does it actually take you to make one short-form video, start to finish?
+How long does one short-form video actually take you? Like start to finish, scripting to export.
 
-Script → visuals → voiceover or recording → captions → export.
+Mine used to be 3-4 hours. Now it's under 10 minutes. Curious if that's unusual or if most people are grinding through the same thing.
 
-Mine used to be 3–4 hours. Now it's under 10 minutes. But I'm curious if I'm an outlier or if most creators are in the same position.
-
-Drop your real time in the comments 👇
+Drop your number below 👇
 ```
-*Reply script when someone says "2–3 hours":*
-> "That's where I was too. I built something that cuts this down significantly — happy to share if you want to test it"
 
 ---
 
 **Template B3 — Insight Post**
-*(High shareability, positions you as knowledgeable, closes with a soft CTA)*
 ```
-The creators posting 5+ videos a day aren't more creative than you.
+The people posting 5+ videos a day aren't working harder than you.
 
-They've removed themselves from the production line.
+They just stopped doing the work themselves.
 
-The only way to consistently hit short-form volume is to either:
-a) Hire a production team — $3k–10k/month
-b) Automate the production
+You can hire a team (expensive) or you can automate it (cheap now).
 
-Option B now costs $5.
-
-(Happy to share what I'm using if anyone wants to know)
+Happy to share what I use if anyone's curious.
 ```
 
 ---
 
 **Template B4 — Before/After Post**
-*(Visual contrast, works well in any group)*
 ```
-Before:
-✕ 2–4 hours per video, every day
-✕ Blank page every time I need a script
-✕ Recording voiceovers I'm never happy with
-✕ Subtitle sync done manually
-✕ Posting gaps whenever life happened
+6 months ago vs now:
 
-After:
-✓ Under 10 minutes active effort per video
-✓ AI writes the script from my idea
-✓ ElevenLabs voices it automatically
-✓ Subtitles synced to the millisecond
-✓ Video in my email — I didn't even watch it render
+Before — 3 hours per video, burnout, posting gaps, dreading every edit
+Now — under 10 mins, video shows up in my email, I didn't touch an editor
 
-The difference is a $5 tool. 3 videos to test it, no subscription.
+The difference is one $5 tool. Literally $5 to try it, 3 full videos, no subscription.
 
-(Link in comments if you want it)
+Link in comments if you want it.
 ```
 
 ---
 
 ### TYPE C — Comment Drop Templates
-*Use: when someone posts asking about video tools, editing software, AI tools, or complains about production time. This is the most underrated tactic.*
+*Use: when someone asks about video tools, complains about editing time, or asks for AI tool recs. This is the highest-ROI tactic.*
 
 ---
 
 **When someone asks "what video tools do you use?"**
 ```
-ReelForge has been the biggest unlock for me. Full pipeline — you type the idea, it writes the script, generates the voice, creates AI visuals per scene, syncs subtitles, assembles the MP4. Final video in your email. Under $0.33/video at scale. They have a $5 try-out (3 videos, no sub) if you want to test it without committing: [LINK]
+ReelForge changed things for me. You give it a topic, it writes the script, generates the voiceover, creates the visuals per scene, auto-syncs subtitles, and sends you the finished video. Under 10 minutes of your time. $5 try-out if you want to test it: [LINK]
 ```
 
 ---
 
-**When someone complains about how long video editing takes:**
+**When someone complains about editing taking forever:**
 ```
-This was me until I switched to ReelForge. Automates the whole pipeline — script, voiceover, visuals, subtitles, final MP4 delivery. Under 10 minutes of your time per video. Try-out is only $5 if you want to see what the output looks like: [LINK]
+Felt this. Switched to ReelForge and honestly don't go back — it does the whole thing, script to finished MP4. Under 10 mins of your time. $5 to try it: [LINK]
 ```
 
 ---
 
-**When someone asks for AI video tool recommendations:**
+**When someone asks for AI video tool recs:**
 ```
-For short-form content (TikTok/Reels/Shorts), I'd start with ReelForge. It's a production pipeline, not just a single AI tool — Claude writes the script, ElevenLabs voices it, AI generates visuals in 7 styles, subtitles auto-sync, FFmpeg assembles the MP4. $5 try-out right now: [LINK]
+ReelForge if you're doing short-form. It's not just one AI tool — it writes the script, voices it, generates visuals scene by scene, syncs subtitles, delivers the MP4. $5 try-out right now: [LINK]
 ```
 
 ---
 
 **When someone says they can't afford a video editor:**
 ```
-You don't need one. ReelForge handles the whole pipeline for $5 to test (3 complete videos, no subscription). Script, voice, visuals, subtitles — all automated. Final MP4 to your email in under an hour: [LINK]
+You don't need one anymore. ReelForge does script, voice, visuals, subtitles, final video — $5 to try it (3 full videos): [LINK]
 ```
 
 ---
 
-**When someone is in a niche-specific group (e.g. real estate, coaching, fitness):**
+**When someone mentions their niche (real estate, fitness, coaching, etc.):**
 ```
-I just made a [niche] video with ReelForge — it's an AI video pipeline that handles script → voiceover → visuals → subtitles → MP4 automatically. Under 10 minutes of your time. $5 to try it (3 full videos): [LINK]
+I actually made a [niche] video with ReelForge recently — typed the idea, got the finished reel in under an hour. $5 try-out if you're curious what it'd look like for your content: [LINK]
 ```
 
 ---
 
 ### TYPE D — ReelForge Page Posts
-*These live on your ReelForge Facebook Page, not in groups. Post these first before promoting anywhere.*
+*Post these on the ReelForge Page before promoting anywhere. Page needs to look active.*
 
 ---
 
@@ -314,24 +283,13 @@ I just made a [niche] video with ReelForge — it's an AI video pipeline that ha
 ```
 Why I built ReelForge:
 
-I was running 3 content channels and spending 15+ hours a week just on production.
+Was running 3 content channels. Spending 15+ hours a week on production — scripting, recording, editing, captioning. Over and over.
 
-Not strategy. Not engagement. Just: script → record → edit → captions → export. Repeat forever.
+Stopped one day and just built the fix instead.
 
-I calculated that at my hourly rate, I was spending over $1,500/month in time just to keep the channels alive.
+Now you type the idea. AI writes the script, voices it, generates the visuals, syncs the subtitles. Finished video in your email. You spend under 10 minutes on it.
 
-So I stopped and built ReelForge instead.
-
-You type the idea. It handles the rest:
-→ Claude AI writes the script (8 seconds)
-→ ElevenLabs voices it in 30+ languages (15 seconds)
-→ AI generates visuals per scene (7 styles)
-→ Subtitles synced automatically
-→ Final 1080×1920 MP4 delivered to your email
-
-Under 10 minutes of your attention. Everything else automated.
-
-$5 to try it — 3 complete videos, no subscription, no risk.
+$5 to try it. 3 videos. No subscription.
 
 [LINK]
 ```
@@ -340,23 +298,13 @@ $5 to try it — 3 complete videos, no subscription, no risk.
 
 **Page Post 2 — The Math**
 ```
-Let's do the math on short-form video.
+The math on short-form video is brutal.
 
-To grow on TikTok, Reels, or Shorts, you need:
-→ 5+ videos per week minimum
-→ Zero posting gaps
-→ Subtitles, strong hooks, consistent quality
+To grow you need 5+ videos a week with no gaps. At 2-4 hours each that's up to 20 hours of production. Every single week.
 
-Manually: 2–4 hours per video = 10–20 hours per week. On just production.
+With ReelForge it's 10 minutes per video. 5 videos = 50 minutes.
 
-With ReelForge:
-→ Under 10 minutes per video
-→ 5 videos/week = 50 minutes of your time
-→ Scale to 5/day if you want — the pipeline handles it
-
-The math changes everything.
-
-Try it for $5. 3 complete videos. See what the pipeline actually produces.
+That's the whole thing. $5 to see it yourself — 3 full videos.
 
 [LINK]
 ```
@@ -367,33 +315,28 @@ Try it for $5. 3 complete videos. See what the pipeline actually produces.
 ```
 [attach demo video]
 
-This video took under 10 minutes of human attention to make.
+This took under 10 minutes to make.
 
-Here's what happened automatically:
-✓ Script written by Claude AI (8 seconds)
-✓ Voiceover generated by ElevenLabs (15 seconds)
-✓ 10 scenes created by AI from the script
-✓ Subtitles synced to the millisecond, automatically
-✓ Final MP4 assembled and delivered to email
+AI wrote the script. AI voiced it. AI generated every scene. Subtitles synced themselves. MP4 showed up in email.
 
-$5 gets you 3 videos like this. No subscription, no commitment.
+$5 for 3 videos like this. No subscription.
 
-Try it: [LINK]
+[LINK]
 ```
 
 ---
 
-### TYPE E — Direct Message Template
-*Send to: everyone who likes, comments, or reacts to any of your posts*
+### TYPE E — DM Template
+*Send to everyone who likes, comments, or reacts to any post.*
 
 ```
-Hey [Name] — saw you engaged with my ReelForge post, wanted to follow up directly.
+Hey [Name] — saw you checked out my ReelForge post, wanted to reach out directly.
 
-Quick context: it's a full AI video production pipeline for short-form content. You type the idea, it handles script, voiceover, visuals, subtitles, and the final MP4 — delivered to your email. Under 10 minutes of your time per video.
+Short version: you type the video idea, it handles script, voice, visuals, subtitles, and sends you the finished MP4. Under 10 minutes of your time per video.
 
-Running a $5 try-out right now — 3 complete videos, no subscription, no commitment. If you're making any kind of short-form content (TikTok, Reels, Shorts, Facebook Reels), it's a $5 bet worth taking.
+$5 try-out right now — 3 full videos, no subscription. If you're doing any short-form content it's worth the $5 test.
 
-Happy to answer any questions: [LINK]
+Any questions happy to help: [LINK]
 ```
 
 ---
@@ -521,39 +464,45 @@ The $5 price point is your biggest conversion lever. Here are the exact framings
 ## Part 9 — Group-Specific Post Variations
 
 ### For Real Estate Groups
-Attach a real estate niche demo video. Use this copy:
 ```
-Real estate agents need video more than almost any other profession right now.
+Agents posting video consistently are closing more deals. Not because the videos are perfect — because they show up every day.
 
-Listings with video get 403% more inquiries. Agents who post consistently build the kind of trust that gets them referrals without asking.
-
-But who has 3 hours a day to make videos?
+Problem is nobody has 3 hours to make a video between showings.
 
 [attach real estate demo video]
 
-I made this with ReelForge — AI video pipeline. You type "3 mistakes first-time homebuyers make," it produces a finished Reel in under an hour. $5 to test it (3 videos): [LINK in comments]
+Made this with ReelForge — typed the topic, got the finished Reel in under an hour. $5 try-out, 3 videos: [LINK in comments]
 ```
 
 ### For Coaching/Consultant Groups
 ```
-The coaches growing fastest on social media aren't spending their time editing videos.
+The coaches blowing up on social aren't editing their own videos.
 
-They have a system.
+[attach coaching demo video]
 
-[attach coaching/business niche demo video]
+This is what I use — type the topic, get the finished video. Script, voice, visuals, subtitles, done. Under 10 minutes.
 
-This is what that system looks like now — type your topic, get a finished short-form video in under an hour. All 7 visual styles. TikTok, Reels, Shorts, Facebook Reels. $5 for 3 videos: [LINK in comments]
+$5 for 3 videos: [LINK in comments]
 ```
 
 ### For Fitness/PT Groups
 ```
-Your clients want to see you posting daily. The algorithm wants you posting daily.
+Your clients want to see you posting every day. The algorithm does too.
 
-But filming, editing, and captioning takes 2–4 hours per video.
+3 hours per video makes that impossible.
 
-[attach fitness niche demo video]
+[attach fitness demo video]
 
-This is a fitness video I made with ReelForge — typed the idea, reviewed the script, got the finished MP4 in my email. Under 10 minutes of my time. $5 to test it (3 full videos): [LINK in comments]
+Made this fitness video in under 10 minutes with ReelForge — typed the idea, got the MP4 in my email. $5 to test it (3 videos): [LINK in comments]
+```
+
+### For E-commerce / Dropshipping Groups
+```
+Product videos every day sounds insane when each one takes 3 hours.
+
+[attach product/ecom demo video]
+
+This one took under 10 minutes. ReelForge handles the whole thing — script, voiceover, visuals, subtitles. $5 for 3 videos: [LINK in comments]
 ```
 
 ---

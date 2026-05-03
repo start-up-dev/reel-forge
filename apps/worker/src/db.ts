@@ -63,9 +63,15 @@ export const users = pgTable("users", {
   emailNotifyFailed: boolean("email_notify_failed").notNull().default(true),
 });
 
+export const projects = pgTable("projects", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  language: text("language").notNull(),
+});
+
 export const videos = pgTable("videos", {
   id: uuid("id").primaryKey().defaultRandom(),
   userId: text("user_id").notNull(),
+  projectId: uuid("project_id").notNull(),
   title: text("title").notNull(),
   status: videoStatusEnum("status").notNull().default("DRAFT"),
   subtitleStyle: subtitleStyleEnum("subtitle_style").notNull().default("bold_pop"),
@@ -74,7 +80,6 @@ export const videos = pgTable("videos", {
   bgmVolume: integer("bgm_volume").notNull().default(15),
   videoType: videoTypeEnum("video_type").notNull().default("generated"),
   renderStyle: renderStyleEnum("render_style"),
-  language: text("language").notNull().default("en"),
   voiceSpeed: real("voice_speed").notNull().default(1.0),
   characterBaseGcsPath: text("character_base_gcs_path"),
   outputUrl: text("output_url"),
@@ -93,6 +98,7 @@ export const scenes = pgTable("scenes", {
   updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
 });
 
+export type ProjectRow = typeof projects.$inferSelect;
 export type VideoRow = typeof videos.$inferSelect;
 export type SceneRow = typeof scenes.$inferSelect;
 export type UserRow = typeof users.$inferSelect;

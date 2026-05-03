@@ -1,7 +1,7 @@
 import { rm } from "node:fs/promises";
 import { readFile } from "node:fs/promises";
 import { eq, and } from "drizzle-orm";
-import { db, videos, scenes, users } from "./db.js";
+import { db, videos, scenes, users, projects } from "./db.js";
 import { downloadAssetsFromGCS } from "./download.js";
 import {
   normalizeAllClips,
@@ -80,6 +80,10 @@ export async function assembleVideo(videoId: string): Promise<void> {
       return;
     }
 
+    // ── Fetch project (for language and other project-level settings) ─────────
+    const [project] = await db.select().from(projects).where(eq(projects.id, video.projectId));
+    if (!project) throw new Error(`Project not found for video ${videoId}`);
+
     // ── Fetch scenes ──────────────────────────────────────────────────────────
     const sceneRows = await db
       .select()
@@ -130,7 +134,7 @@ export async function assembleVideo(videoId: string): Promise<void> {
       const talkingAudioPath = await extractAudio(concatenatedPath, assets.dir);
 
       console.log("[assemble] Transcribing with Whisper");
-      const whisperTimestamps = await transcribeAudio(talkingAudioPath, video.language);
+      const whisperTimestamps = await transcribeAudio(talkingAudioPath, project.language);
 
       console.log("[assemble] Generating subtitles from Whisper timestamps");
       const subtitlesPath = await generateSubtitles(
