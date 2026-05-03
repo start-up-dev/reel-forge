@@ -11,7 +11,12 @@ async function sendEmail(
       Authorization: `Bearer ${env.RESEND_API_KEY}`,
       "Content-Type": "application/json",
     },
-    body: JSON.stringify({ from: `ReelForge <${env.RESEND_FROM_EMAIL}>`, to, subject, html }),
+    body: JSON.stringify({
+      from: `ReelForge <${env.RESEND_FROM_EMAIL}>`,
+      to,
+      subject,
+      html,
+    }),
   });
 
   if (!res.ok) {
@@ -20,7 +25,11 @@ async function sendEmail(
   }
 }
 
-function displayName(firstName: string | null, lastName: string | null, email: string): string {
+function displayName(
+  firstName: string | null,
+  lastName: string | null,
+  email: string,
+): string {
   if (firstName) return firstName;
   if (lastName) return lastName;
   return email.split("@")[0] ?? email;
@@ -52,7 +61,7 @@ function emailWrapper(content: string): string {
               <td style="padding:24px 0 0;text-align:center;">
                 <p style="margin:0;color:#52525b;font-size:12px;line-height:1.6;">
                   You're receiving this because you have notifications enabled in your ReelForge account.<br>
-                  <a href="https://viralshortai.app/settings/notifications" style="color:#a1a1aa;text-decoration:underline;">Manage notification preferences</a>
+                  <a href="https://aireelforge.com/settings/notifications" style="color:#a1a1aa;text-decoration:underline;">Manage notification preferences</a>
                 </p>
               </td>
             </tr>
@@ -129,7 +138,7 @@ export async function sendVideoFailedEmail(
     ">View Video &amp; Retry &rarr;</a>
     <p style="margin:0;color:#52525b;font-size:13px;line-height:1.6;border-top:1px solid #27272a;padding-top:20px;">
       If the problem persists, contact us at
-      <a href="mailto:hello@viralshortai.app" style="color:#a1a1aa;text-decoration:underline;">hello@viralshortai.app</a>.
+      <a href="mailto:hello@aireelforge.com" style="color:#a1a1aa;text-decoration:underline;">hello@aireelforge.com</a>.
     </p>
   `);
   await sendEmail(toEmail, subject, html);
