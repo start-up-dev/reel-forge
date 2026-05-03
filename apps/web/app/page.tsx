@@ -361,8 +361,20 @@ function PhoneFrame({ video }: { video: (typeof SHOWCASE.videos)[number] }) {
             background: `linear-gradient(160deg, ${video.gradientFrom}, ${video.gradientTo})`,
           }}
         >
-          {/* Visual Texture Overlay */}
-          <div className="absolute inset-0 opacity-10 mix-blend-overlay bg-[url('https://www.transparenttextures.com/patterns/cubes.png')]" />
+          {/* Video or texture fallback */}
+          {video.videoUrl ? (
+            <video
+              src={video.videoUrl}
+              autoPlay
+              muted
+              loop
+              playsInline
+              preload="auto"
+              className="absolute inset-0 h-full w-full object-cover"
+            />
+          ) : (
+            <div className="absolute inset-0 opacity-10 mix-blend-overlay bg-[url('https://www.transparenttextures.com/patterns/cubes.png')]" />
+          )}
 
           {/* Style badge */}
           <div
@@ -372,22 +384,8 @@ function PhoneFrame({ video }: { video: (typeof SHOWCASE.videos)[number] }) {
             {video.style}
           </div>
 
-          {/* Play overlay on hover */}
-          <div className="absolute inset-0 z-20 flex items-center justify-center bg-black/20 opacity-0 backdrop-blur-[2px] transition-all group-hover:opacity-100 duration-500">
-            <div className="w-12 h-12 md:w-16 md:h-16 rounded-full bg-white/10 backdrop-blur-md flex items-center justify-center border border-white/20 scale-90 group-hover:scale-100 transition-transform duration-500">
-              <Play className="h-5 w-5 md:h-6 md:h-6 fill-white text-white translate-x-0.5" />
-            </div>
-          </div>
-
-          {/* Content area */}
-          <div className="absolute inset-0 flex flex-col items-center justify-center px-6 md:px-8">
-            <h4 className="text-center text-[18px] sm:text-[22px] md:text-[24px] font-[1000] leading-[1.1] text-white drop-shadow-2xl italic tracking-tighter">
-              &quot;{video.hook}&quot;
-            </h4>
-          </div>
-
           {/* Subtitle bar */}
-          <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black via-black/60 to-transparent px-4 md:px-6 pb-6 md:pb-8 pt-16 md:pt-20">
+          <div className="absolute bottom-0 left-0 right-0 z-20 bg-gradient-to-t from-black via-black/60 to-transparent px-4 md:px-6 pb-6 md:pb-8 pt-16 md:pt-20">
             <div className="flex items-center justify-between mb-3 md:mb-4">
               <div className="flex items-center gap-1.5 md:gap-2">
                 <div
