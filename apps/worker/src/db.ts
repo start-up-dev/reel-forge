@@ -74,6 +74,7 @@ export const videos = pgTable("videos", {
   bgmVolume: integer("bgm_volume").notNull().default(15),
   videoType: videoTypeEnum("video_type").notNull().default("generated"),
   renderStyle: renderStyleEnum("render_style"),
+  language: text("language").notNull().default("en"),
   voiceSpeed: real("voice_speed").notNull().default(1.0),
   characterBaseGcsPath: text("character_base_gcs_path"),
   outputUrl: text("output_url"),

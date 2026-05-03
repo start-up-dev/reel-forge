@@ -130,7 +130,7 @@ export async function assembleVideo(videoId: string): Promise<void> {
       const talkingAudioPath = await extractAudio(concatenatedPath, assets.dir);
 
       console.log("[assemble] Transcribing with Whisper");
-      const whisperTimestamps = await transcribeAudio(talkingAudioPath);
+      const whisperTimestamps = await transcribeAudio(talkingAudioPath, video.language);
 
       console.log("[assemble] Generating subtitles from Whisper timestamps");
       const subtitlesPath = await generateSubtitles(
