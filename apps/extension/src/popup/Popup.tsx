@@ -1,5 +1,124 @@
-import { useEffect, useReducer, useCallback, useState } from "react";
+import { useEffect, useReducer, useCallback, useState, useRef } from "react";
 import type { WorkerState, StoredClipStatus, StoredClipStatusMap } from "../lib/messages.js";
+
+type StatusFilter = "all" | StoredClipStatus["status"];
+
+const STATUS_ORDER: Record<StoredClipStatus["status"], number> = {
+  failed: 0,
+  processing: 1,
+  queued: 2,
+  done: 3,
+};
+
+// ── Sound notifications (Web Audio API) ──────────────────────────────────────
+
+let _audioCtx: AudioContext | null = null;
+function getAudioCtx(): AudioContext {
+  if (!_audioCtx || _audioCtx.state === "closed") _audioCtx = new AudioContext();
+  return _audioCtx;
+}
+
+function tone(
+  ctx: AudioContext,
+  freq: number,
+  dur: number,
+  type: OscillatorType = "sine",
+  vol = 0.25,
+): Promise<void> {
+  return new Promise((resolve) => {
+    const osc = ctx.createOscillator();
+    const gain = ctx.createGain();
+    osc.connect(gain);
+    gain.connect(ctx.destination);
+    osc.type = type;
+    osc.frequency.setValueAtTime(freq, ctx.currentTime);
+    gain.gain.setValueAtTime(vol, ctx.currentTime);
+    gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + dur);
+    osc.start();
+    osc.stop(ctx.currentTime + dur);
+    osc.onended = () => resolve();
+  });
+}
+
+async function soundStart(): Promise<void> {
+  const ctx = getAudioCtx();
+  await tone(ctx, 440, 0.06);
+  await tone(ctx, 587, 0.10);
+}
+
+async function soundDone(): Promise<void> {
+  const ctx = getAudioCtx();
+  await tone(ctx, 523, 0.07);
+  await tone(ctx, 784, 0.14);
+}
+
+async function soundFailed(): Promise<void> {
+  const ctx = getAudioCtx();
+  await tone(ctx, 311, 0.10, "sawtooth", 0.18);
+  await tone(ctx, 208, 0.18, "sawtooth", 0.12);
+}
+
+async function soundAllDone(): Promise<void> {
+  const ctx = getAudioCtx();
+  await tone(ctx, 523, 0.08);
+  await tone(ctx, 659, 0.08);
+  await tone(ctx, 784, 0.08);
+  await tone(ctx, 1047, 0.28);
+}
+
+async function soundStop(): Promise<void> {
+  const ctx = getAudioCtx();
+  await tone(ctx, 349, 0.08);
+  await tone(ctx, 261, 0.14);
+}
+
+// ── Sound hook ────────────────────────────────────────────────────────────────
+
+function useSoundNotifications(
+  state: WorkerState,
+  clipCounts: Record<StoredClipStatus["status"], number>,
+  soundEnabled: boolean,
+): void {
+  const prev = useRef({ done: 0, failed: 0, running: false, seeded: false });
+
+  useEffect(() => {
+    // Seed on first render — don't fire sounds for pre-existing state.
+    if (!prev.current.seeded) {
+      prev.current = { done: clipCounts.done, failed: clipCounts.failed, running: state.running, seeded: true };
+      return;
+    }
+
+    const { done: prevDone, failed: prevFailed, running: wasRunning } = prev.current;
+    prev.current = { done: clipCounts.done, failed: clipCounts.failed, running: state.running, seeded: true };
+
+    if (!soundEnabled) return;
+
+    // Started
+    if (!wasRunning && state.running) {
+      void soundStart();
+      return;
+    }
+
+    // All done — queue drained and worker stopped
+    if (wasRunning && !state.running && state.queueCount === 0 && state.activeTabs === 0) {
+      void soundAllDone();
+      return;
+    }
+
+    // Manually stopped (queue still has items)
+    if (wasRunning && !state.running) {
+      void soundStop();
+      return;
+    }
+
+    // Clip events (check failed first — it's more urgent)
+    if (clipCounts.failed > prevFailed) {
+      void soundFailed();
+    } else if (clipCounts.done > prevDone) {
+      void soundDone();
+    }
+  }, [clipCounts.done, clipCounts.failed, state.running, state.queueCount, state.activeTabs, soundEnabled]);
+}
 
 const EMPTY_STATE: WorkerState = {
   running: false,
@@ -20,6 +139,7 @@ export function Popup() {
     (_prev: WorkerState, next: WorkerState) => next,
     EMPTY_STATE,
   );
+  const [soundEnabled, setSoundEnabled] = useStorageValue<boolean>("soundEnabled", true);
 
   // Fetch initial state from SW on mount, then do a live health + queue check.
   useEffect(() => {
@@ -54,13 +174,20 @@ export function Popup() {
     send("RETRY_CLIP", { clipId });
   };
 
+  const clipCounts = Object.values(state.clipStatuses).reduce(
+    (acc, c) => { acc[c.status] = (acc[c.status] ?? 0) + 1; return acc; },
+    { done: 0, failed: 0, processing: 0, queued: 0 } as Record<StoredClipStatus["status"], number>,
+  );
+
   const sessionDuration = state.session.startedAt
     ? Math.floor((Date.now() - state.session.startedAt) / 1000)
     : 0;
   const estRemaining =
-    state.queueCount > 0 && state.session.done > 0 && sessionDuration > 0
-      ? Math.round((state.queueCount / state.session.done) * sessionDuration)
+    state.queueCount > 0 && clipCounts.done > 0 && sessionDuration > 0
+      ? Math.round((state.queueCount / clipCounts.done) * sessionDuration)
       : null;
+
+  useSoundNotifications(state, clipCounts, soundEnabled);
 
   return (
     <div className="bg-bg-base text-text-primary font-sans p-4 w-[480px] min-h-[520px] flex flex-col gap-4">
@@ -81,6 +208,13 @@ export function Popup() {
               {state.connected ? "Connected" : "Disconnected"}
             </span>
           </div>
+          <button
+            onClick={() => setSoundEnabled(!soundEnabled)}
+            className={`text-sm transition-colors ${soundEnabled ? "text-accent-primary hover:text-accent-primary/70" : "text-text-muted hover:text-text-secondary"}`}
+            title={soundEnabled ? "Sound on — click to mute" : "Sound off — click to unmute"}
+          >
+            {soundEnabled ? "🔔" : "🔕"}
+          </button>
           <button
             onClick={() => send("REFRESH_QUEUE")}
             className="text-text-muted hover:text-text-secondary text-xs transition-colors"
@@ -157,8 +291,8 @@ export function Popup() {
       {state.session.startedAt && (
         <div className="bg-bg-surface rounded-xl p-3 flex items-center justify-between text-sm">
           <div className="flex gap-4">
-            <Stat label="Done" value={state.session.done} color="text-accent-success" />
-            <Stat label="Failed" value={state.session.failed} color="text-accent-danger" />
+            <Stat label="Done" value={clipCounts.done} color="text-accent-success" />
+            <Stat label="Failed" value={clipCounts.failed} color="text-accent-danger" />
           </div>
           {estRemaining && (
             <p className="text-text-muted text-xs">
@@ -277,14 +411,24 @@ function ClipStatusBoard({
   statuses: StoredClipStatusMap;
   onRetry: (id: string) => void;
 }) {
+  const [filter, setFilter] = useState<StatusFilter>("all");
   const [retrying, setRetrying] = useState<Set<string>>(new Set());
 
-  const entries = Object.values(statuses).sort(
-    (a, b) => a.videoId.localeCompare(b.videoId) || a.sceneIndex - b.sceneIndex,
+  const allEntries = Object.values(statuses).sort((a, b) => {
+    const statusDiff = STATUS_ORDER[a.status] - STATUS_ORDER[b.status];
+    if (statusDiff !== 0) return statusDiff;
+    if (a.status === "failed") return (b.updatedAt ?? 0) - (a.updatedAt ?? 0);
+    return (a.videoTitle ?? "").localeCompare(b.videoTitle ?? "") || a.sceneIndex - b.sceneIndex;
+  });
+
+  const counts = allEntries.reduce(
+    (acc, e) => { acc[e.status]++; return acc; },
+    { failed: 0, processing: 0, queued: 0, done: 0 } as Record<StoredClipStatus["status"], number>,
   );
 
-  // Group by videoId
-  const groups = entries.reduce<Record<string, StoredClipStatus[]>>((acc, e) => {
+  const filtered = filter === "all" ? allEntries : allEntries.filter((e) => e.status === filter);
+
+  const groups = filtered.reduce<Record<string, StoredClipStatus[]>>((acc, e) => {
     (acc[e.videoId] ??= []).push(e);
     return acc;
   }, {});
@@ -292,8 +436,6 @@ function ClipStatusBoard({
   const handleRetry = (clipId: string) => {
     setRetrying((prev) => new Set([...prev, clipId]));
     onRetry(clipId);
-    // Clear spinner on next STATE_UPDATE — achieved by clearing after short delay
-    // as a fallback; the real clear happens when state updates re-render this component.
     setTimeout(() => {
       setRetrying((prev) => {
         const next = new Set(prev);
@@ -303,14 +445,51 @@ function ClipStatusBoard({
     }, 10_000);
   };
 
+  const filterTabs: { key: StatusFilter; label: string; count: number }[] = [
+    { key: "all", label: "All", count: allEntries.length },
+    { key: "failed", label: "Failed", count: counts.failed },
+    { key: "processing", label: "Active", count: counts.processing },
+    { key: "queued", label: "Queued", count: counts.queued },
+    { key: "done", label: "Done", count: counts.done },
+  ];
+
   return (
     <div className="bg-bg-surface rounded-xl p-3">
-      <p className="text-text-muted text-xs uppercase tracking-wide mb-2">
-        Clips {entries.length > 0 ? `(${entries.length})` : ""}
-      </p>
+      <div className="flex items-center justify-between mb-2">
+        <p className="text-text-muted text-xs uppercase tracking-wide">
+          Clips {allEntries.length > 0 ? `(${allEntries.length})` : ""}
+        </p>
+      </div>
 
-      {entries.length === 0 ? (
+      {/* Filter tabs */}
+      {allEntries.length > 0 && (
+        <div className="flex gap-1 mb-2 flex-wrap">
+          {filterTabs.map(({ key, label, count }) => (
+            <button
+              key={key}
+              onClick={() => setFilter(key)}
+              className={`text-[10px] px-2 py-0.5 rounded-full border transition-colors ${
+                filter === key
+                  ? key === "failed"
+                    ? "bg-accent-danger/20 border-accent-danger/40 text-accent-danger"
+                    : key === "processing"
+                      ? "bg-accent-warning/20 border-accent-warning/40 text-accent-warning"
+                      : key === "done"
+                        ? "bg-accent-success/20 border-accent-success/40 text-accent-success"
+                        : "bg-accent-primary/20 border-accent-primary/40 text-accent-primary"
+                  : "border-border text-text-muted hover:text-text-secondary"
+              }`}
+            >
+              {label} {count > 0 ? `(${count})` : ""}
+            </button>
+          ))}
+        </div>
+      )}
+
+      {allEntries.length === 0 ? (
         <p className="text-text-muted text-xs text-center py-4">No active clips</p>
+      ) : filtered.length === 0 ? (
+        <p className="text-text-muted text-xs text-center py-4">No {filter} clips</p>
       ) : (
         <div className="flex flex-col gap-3 max-h-64 overflow-y-auto">
           {Object.entries(groups).map(([videoId, clips]) => (
