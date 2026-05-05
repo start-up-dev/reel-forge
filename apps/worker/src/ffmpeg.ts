@@ -105,6 +105,7 @@ export type TransitionPreset = { transition: string; duration: number };
 
 const TRANSITION_PRESETS: { condition: (vt: string, rs: string | null) => boolean; preset: TransitionPreset }[] = [
   { condition: (vt) => vt === "talking",                                                                  preset: { transition: "fade",    duration: 0.3 } },
+  { condition: (vt) => vt === "action_reel",                                                              preset: { transition: "fade",    duration: 0.2 } },
   { condition: (vt, rs) => vt === "generated" && (rs === "cinematic" || rs === "stock_footage"),          preset: { transition: "fade",    duration: 0.5 } },
   { condition: (vt, rs) => vt === "generated" && (rs === "cartoon" || rs === "animation_2d"),             preset: { transition: "dissolve", duration: 0.4 } },
   { condition: (vt, rs) => vt === "generated" && rs === "motion_graphics",                                preset: { transition: "zoomin",  duration: 0.3 } },

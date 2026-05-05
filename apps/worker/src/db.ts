@@ -52,7 +52,7 @@ export const renderStyleEnum = pgEnum("render_style", [
   "whiteboard",
 ]);
 
-export const videoTypeEnum = pgEnum("video_type", ["generated", "talking"]);
+export const videoTypeEnum = pgEnum("video_type", ["generated", "talking", "action_reel"]);
 
 export const users = pgTable("users", {
   id: text("id").primaryKey(),

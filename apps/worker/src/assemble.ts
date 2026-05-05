@@ -100,7 +100,17 @@ export async function assembleVideo(videoId: string): Promise<void> {
     let finalPath: string;
     let durationSeconds: number;
 
-    if (video.videoType === "talking") {
+    if (video.videoType === "action_reel") {
+      // ── Action Reel: silent clips, no voice, no subtitles ─────────────────
+      const untrimmedClips = assets.clipPaths.map((c) => ({ ...c, durationHint: null }));
+      console.log(`[assemble] Normalizing ${untrimmedClips.length} clips (action_reel, no trim, loudnorm)`);
+      const normalizedPaths = await normalizeAllClips(untrimmedClips, assets.dir, true);
+
+      console.log("[assemble] Concatenating clips with transitions");
+      const transitionPreset = getTransitionPreset(video.videoType, null);
+      finalPath = await concatenateWithTransitions(normalizedPaths, transitionPreset, assets.dir);
+      durationSeconds = await probeDuration(finalPath);
+    } else if (video.videoType === "talking") {
       // ── Talking video: lipsync voice baked into clips; Whisper for subtitles ─
 
       // Step 1: Normalize — don't trim talking clips. The lipsync voice is baked

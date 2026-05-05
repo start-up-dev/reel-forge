@@ -21,14 +21,14 @@ export async function downloadAssetsFromGCS(
   const clipsDir = join(dir, "clips");
   await mkdir(clipsDir, { recursive: true });
 
-  const isTalking = video.videoType === "talking";
+  const isVoiceless = video.videoType === "talking" || video.videoType === "action_reel";
   let audioPath: string | null = null;
   let wordTimestampsPath: string | null = null;
   let characterBasePath: string | null = null;
 
   const downloads: Promise<void>[] = [];
 
-  if (!isTalking) {
+  if (!isVoiceless) {
     audioPath = join(dir, "audio.mp3");
     wordTimestampsPath = join(dir, "word_timestamps.json");
     downloads.push(
