@@ -40,6 +40,7 @@ export function Step2Script({
   const [approving, setApproving] = useState(false);
   const [regenerating, setRegenerating] = useState(false);
   const isPending = video.status === VideoStatus.ScriptPending;
+  const isActionReel = video.videoType === VideoType.ActionReel;
 
   // Poll for script when pending
   useEffect(() => {
@@ -62,19 +63,22 @@ export function Step2Script({
   }, [isPending, api, video.id, onVideoUpdate]);
 
   const wordCount = countWords(script);
+  const shotCount = script.trim().split(/\n+/).filter(Boolean).length;
   const durationSeconds = estimateScriptDuration(wordCount);
   const durationLabel = `~${Math.round(durationSeconds)} sec`;
   const durationPct = Math.min((durationSeconds / 60) * 100, 100);
 
   let wordCountColor = "text-[var(--accent-success)]";
   let barColor = "bg-[var(--accent-success)]";
-  if (wordCount < MIN_WORDS || durationSeconds < 30) {
-    wordCountColor = "text-[var(--accent-warning)]";
-    barColor = "bg-[var(--accent-warning)]";
-  }
-  if (wordCount > MAX_WORDS || durationSeconds > 60) {
-    wordCountColor = "text-[var(--accent-danger)]";
-    barColor = "bg-[var(--accent-danger)]";
+  if (!isActionReel) {
+    if (wordCount < MIN_WORDS || durationSeconds < 30) {
+      wordCountColor = "text-[var(--accent-warning)]";
+      barColor = "bg-[var(--accent-warning)]";
+    }
+    if (wordCount > MAX_WORDS || durationSeconds > 60) {
+      wordCountColor = "text-[var(--accent-danger)]";
+      barColor = "bg-[var(--accent-danger)]";
+    }
   }
 
   function handleScriptChange(val: string) {
@@ -89,8 +93,8 @@ export function Step2Script({
       () => api.videos.patch(video.id, { script }),
       "Failed to save script"
     );
-    if (video.videoType === VideoType.Talking) {
-      // Talking videos skip ElevenLabs — go straight to scene generation
+    if (video.videoType === VideoType.Talking || video.videoType === VideoType.ActionReel) {
+      // Talking and Action Reel videos skip ElevenLabs — go straight to scene generation
       const result = await withToast(
         () => api.videos.generateScenes(video.id),
         "Failed to start scene generation"
@@ -135,7 +139,7 @@ export function Step2Script({
       <div className="flex flex-col items-center justify-center py-32 gap-4">
         <div className="h-10 w-10 animate-spin rounded-full border-2 border-[var(--accent-primary)] border-t-transparent" />
         <p className="text-sm text-[var(--text-secondary)]">
-          Writing your script…
+          {isActionReel ? "Planning your shots…" : "Writing your script…"}
         </p>
       </div>
     );
@@ -144,12 +148,14 @@ export function Step2Script({
   return (
     <div className="mx-auto w-full max-w-2xl px-4 py-10">
       <h1 className="mb-2 text-2xl font-bold text-[var(--text-primary)]">
-        Review your script
+        {isActionReel ? "Review your shot plan" : "Review your script"}
       </h1>
 
       {/* Info strip */}
       <p className="mb-6 text-sm text-[var(--text-muted)]">
-        {wordCount} words · {durationLabel} estimated duration
+        {isActionReel
+          ? `${script.trim().split(/\n+/).filter(Boolean).length} shots · ${wordCount} words`
+          : `${wordCount} words · ${durationLabel} estimated duration`}
       </p>
 
       {/* Script textarea */}
@@ -159,7 +165,7 @@ export function Step2Script({
           onChange={(e) => handleScriptChange(e.target.value)}
           rows={12}
           className="w-full min-h-[240px] resize-none rounded-xl bg-transparent px-4 py-3 text-[15px] leading-relaxed text-[var(--text-primary)] outline-none placeholder:text-[var(--text-muted)]"
-          placeholder="Your script will appear here…"
+          placeholder={isActionReel ? "Your shot plan will appear here…" : "Your script will appear here…"}
         />
         <span
           className={cn(
@@ -167,26 +173,27 @@ export function Step2Script({
             wordCountColor
           )}
         >
-          {wordCount} / {MIN_WORDS}–{MAX_WORDS} words
+          {isActionReel ? `${shotCount} shots` : `${wordCount} / ${MIN_WORDS}–${MAX_WORDS} words`}
         </span>
       </div>
 
-      {/* Duration bar */}
-      <div className="mb-6">
-        <div className="h-1.5 w-full overflow-hidden rounded-full bg-[var(--bg-border)]">
-          <div
-            className={cn("h-full rounded-full transition-all duration-300", barColor)}
-            style={{ width: `${durationPct}%` }}
-          />
+      {/* Duration bar (hidden for action_reel — shot plan has no spoken duration) */}
+      {!isActionReel && (
+        <div className="mb-6">
+          <div className="h-1.5 w-full overflow-hidden rounded-full bg-[var(--bg-border)]">
+            <div
+              className={cn("h-full rounded-full transition-all duration-300", barColor)}
+              style={{ width: `${durationPct}%` }}
+            />
+          </div>
+          <p className={cn("mt-1 text-right text-xs", wordCountColor)}>
+            {durationSeconds > 60
+              ? `${durationLabel} — too long, consider trimming`
+              : durationLabel}
+          </p>
         </div>
-        <p
-          className={cn("mt-1 text-right text-xs", wordCountColor)}
-        >
-          {durationSeconds > 60
-            ? `${durationLabel} — too long, consider trimming`
-            : durationLabel}
-        </p>
-      </div>
+      )}
+      {isActionReel && <div className="mb-6" />}
 
       {/* Actions */}
       <div className="flex items-center justify-between gap-3">
@@ -207,7 +214,7 @@ export function Step2Script({
         </div>
 
         <Button onClick={handleApprove} loading={approving}>
-          Approve Script →
+          {isActionReel ? "Approve Shot Plan →" : "Approve Script →"}
         </Button>
       </div>
 

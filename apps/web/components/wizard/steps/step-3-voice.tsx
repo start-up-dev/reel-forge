@@ -56,11 +56,11 @@ export function Step3Voice({ video, onVideoUpdate, onBack, onAdvance }: Step3Voi
   }, [video.durationSeconds]);
 
   // Auto-start generation when arriving at this step with an approved script.
-  // Talking videos skip ElevenLabs entirely — voice comes from Grok lipsync.
+  // Talking and Action Reel videos skip ElevenLabs entirely.
   const autoStartedRef = useRef(false);
   useEffect(() => {
     if (autoStartedRef.current || video.status !== VideoStatus.ScriptReady) return;
-    if (video.videoType === VideoType.Talking) return;
+    if (video.videoType === VideoType.Talking || video.videoType === VideoType.ActionReel) return;
     autoStartedRef.current = true;
     onVideoUpdate({ ...video, status: VideoStatus.VoicePending });
     void api.videos.generateVoice(video.id).catch(() => {
@@ -166,6 +166,32 @@ export function Step3Voice({ video, onVideoUpdate, onBack, onAdvance }: Step3Voi
             <li className="flex gap-2"><span className="text-[var(--accent-primary)]">→</span> Grok Imagine generates each scene clip with your character speaking the script</li>
             <li className="flex gap-2"><span className="text-[var(--accent-primary)]">→</span> Lipsync and voice are baked directly into the video clip</li>
             <li className="flex gap-2"><span className="text-[var(--accent-primary)]">→</span> Whisper transcribes the clip audio for subtitle sync</li>
+          </ul>
+        </div>
+        <div className="mt-8 flex gap-3">
+          <Button variant="secondary" onClick={onBack}>← Back</Button>
+          <Button onClick={handleApprove} loading={approving} className="flex-1">Continue to Scenes →</Button>
+        </div>
+      </div>
+    );
+  }
+
+  // Action Reel videos are silent — no voice step at all
+  if (video.videoType === VideoType.ActionReel) {
+    return (
+      <div className="mx-auto w-full max-w-xl px-4 py-10">
+        <h1 className="mb-2 text-2xl font-bold text-[var(--text-primary)]">
+          No voice needed
+        </h1>
+        <p className="mb-8 text-sm text-[var(--text-secondary)]">
+          Action Reels are silent — scenes are generated directly from your shot plan. Add background music in the final step.
+        </p>
+        <div className="rounded-xl border border-[var(--bg-border)] bg-[var(--bg-elevated)] p-6">
+          <p className="text-sm font-medium text-[var(--text-primary)]">What happens next</p>
+          <ul className="mt-3 space-y-2 text-sm text-[var(--text-secondary)]">
+            <li className="flex gap-2"><span className="text-[var(--accent-primary)]">→</span> Each shot in your plan becomes a cinematic 6-second clip</li>
+            <li className="flex gap-2"><span className="text-[var(--accent-primary)]">→</span> Grok Imagine renders the action with your chosen activity style</li>
+            <li className="flex gap-2"><span className="text-[var(--accent-primary)]">→</span> Clips are assembled into a silent reel — add BGM in Step 5</li>
           </ul>
         </div>
         <div className="mt-8 flex gap-3">

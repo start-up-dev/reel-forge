@@ -1,5 +1,6 @@
 import type { ProjectRow } from "../lib/db/schema.js";
 import { projectContext, isBengali } from "./utils.js";
+import { buildActionReelScriptMessages } from "./action-reel.js";
 
 export interface PromptPair {
   system?: string;
@@ -118,7 +119,11 @@ export function buildScriptMessages(
   targetDurationSeconds: number,
   renderStyle?: string,
   videoType?: string,
+  actionReelStyle?: string | null,
 ): PromptPair {
+  if (videoType === "action_reel") {
+    return buildActionReelScriptMessages(project, idea, targetDurationSeconds, actionReelStyle);
+  }
   const styleModifier = renderStyle ? (RENDER_STYLE_SCRIPT_MODIFIERS[renderStyle] ?? "") : "";
 
   if (videoType === "talking") {

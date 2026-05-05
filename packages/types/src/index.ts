@@ -126,8 +126,21 @@ export enum UGCVisualStyle {
 }
 
 export enum VideoType {
-  Generated = "generated",
-  Talking = "talking",
+  Generated  = "generated",
+  Talking    = "talking",
+  ActionReel = "action_reel",
+}
+
+export enum ActionReelStyle {
+  Workout    = "workout",
+  Dance      = "dance",
+  Sports     = "sports",
+  Yoga       = "yoga",
+  MartialArts = "martial_arts",
+  Fighting   = "fighting",
+  Gardening  = "gardening",
+  Driving    = "driving",
+  Parkour    = "parkour",
 }
 
 // ─── Domain Types ─────────────────────────────────────────────────────────────
@@ -196,8 +209,9 @@ export interface Video {
   bgmAssetId: string | null;
   bgmVolume: number;                // integer 0–100, default 15 (15% BGM mix)
   targetDurationSeconds: number;    // 15 | 30 | 45 | 60
-  videoType: VideoType;             // "generated" | "talking"
+  videoType: VideoType;             // "generated" | "talking" | "action_reel"
   ugcVisualStyle: UGCVisualStyle | null; // only set when videoType === "talking"
+  actionReelStyle: ActionReelStyle | null; // only set when videoType === "action_reel"
   ugcCharacterDescription: string | null; // pre-generated character description for UGC consistency
   sceneCount: number;                // total scenes; set when scenes are inserted
   voiceSpeed: number;               // 0.5–2.0; default 1.0; applied via FFmpeg atempo

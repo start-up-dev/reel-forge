@@ -8,6 +8,7 @@ import {
   buildScriptMessages,
   buildScenesMessages,
   buildTalkingSceneMessages,
+  buildActionReelSceneMessages,
   buildUGCCharacterDescriptionPrompt,
   isBengali,
 } from "../prompts/index.js";
@@ -29,8 +30,8 @@ export interface SceneSplit {
 
 // ─── Idea generation ──────────────────────────────────────────────────────────
 
-export async function generateIdeas(project: ProjectRow, topic: string): Promise<IdeaCard[]> {
-  const { system, user } = buildIdeasMessages(project, topic);
+export async function generateIdeas(project: ProjectRow, topic: string, videoType?: string, actionReelStyle?: string | null): Promise<IdeaCard[]> {
+  const { system, user } = buildIdeasMessages(project, topic, videoType, actionReelStyle);
 
   const message = await client.messages.create({
     model: "claude-sonnet-4-6",
@@ -121,8 +122,9 @@ export async function generateScript(
   targetDurationSeconds = 30,
   renderStyle?: string,
   videoType?: string,
+  actionReelStyle?: string | null,
 ): Promise<string> {
-  const { system, user } = buildScriptMessages(project, idea, targetDurationSeconds, renderStyle, videoType);
+  const { system, user } = buildScriptMessages(project, idea, targetDurationSeconds, renderStyle, videoType, actionReelStyle);
 
   const message = await client.messages.create({
     model: "claude-sonnet-4-6",
@@ -202,10 +204,13 @@ async function callSplitScenes(
   renderStyle?: string,
   ugcVisualStyle?: string,
   characterNote?: string | null,
+  actionReelStyle?: string | null,
 ): Promise<unknown> {
   const { system, user } =
     videoType === "talking"
       ? buildTalkingSceneMessages(script, audioDurationSeconds, targetCount, ugcVisualStyle, characterNote)
+      : videoType === "action_reel"
+      ? buildActionReelSceneMessages(script, audioDurationSeconds, targetCount, actionReelStyle, characterNote)
       : buildScenesMessages(script, audioDurationSeconds, targetCount, renderStyle, characterNote);
 
   const message = await client.messages.stream({
@@ -246,9 +251,9 @@ async function callSplitScenes(
                   },
                   durationHintSeconds: {
                     type: "integer",
-                    minimum: videoType === "talking" ? 6 : 1,
+                    minimum: (videoType === "talking" || videoType === "action_reel") ? 6 : 1,
                     maximum: 6,
-                    description: videoType === "talking"
+                    description: (videoType === "talking" || videoType === "action_reel")
                       ? "Always exactly 6 — every Grok clip is exactly 6 seconds."
                       : `Whole-number seconds this scene lasts (1–6). All scenes must sum to exactly ${audioDurationSeconds}.`,
                   },
@@ -289,13 +294,14 @@ export async function splitScenes(
   renderStyle?: string | null,
   ugcVisualStyle?: string | null,
   characterNote?: string | null,
+  actionReelStyle?: string | null,
 ): Promise<SceneSplit[]> {
-  // Talking videos: each Grok clip is exactly 6s, so scene count = ceil(duration/6)
-  // and the effective duration is always a multiple of 6.
-  const targetCount = videoType === "talking"
+  // Talking and Action Reel videos: each Grok clip is exactly 6s.
+  const isFixedClip = videoType === "talking" || videoType === "action_reel";
+  const targetCount = isFixedClip
     ? Math.ceil(audioDurationSeconds / 6)
     : Math.max(Math.ceil(audioDurationSeconds / 6), Math.round(audioDurationSeconds / 5));
-  const effectiveDuration = videoType === "talking"
+  const effectiveDuration = isFixedClip
     ? targetCount * 6
     : audioDurationSeconds;
   const minScenes = targetCount;
@@ -309,6 +315,7 @@ export async function splitScenes(
       renderStyle ?? undefined,
       ugcVisualStyle ?? undefined,
       characterNote,
+      actionReelStyle ?? undefined,
     );
     const scenes = extractScenes(raw);
     if (scenes && scenes.length >= minScenes) return scenes;

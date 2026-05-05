@@ -81,6 +81,7 @@ async function processScenes(
   videoType: string,
   renderStyle?: string | null,
   ugcVisualStyle?: string | null,
+  actionReelStyle?: string | null,
 ): Promise<void> {
   try {
     // Step 1 — video row query at top, before splitScenes
@@ -120,7 +121,7 @@ async function processScenes(
       }
     }
 
-    const sceneList = await splitScenes(script, durationSeconds, videoType, renderStyle, ugcVisualStyle, effectiveCharacterNote);
+    const sceneList = await splitScenes(script, durationSeconds, videoType, renderStyle, ugcVisualStyle, effectiveCharacterNote, actionReelStyle);
 
     // Replace existing scenes (supports idempotent re-generation)
     await db.delete(scenes).where(eq(scenes.videoId, videoId));
@@ -134,7 +135,7 @@ async function processScenes(
           textExcerpt: s.textExcerpt,
           visualPrompt: s.visualPrompt,
           motionPrompt: s.motionPrompt,
-          durationHintSeconds: videoType === "talking" ? 6 : Math.max(1, Math.min(6, Math.round(s.durationHintSeconds))),
+          durationHintSeconds: (videoType === "talking" || videoType === "action_reel") ? 6 : Math.max(1, Math.min(6, Math.round(s.durationHintSeconds))),
         })),
       )
       .returning();
@@ -144,7 +145,7 @@ async function processScenes(
       .set({ sceneCount: inserted.length, updatedAt: new Date() })
       .where(eq(videos.id, videoId));
 
-    // Phase B — neutral character sheet (UGC non-ai_clone, first generation only)
+    // Phase B — neutral character sheet (UGC non-ai_clone only; skipped for action_reel)
     if (videoType === "talking" && ugcVisualStyle !== "ai_clone" && !charBase && effectiveCharacterNote) {
       try {
         const sheetPrompt = `CHARACTER: ${effectiveCharacterNote}. Front-facing. Neutral resting expression. Soft flat even lighting from front. Plain light gradient background. Full figure visible from head to mid-torso. 9:16 vertical frame. Character reference sheet.`;
@@ -474,8 +475,9 @@ export async function videosRoutes(fastify: FastifyInstance): Promise<void> {
           .enum(["mascot", "cartoon", "animation_2d", "motion_graphics", "cinematic", "stock_footage", "whiteboard"])
           .nullable()
           .optional(),
-        videoType: z.enum(["generated", "talking"]).optional(),
+        videoType: z.enum(["generated", "talking", "action_reel"]).optional(),
         ugcVisualStyle: z.string().nullable().optional(),
+        actionReelStyle: z.string().nullable().optional(),
         voiceSpeed: z.number().min(0.5).max(2.0).optional(),
         characterBaseGcsPath: z.string().nullable().optional(),
       });
@@ -527,7 +529,7 @@ export async function videosRoutes(fastify: FastifyInstance): Promise<void> {
       }
 
       const [video] = await db
-        .select({ id: videos.id, projectId: videos.projectId })
+        .select({ id: videos.id, projectId: videos.projectId, videoType: videos.videoType, actionReelStyle: videos.actionReelStyle })
         .from(videos)
         .where(
           and(eq(videos.id, id), eq(videos.userId, user.id), isNull(videos.deletedAt)),
@@ -558,7 +560,7 @@ export async function videosRoutes(fastify: FastifyInstance): Promise<void> {
         .where(eq(videos.id, id));
 
       try {
-        const ideas = await generateIdeas(project, parsed.data.topic);
+        const ideas = await generateIdeas(project, parsed.data.topic, video.videoType ?? undefined, video.actionReelStyle ?? undefined);
         await db
           .update(videos)
           .set({ status: "DRAFT", updatedAt: new Date() })
@@ -591,7 +593,7 @@ export async function videosRoutes(fastify: FastifyInstance): Promise<void> {
       }
 
       const [video] = await db
-        .select({ id: videos.id, projectId: videos.projectId, targetDurationSeconds: videos.targetDurationSeconds, renderStyle: videos.renderStyle, title: videos.title, videoType: videos.videoType })
+        .select({ id: videos.id, projectId: videos.projectId, targetDurationSeconds: videos.targetDurationSeconds, renderStyle: videos.renderStyle, title: videos.title, videoType: videos.videoType, actionReelStyle: videos.actionReelStyle })
         .from(videos)
         .where(
           and(eq(videos.id, id), eq(videos.userId, user.id), isNull(videos.deletedAt)),
@@ -624,7 +626,7 @@ export async function videosRoutes(fastify: FastifyInstance): Promise<void> {
       try {
         const needsTitle = !video.title || video.title === "Untitled Video";
         const [script, autoTitle] = await Promise.all([
-          generateScript(project, parsed.data.idea, video.targetDurationSeconds ?? 30, video.renderStyle ?? undefined, video.videoType ?? undefined),
+          generateScript(project, parsed.data.idea, video.targetDurationSeconds ?? 30, video.renderStyle ?? undefined, video.videoType ?? undefined, video.actionReelStyle ?? undefined),
           needsTitle ? generateTitle(parsed.data.idea) : Promise.resolve(null),
         ]);
         const [updated] = await db
@@ -669,11 +671,13 @@ export async function videosRoutes(fastify: FastifyInstance): Promise<void> {
           error: { code: "NOT_FOUND", message: "Video not found." },
         });
       }
-      if (video.videoType === "talking") {
+      if (video.videoType === "talking" || video.videoType === "action_reel") {
         return reply.status(400).send({
           error: {
             code: "NOT_APPLICABLE",
-            message: "Talking videos generate voice via Grok Imagine lipsync — ElevenLabs voiceover is not used.",
+            message: video.videoType === "action_reel"
+              ? "Action Reel videos are silent — no voice generation needed."
+              : "Talking videos generate voice via Grok Imagine lipsync — ElevenLabs voiceover is not used.",
           },
         });
       }
@@ -739,9 +743,9 @@ export async function videosRoutes(fastify: FastifyInstance): Promise<void> {
           error: { code: "NOT_FOUND", message: "Video not found." },
         });
       }
-      // Talking videos skip voice (no ElevenLabs) so they arrive here from SCRIPT_READY.
+      // Talking and Action Reel videos skip voice (no ElevenLabs) so they arrive here from SCRIPT_READY.
       // Generated videos require VOICE_READY (ElevenLabs completed).
-      const scenesAllowedStates = video.videoType === "talking"
+      const scenesAllowedStates = (video.videoType === "talking" || video.videoType === "action_reel")
         ? ["SCRIPT_READY", "SCENES_PENDING", "SCENES_READY", "FAILED"]
         : ["VOICE_READY", "SCENES_PENDING", "SCENES_READY", "FAILED"];
       if (!scenesAllowedStates.includes(video.status)) {
@@ -768,8 +772,8 @@ export async function videosRoutes(fastify: FastifyInstance): Promise<void> {
         });
       }
 
-      // Talking videos have no ElevenLabs duration; use targetDurationSeconds as the scene-split budget.
-      const effectiveDuration = video.videoType === "talking"
+      // Talking and Action Reel videos have no ElevenLabs duration; use targetDurationSeconds as the scene-split budget.
+      const effectiveDuration = (video.videoType === "talking" || video.videoType === "action_reel")
         ? video.targetDurationSeconds
         : video.durationSeconds;
       if (!effectiveDuration) {
@@ -784,7 +788,7 @@ export async function videosRoutes(fastify: FastifyInstance): Promise<void> {
         .where(eq(videos.id, id));
 
       // Fire and forget — client polls status via SSE
-      void processScenes(id, video.script, effectiveDuration, video.videoType, video.renderStyle, video.ugcVisualStyle);
+      void processScenes(id, video.script, effectiveDuration, video.videoType, video.renderStyle, video.ugcVisualStyle, video.actionReelStyle);
 
       return reply.status(202).send({ data: { videoId: id, status: "SCENES_PENDING" } });
     },

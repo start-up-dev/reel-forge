@@ -108,7 +108,7 @@ export const renderStyleEnum = pgEnum("render_style", [
   "whiteboard",
 ]);
 
-export const videoTypeEnum = pgEnum("video_type", ["generated", "talking"]);
+export const videoTypeEnum = pgEnum("video_type", ["generated", "talking", "action_reel"]);
 
 // ─── Tables ───────────────────────────────────────────────────────────────────
 
@@ -211,6 +211,7 @@ export const videos = pgTable(
     videoType: videoTypeEnum("video_type").notNull().default("generated"),
     ugcVisualStyle: text("ugc_visual_style"),
     ugcCharacterDescription: text("ugc_character_description"),
+    actionReelStyle: text("action_reel_style"),
     voiceSpeed: real("voice_speed").notNull().default(1.0),  // 0.5–2.0; applied via FFmpeg atempo at render
     characterBaseGcsPath: text("character_base_gcs_path"),   // GCS path of the character reference image
     sceneCount: integer("scene_count").notNull().default(0),

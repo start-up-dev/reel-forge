@@ -3,7 +3,7 @@
 import { useState, useEffect, useRef } from "react";
 import { ChevronDown, ChevronUp, Check, Loader2, Play, Square, Upload, X } from "lucide-react";
 import { toast } from "sonner";
-import { RenderStyle, UGCVisualStyle, VideoStatus, VideoType } from "@repo/types";
+import { ActionReelStyle, RenderStyle, UGCVisualStyle, VideoStatus, VideoType } from "@repo/types";
 import type { Project } from "@repo/types";
 import { Button } from "@repo/ui/button";
 import { useApiClient, withToast } from "@/lib/api-client";
@@ -14,7 +14,7 @@ interface Step1IdeaProps {
   video: VideoDetail;
   project: Project | null;
   onVideoUpdate: (v: VideoDetail) => void;
-  onScheduleSave: (data: { idea?: string; voiceId?: string | null; targetDurationSeconds?: number; renderStyle?: RenderStyle | null; videoType?: VideoType; ugcVisualStyle?: UGCVisualStyle | null; characterBaseGcsPath?: string | null }) => void;
+  onScheduleSave: (data: { idea?: string; voiceId?: string | null; targetDurationSeconds?: number; renderStyle?: RenderStyle | null; videoType?: VideoType; ugcVisualStyle?: UGCVisualStyle | null; actionReelStyle?: ActionReelStyle | null; characterBaseGcsPath?: string | null }) => void;
   onAdvance: () => void;
 }
 
@@ -60,6 +60,18 @@ const UGC_STYLE_OPTIONS: { value: UGCVisualStyle; label: string; emoji: string; 
   { value: UGCVisualStyle.AIClone,       label: "AI Clone",        emoji: "🪞", hint: "Your face, real lipsync — upload a photo" },
 ];
 
+const ACTION_REEL_STYLE_OPTIONS: { value: ActionReelStyle; label: string; emoji: string; hint: string }[] = [
+  { value: ActionReelStyle.Workout,    label: "Workout",      emoji: "🏋️", hint: "Gym, weights, athletic training" },
+  { value: ActionReelStyle.Dance,      label: "Dance",        emoji: "💃", hint: "Choreography, movement, rhythm" },
+  { value: ActionReelStyle.Sports,     label: "Sports",       emoji: "⚽", hint: "Athletic performance, competition" },
+  { value: ActionReelStyle.Yoga,       label: "Yoga",         emoji: "🧘", hint: "Wellness, poses, mindful movement" },
+  { value: ActionReelStyle.MartialArts,label: "Martial Arts", emoji: "🥋", hint: "Karate, boxing, jiu-jitsu, training" },
+  { value: ActionReelStyle.Fighting,   label: "Fighting",     emoji: "🥊", hint: "Cinematic combat choreography" },
+  { value: ActionReelStyle.Gardening,  label: "Gardening",    emoji: "🌱", hint: "Plants, soil, outdoor labour" },
+  { value: ActionReelStyle.Driving,    label: "Driving",      emoji: "🚗", hint: "Road, speed, automotive content" },
+  { value: ActionReelStyle.Parkour,    label: "Parkour",      emoji: "🏃", hint: "Urban freerunning, vaults, flips" },
+];
+
 const ACCEPTED_IMAGE_TYPES = ["image/jpeg", "image/png", "image/webp"] as const;
 type AcceptedImageType = (typeof ACCEPTED_IMAGE_TYPES)[number];
 const MAX_IMAGE_BYTES = 10 * 1024 * 1024;
@@ -93,9 +105,10 @@ export function Step1Idea({
   // Video length
   const [targetDuration, setTargetDuration] = useState(video.targetDurationSeconds ?? 30);
 
-  // Video type: "talking" = UGC Video, "generated" = Stories
+  // Video type: "talking" = UGC Video, "generated" = Stories, "action_reel" = Action Reel
   const [videoType, setVideoType] = useState<VideoType>(video.videoType ?? VideoType.Generated);
   const [ugcVisualStyle, setUgcVisualStyle] = useState<UGCVisualStyle | null>(video.ugcVisualStyle ?? null);
+  const [actionReelStyle, setActionReelStyle] = useState<ActionReelStyle | null>(video.actionReelStyle ?? null);
 
   // Render style (Stories only)
   const [renderStyle, setRenderStyle] = useState<RenderStyle | null>(video.renderStyle ?? null);
@@ -109,6 +122,7 @@ export function Step1Idea({
   const cloneFileInputRef = useRef<HTMLInputElement>(null);
 
   const isUgc = videoType === VideoType.Talking;
+  const isActionReel = videoType === VideoType.ActionReel;
   const isAiClone = ugcVisualStyle === UGCVisualStyle.AIClone;
 
   // Voice selection (Stories only)
@@ -121,7 +135,8 @@ export function Step1Idea({
   const blobUrlRef = useRef<string | null>(null);
 
   useEffect(() => {
-    if (project === null) return;
+    // Action Reel and UGC videos don't use ElevenLabs voices
+    if (project === null || isUgc || isActionReel) return;
     async function loadVoices() {
       setVoicesLoading(true);
       const result = await withToast(
@@ -132,7 +147,7 @@ export function Step1Idea({
       setVoicesLoading(false);
     }
     void loadVoices();
-  }, [api, project]);
+  }, [api, project, isUgc, isActionReel]);
 
   useEffect(() => {
     return () => {
@@ -236,6 +251,7 @@ export function Step1Idea({
       if (isAiClone && !cloneGcsPath) return false;
       return true;
     }
+    if (isActionReel) return !!actionReelStyle;
     return !!renderStyle && !!selectedVoiceId;
   }
 
@@ -243,6 +259,7 @@ export function Step1Idea({
     if (!canAdvance()) {
       if (isUgc && !ugcVisualStyle) toast.error("Select a UGC visual style before continuing");
       else if (isUgc && isAiClone && !cloneGcsPath) toast.error("Upload your character image before continuing");
+      else if (isActionReel && !actionReelStyle) toast.error("Select an activity type before continuing");
       else if (!renderStyle) toast.error("Select a video style before continuing");
       else toast.error("Select a voice before continuing");
       return;
@@ -261,6 +278,7 @@ export function Step1Idea({
         ...result.data,
         videoType,
         ugcVisualStyle,
+        actionReelStyle,
         renderStyle,
         scenes: video.scenes,
       });
@@ -277,6 +295,7 @@ export function Step1Idea({
     if (!canAdvance()) {
       if (isUgc && !ugcVisualStyle) toast.error("Select a UGC visual style before continuing");
       else if (isUgc && isAiClone && !cloneGcsPath) toast.error("Upload your character image before continuing");
+      else if (isActionReel && !actionReelStyle) toast.error("Select an activity type before continuing");
       else if (!renderStyle) toast.error("Select a video style before continuing");
       else toast.error("Select a voice before continuing");
       return;
@@ -293,6 +312,7 @@ export function Step1Idea({
         ...result.data,
         videoType,
         ugcVisualStyle,
+        actionReelStyle,
         renderStyle,
         scenes: video.scenes,
       });
@@ -344,19 +364,25 @@ export function Step1Idea({
         <p className="mb-2 text-xs font-medium uppercase tracking-widest text-[var(--text-muted)]">
           Video Type
         </p>
-        <div className="grid grid-cols-2 gap-3">
+        <div className="grid grid-cols-3 gap-3">
           {([
             {
               value: VideoType.Talking,
               label: "UGC Video",
               emoji: "🗣️",
-              hint: "AI-generated talking character with lipsync. Pick your visual style below.",
+              hint: "AI talking character with lipsync.",
             },
             {
               value: VideoType.Generated,
               label: "Stories",
               emoji: "🎬",
-              hint: "Voiceover-driven B-roll. No on-screen character speaking.",
+              hint: "Voiceover-driven cinematic B-roll.",
+            },
+            {
+              value: VideoType.ActionReel,
+              label: "Action Reel",
+              emoji: "⚡",
+              hint: "Silent activity video — workout, dance, sport & more.",
             },
           ] as const).map((opt) => (
             <button
@@ -496,8 +522,44 @@ export function Step1Idea({
         </div>
       )}
 
+      {/* Activity Style grid (Action Reel only) */}
+      {isActionReel && (
+        <div className="mb-6">
+          <p className="mb-2 text-xs font-medium uppercase tracking-widest text-[var(--text-muted)]">
+            Activity Type
+          </p>
+          <div className="grid grid-cols-3 gap-2">
+            {ACTION_REEL_STYLE_OPTIONS.map((opt) => (
+              <button
+                key={opt.value}
+                type="button"
+                onClick={() => {
+                  setActionReelStyle(opt.value);
+                  onScheduleSave({ actionReelStyle: opt.value });
+                }}
+                className={cn(
+                  "flex flex-col items-start rounded-xl border p-3 text-left transition-all",
+                  actionReelStyle === opt.value
+                    ? "border-[var(--accent-primary)] bg-[var(--accent-primary)]/10"
+                    : "border-[var(--bg-border)] bg-[var(--bg-elevated)] hover:border-[var(--text-muted)]"
+                )}
+              >
+                <span className="mb-1 text-base">{opt.emoji}</span>
+                <span className="text-xs font-semibold text-[var(--text-primary)]">{opt.label}</span>
+                <span className="mt-0.5 text-[10px] leading-tight text-[var(--text-muted)]">{opt.hint}</span>
+              </button>
+            ))}
+          </div>
+          {!actionReelStyle && (
+            <p className="mt-2 text-xs text-[var(--accent-warning)]">
+              Select an activity type to continue
+            </p>
+          )}
+        </div>
+      )}
+
       {/* Video Style grid (Stories only) */}
-      {!isUgc && (
+      {!isUgc && !isActionReel && (
         <div className="mb-6">
           <p className="mb-2 text-xs font-medium uppercase tracking-widest text-[var(--text-muted)]">
             Video Style
@@ -673,8 +735,18 @@ export function Step1Idea({
         </div>
       )}
 
+      {/* Voice notice (Action Reel — silent) */}
+      {isActionReel && (
+        <div className="mt-8 rounded-xl border border-[var(--bg-border)] bg-[var(--bg-elevated)] p-4">
+          <p className="text-sm font-medium text-[var(--text-primary)]">🔇 Silent video</p>
+          <p className="mt-1 text-sm text-[var(--text-secondary)]">
+            Action Reels are silent — no voiceover is generated. Add background music in the final step.
+          </p>
+        </div>
+      )}
+
       {/* Voice picker (Stories only) */}
-      {!isUgc && (
+      {!isUgc && !isActionReel && (
         <div className="mt-8">
           <div className="mb-3 flex items-center justify-between">
             <p className="text-xs font-medium uppercase tracking-widest text-[var(--text-muted)]">

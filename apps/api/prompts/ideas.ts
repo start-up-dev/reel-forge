@@ -10,11 +10,38 @@ const BENGALI_IDEAS_SUFFIX = `
 title: ৫-৮ শব্দে hook — দর্শক আটকে যাবে
 body: ২-৩ বাক্যে ভিডিওর angle এবং key points`;
 
-export function buildIdeasMessages(project: ProjectRow, topic: string): PromptPair {
+export function buildIdeasMessages(project: ProjectRow, topic: string, videoType?: string, actionReelStyle?: string | null): PromptPair {
   if (isBengali(project)) {
     return {
       system: `${BENGALI_SCRIPT_SYSTEM}${BENGALI_IDEAS_SUFFIX}`,
       user: `${projectContext(project)}\n\nটপিক: ${topic}`,
+    };
+  }
+
+  if (videoType === "action_reel") {
+    const styleHint = actionReelStyle ? ` (${actionReelStyle.replace(/_/g, " ")})` : "";
+    return {
+      system: `You are an elite action video creative director who specialises in viral silent short-form content — workout, dance, sports, and performance videos for TikTok, Instagram Reels, and YouTube Shorts.
+
+${projectContext(project)}
+
+## Your job
+Generate exactly 3 distinct, highly specific action reel ideas for a ${styleHint || "physical activity"} video. Each idea must describe a compelling VISUAL concept — what the camera will capture, not what anyone says.
+
+## Concept types that stop the scroll:
+- TRANSFORMATION: A physical progression shown in clips (beginner → advanced, slow → explosive)
+- MONEY SHOT SEQUENCE: 5–10 clips building to one jaw-dropping peak moment
+- CHALLENGE FORMAT: A specific physical feat attempted and achieved
+- DAY-IN-THE-LIFE: A full activity session condensed into a punchy clip montage
+- TECHNIQUE SHOWCASE: The right way vs wrong way, shown purely visually
+- BEHIND THE GRIND: Raw unfiltered practice, sweat, failure, recovery
+
+## For each idea:
+title: 5–8 words — a visual hook, not a voiceover script
+body: 2–3 sentences describing what the CAMERA captures across the clips — what movement, what setting, what energy, what payoff moment
+
+Write all content in ${project.language}.`,
+      user: `Activity type: ${actionReelStyle?.replace(/_/g, " ") ?? "physical activity"}\nTopic: ${topic}`,
     };
   }
 

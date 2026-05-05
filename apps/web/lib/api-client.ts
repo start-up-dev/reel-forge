@@ -2,6 +2,7 @@ import { useAuth } from "@clerk/nextjs";
 import { useMemo } from "react";
 import { toast } from "sonner";
 import type {
+  ActionReelStyle,
   ApiResponse,
   PaginatedResponse,
   Project,
@@ -185,10 +186,11 @@ export function createApiClient(getToken: () => Promise<string | null>) {
             | "renderStyle"
             | "videoType"
             | "ugcVisualStyle"
+            | "actionReelStyle"
             | "voiceSpeed"
             | "characterBaseGcsPath"
           >
-        > & { renderStyle?: RenderStyle | null; videoType?: VideoType }
+        > & { renderStyle?: RenderStyle | null; videoType?: VideoType; actionReelStyle?: ActionReelStyle | null }
       ): Promise<ApiResponse<Video>> {
         return authedRequest(`/api/videos/${id}`, {
           method: "PATCH",
