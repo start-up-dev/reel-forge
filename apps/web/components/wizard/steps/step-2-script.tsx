@@ -221,8 +221,8 @@ export function Step2Script({
       <ConfirmDialog
         open={showRegenConfirm}
         onOpenChange={setShowRegenConfirm}
-        title="Regenerate script?"
-        description="Your manual edits will be lost and a new script will be generated from your idea."
+        title={isActionReel ? "Regenerate shot plan?" : "Regenerate script?"}
+        description={isActionReel ? "Your manual edits will be lost and a new shot plan will be generated from your idea." : "Your manual edits will be lost and a new script will be generated from your idea."}
         confirmLabel="Regenerate"
         cancelLabel="Keep editing"
         variant="danger"

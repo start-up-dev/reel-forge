@@ -172,7 +172,9 @@ async function processScenes(
           ? scene.visualPrompt
           : withCharacterNote(scene.visualPrompt, effectiveCharacterNote);
         const isAiClone = videoType === "talking" && ugcVisualStyle === "ai_clone";
-        const useRef = charBaseSignedUrl !== null && (scene.sceneIndex > 0 || isAiClone);
+        // Action Reel visual consistency is maintained via VISUAL BIBLE prompts, not reference images.
+      // Using the first clip as reference would incorrectly anchor all shots to the same visual.
+      const useRef = videoType !== "action_reel" && charBaseSignedUrl !== null && (scene.sceneIndex > 0 || isAiClone);
         const imageBuffer = useRef
           ? await generateImageFromReference(
               imagePrompt,
@@ -187,7 +189,7 @@ async function processScenes(
           .update(scenes)
           .set({ baseImageUrl: imageUrl, baseImagePath: imagePath, updatedAt: new Date() })
           .where(eq(scenes.id, scene.id));
-        if (scene.sceneIndex === 0 && !charBase) {
+        if (scene.sceneIndex === 0 && !charBase && videoType !== "action_reel") {
           charBase = imagePath;
           charBaseSignedUrl = imageUrl;
           await db
