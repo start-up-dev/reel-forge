@@ -51,7 +51,8 @@ ATMOSPHERE MOTION: chalk dust drifting / sweat beads on skin / weight plates swa
 ## Hard rules
 - Never show a talking or smiling face — effort, strain, focus only
 - No logos, text, or numbers in frame
-- Every shot must feel like a high-end Nike or Under Armour campaign`,
+- Every shot must feel like a high-end Nike or Under Armour campaign
+- Motion must be natural and physically realistic — no exaggerated, warped, or superhuman movement`,
 
   dance: `You are a dance video cinematographer capturing viral movement content. Aesthetic: kinetic energy, rhythm made visual, performance electricity.
 
@@ -74,7 +75,8 @@ ATMOSPHERE: light trails from moving limbs / haze swirling around feet
 ## Hard rules
 - No visible talking or singing mouth — pure movement
 - Energy must read clearly even as a still frame
-- No text, logos, watermarks`,
+- No text, logos, watermarks
+- Motion must be natural and physically realistic — no exaggerated, warped, or superhuman movement`,
 
   sports: `You are a sports cinematographer capturing peak athletic moments for viral short-form content. Aesthetic: peak human performance, drama at the decisive moment.
 
@@ -97,7 +99,8 @@ ATMOSPHERE MOTION: turf pieces suspended / sweat arc from hair flick / fabric ri
 ## Hard rules
 - No real athlete likenesses or team logos
 - No visible mouth movement or talking
-- Every frame must feel like a magazine cover`,
+- Every frame must feel like a magazine cover
+- Motion must be natural and physically realistic — no exaggerated, warped, or superhuman movement`,
 
   yoga: `You are a wellness and yoga content cinematographer. Aesthetic: meditative calm, body geometry, breath made visible.
 
@@ -120,7 +123,8 @@ ATMOSPHERE MOTION: dust motes floating upward / incense smoke curling / light sh
 ## Hard rules
 - Never show a talking face — serenity only
 - No branding, logos, or text
-- Every frame should feel like a breath`,
+- Every frame should feel like a breath
+- Motion must be slow, deliberate, and natural — no exaggerated or unnatural movement`,
 
   martial_arts: `You are a martial arts cinematographer creating viral training content. Aesthetic: explosive technique, disciplined power, precise motion.
 
@@ -143,7 +147,8 @@ ATMOSPHERE MOTION: gi snapping from speed / sweat droplets arcing / bag swinging
 ## Hard rules
 - No real fighter likenesses
 - Techniques must look expert and controlled — not chaotic
-- No visible talking or instruction — pure execution`,
+- No visible talking or instruction — pure execution
+- Motion must be natural and physically realistic — no exaggerated, warped, or superhuman movement`,
 
   fighting: `You are a cinematic action fight choreographer capturing dramatic combat sequences for viral short-form content. Aesthetic: choreographed impact, cinematic drama, raw physicality.
 
@@ -166,7 +171,8 @@ ATMOSPHERE MOTION: rain through shaft of light / dust suspended after ground imp
 ## Hard rules
 - Choreographed and stylised — not realistic violence
 - No identifiable faces or likenesses
-- No blood, gore, or disturbing content`,
+- No blood, gore, or disturbing content
+- Motion must be natural and physically realistic — no exaggerated, warped, or superhuman movement`,
 
   gardening: `You are a garden and nature cinematographer. Aesthetic: the beauty of growth, texture of earth, meditative labour.
 
@@ -189,7 +195,8 @@ ATMOSPHERE MOTION: water droplets splashing on leaf / bees in background bokeh /
 ## Hard rules
 - No talking, no faces
 - Hands should tell the story — weathered, working, caring
-- Every frame should make the viewer want to go outside`,
+- Every frame should make the viewer want to go outside
+- Motion must be natural and physically realistic — no exaggerated or unnatural movement`,
 
   driving: `You are an automotive and road cinematographer capturing visceral driving content. Aesthetic: speed, control, machine and landscape harmony.
 
@@ -212,7 +219,8 @@ ATMOSPHERE MOTION: road lines compressing to vanishing point / rain arcing off s
 ## Hard rules
 - No driver face — hands-on-wheel or exterior only
 - Suggest speed and skill, not recklessness
-- No identifiable license plates or brand logos`,
+- No identifiable license plates or brand logos
+- Motion must be natural and physically realistic — no exaggerated, warped, or physics-defying movement`,
 
   parkour: `You are a parkour and freerunning cinematographer capturing urban movement for viral short-form content. Aesthetic: human flight, urban geometry, impossible grace.
 
@@ -235,7 +243,8 @@ ATMOSPHERE MOTION: concrete dust from landing / loose fabric from speed / city b
 ## Hard rules
 - No faces — movement and urban geometry only
 - Every frame must create a "how did they do that?" moment
-- No branding, logos, or identifiable locations`,
+- No branding, logos, or identifiable locations
+- Motion must be natural and physically realistic — no exaggerated, warped, or superhuman movement`,
 };
 
 // ─── Script builder ───────────────────────────────────────────────────────────
@@ -294,7 +303,7 @@ ${characterNote ? `\nCHARACTER & STYLE NOTE — embed into every visualPrompt:\n
 - EXACTLY ${targetCount} scene${targetCount === 1 ? "" : "s"} — one per shot description line
 - textExcerpt: the exact shot description line from the shot plan
 - visualPrompt: hyper-specific AI image prompt following your style system EXACTLY. 9:16 vertical frame.
-- motionPrompt: 2–3 sentences covering exactly what your style system specifies
+- motionPrompt: 2–3 sentences covering exactly what your style system specifies. ALWAYS end every motionPrompt with: "Natural, controlled movement — no exaggerated, warped, or physics-defying motion."
 - durationHintSeconds: always exactly 6 (every action reel clip is 6 seconds)
 - The "scenes" field must be a JSON array, not a stringified JSON value.
 - VISUAL BIBLE: In scene 0, establish ONE colour grade, ONE lighting approach, ONE palette (2–3 dominant colours) as a "VISUAL BIBLE:" line at the top of the visualPrompt. Repeat that exact line verbatim at the top of every subsequent scene.
