@@ -1,4 +1,5 @@
 # ReelForge — Facebook Group Marketing Planner
+
 **Goal: Acquire Try Out customers ($5 / 3 video credits)**
 **Last updated: May 2, 2026**
 
@@ -6,30 +7,32 @@
 
 ## Quick Reference
 
-| Item | Value |
-|---|---|
-| **Offer** | $5 one-time → 3 complete video credits, no subscription |
-| **CTA URL** | `[YOUR_REELFORGE_URL]/sign-up` |
-| **Profiles** | Personal profile + ReelForge Page |
-| **Assets ready** | 10+ demo videos |
-| **Daily commitment** | Full-time |
+| Item                 | Value                                                   |
+| -------------------- | ------------------------------------------------------- |
+| **Offer**            | $5 one-time → 3 complete video credits, no subscription |
+| **CTA URL**          | `[YOUR_REELFORGE_URL]/sign-up`                          |
+| **Profiles**         | Personal profile + ReelForge Page                       |
+| **Assets ready**     | 10+ demo videos                                         |
+| **Daily commitment** | Full-time                                               |
 
 ---
 
 ## Part 1 — One-Time Setup (Day 1, Before Any Posting)
 
 ### Personal Profile
-- [ ] Update bio: "I built ReelForge — AI video production for short-form creators"
+
+- [x] Update bio: "I built ReelForge — AI video production for short-form creators"
 - [ ] Pin a demo video post to your profile
-- [ ] Add a branded banner/cover photo
-- [ ] Set profile to Public so group members can visit it
-- [ ] Add your website link to your profile
+- [x] Add a branded banner/cover photo
+- [x] Set profile to Public so group members can visit it
+- [x] Add your website link to your profile
 
 ### ReelForge Page
-- [ ] Add logo, cover image (product screenshot or demo still)
-- [ ] Fill in About section: copy the hero subheadline from the landing page
-- [ ] Add website URL
-- [ ] Post these 3 pieces of content on the page BEFORE promoting anywhere (page needs to look alive):
+
+- [x] Add logo, cover image (product screenshot or demo still)
+- [x] Fill in About section: copy the hero subheadline from the landing page
+- [x] Add website URL
+- [x] Post these 3 pieces of content on the page BEFORE promoting anywhere (page needs to look alive):
   - Page Post 1 (origin story — see Part 4)
   - Page Post 2 (the math post — see Part 4)
   - Page Post 3 (demo video drop — see Part 4)
@@ -41,41 +44,44 @@
 **Target: 20–25 groups total. Quality engagement beats spread.**
 
 ### Tier 1 — Direct ICP: Short-Form Video Creators
+
 Join these first. Post within 48 hours.
 
-| Search Term | Why |
-|---|---|
-| "Short form video creators" | Your exact audience |
-| "TikTok creators" / "TikTok growth" | Platform-specific creators |
-| "Instagram Reels creators" | Reels-focused creators |
-| "YouTube Shorts creators" | Shorts-focused creators |
-| "AI content creation" / "AI video tools" | Already tool-aware |
-| "Social media content creators" | Broad creator audience |
-| "Video marketing" | Video-focused marketers |
-| "Content creator tools" | Actively seeking tools |
+| Search Term                              | Why                        |
+| ---------------------------------------- | -------------------------- |
+| "Short form video creators"              | Your exact audience        |
+| "TikTok creators" / "TikTok growth"      | Platform-specific creators |
+| "Instagram Reels creators"               | Reels-focused creators     |
+| "YouTube Shorts creators"                | Shorts-focused creators    |
+| "AI content creation" / "AI video tools" | Already tool-aware         |
+| "Social media content creators"          | Broad creator audience     |
+| "Video marketing"                        | Video-focused marketers    |
+| "Content creator tools"                  | Actively seeking tools     |
 
 Join the top 2–3 results per search (sorted by activity, not size).
 
 ---
 
 ### Tier 2 — High-Value Niche Audiences
+
 These people NEED consistent video content but aren't professional "creators." Lower competition, higher pain.
 
-| Niche | Search Terms | Their Pain |
-|---|---|---|
-| Real estate agents | "real estate marketing", "real estate agents social media" | Must post listings + tips daily, hate production |
-| Coaches & consultants | "business coaches", "life coaches", "coaching business" | Need authority content, no time to produce |
-| Fitness professionals | "personal trainer business", "fitness coaching" | Need daily workout/tip content |
-| E-commerce sellers | "Shopify sellers", "dropshipping", "Amazon FBA" | Need product promo + branded content videos |
-| Online course creators | "course creators", "Kajabi", "Teachable creators" | Need marketing videos to sell courses |
-| Financial advisors | "financial advisor marketing", "personal finance creators" | Need educational content, strict compliance |
-| Restaurant/food business | "restaurant marketing", "food business owners" | Need food content but have no editor |
+| Niche                    | Search Terms                                               | Their Pain                                       |
+| ------------------------ | ---------------------------------------------------------- | ------------------------------------------------ |
+| Real estate agents       | "real estate marketing", "real estate agents social media" | Must post listings + tips daily, hate production |
+| Coaches & consultants    | "business coaches", "life coaches", "coaching business"    | Need authority content, no time to produce       |
+| Fitness professionals    | "personal trainer business", "fitness coaching"            | Need daily workout/tip content                   |
+| E-commerce sellers       | "Shopify sellers", "dropshipping", "Amazon FBA"            | Need product promo + branded content videos      |
+| Online course creators   | "course creators", "Kajabi", "Teachable creators"          | Need marketing videos to sell courses            |
+| Financial advisors       | "financial advisor marketing", "personal finance creators" | Need educational content, strict compliance      |
+| Restaurant/food business | "restaurant marketing", "food business owners"             | Need food content but have no editor             |
 
 Join 5–7 groups from this tier. These convert at higher rates than general creator groups.
 
 ---
 
 ### Tier 3 — Entrepreneur/Business (Brand Awareness)
+
 - "Entrepreneurs & startups"
 - "Online business owners"
 - "Digital marketing"
@@ -102,12 +108,14 @@ Join 5–6 here. Post value content, softer promotion.
 ---
 
 ### TYPE A — Demo Drop Posts
-*Use: when sharing a demo video. This is your primary conversion post.*
+
+_Use: when sharing a demo video. This is your primary conversion post._
 
 ---
 
 **Template A1 — Problem-First Demo**
-*(Best for general creator groups)*
+_(Best for general creator groups)_
+
 ```
 I used to spend 3 hours making one video.
 
@@ -124,7 +132,8 @@ Drop "link" below and I'll send it over.
 ---
 
 **Template A2 — Results-First Demo**
-*(Best for groups that like proof-based content)*
+_(Best for groups that like proof-based content)_
+
 ```
 [attach demo video]
 
@@ -140,7 +149,8 @@ Comment "try" and I'll drop the link 👇
 ---
 
 **Template A3 — Story Format**
-*(Best for entrepreneurship, business, and founder groups)*
+_(Best for entrepreneurship, business, and founder groups)_
+
 ```
 I was spending 15 hours a week just making videos. Not growing. Not engaging. Just production.
 
@@ -158,7 +168,8 @@ Link in first comment 👇
 ---
 
 **Template A4 — Niche-Specific Demo**
-*(Swap in the niche for Tier 2 groups — real estate, fitness, coaching, etc.)*
+_(Swap in the niche for Tier 2 groups — real estate, fitness, coaching, etc.)_
+
 ```
 [attach niche demo video]
 
@@ -174,11 +185,13 @@ Comment below and I'll send the link.
 ---
 
 ### TYPE B — Value Posts (No Direct Promotion)
-*Use: in groups with strict no-promo rules, or when warming up a new group*
+
+_Use: in groups with strict no-promo rules, or when warming up a new group_
 
 ---
 
 **Template B1 — Tips Post**
+
 ```
 3 things that actually grow short-form accounts:
 
@@ -194,7 +207,8 @@ What's everyone using to speed up production? Genuinely curious what's working.
 ---
 
 **Template B2 — Question Post**
-*(Reply to every "2-3 hours" comment with: "That was me too — I built something that cuts this way down, want me to share?")*
+_(Reply to every "2-3 hours" comment with: "That was me too — I built something that cuts this way down, want me to share?")_
+
 ```
 Real question for this group —
 
@@ -208,6 +222,7 @@ Drop your number below 👇
 ---
 
 **Template B3 — Insight Post**
+
 ```
 The people posting 5+ videos a day aren't working harder than you.
 
@@ -221,6 +236,7 @@ Happy to share what I use if anyone's curious.
 ---
 
 **Template B4 — Before/After Post**
+
 ```
 6 months ago vs now:
 
@@ -235,11 +251,13 @@ Link in comments if you want it.
 ---
 
 ### TYPE C — Comment Drop Templates
-*Use: when someone asks about video tools, complains about editing time, or asks for AI tool recs. This is the highest-ROI tactic.*
+
+_Use: when someone asks about video tools, complains about editing time, or asks for AI tool recs. This is the highest-ROI tactic._
 
 ---
 
 **When someone asks "what video tools do you use?"**
+
 ```
 ReelForge changed things for me. You give it a topic, it writes the script, generates the voiceover, creates the visuals per scene, auto-syncs subtitles, and sends you the finished video. Under 10 minutes of your time. $5 try-out if you want to test it: [LINK]
 ```
@@ -247,6 +265,7 @@ ReelForge changed things for me. You give it a topic, it writes the script, gene
 ---
 
 **When someone complains about editing taking forever:**
+
 ```
 Felt this. Switched to ReelForge and honestly don't go back — it does the whole thing, script to finished MP4. Under 10 mins of your time. $5 to try it: [LINK]
 ```
@@ -254,6 +273,7 @@ Felt this. Switched to ReelForge and honestly don't go back — it does the whol
 ---
 
 **When someone asks for AI video tool recs:**
+
 ```
 ReelForge if you're doing short-form. It's not just one AI tool — it writes the script, voices it, generates visuals scene by scene, syncs subtitles, delivers the MP4. $5 try-out right now: [LINK]
 ```
@@ -261,6 +281,7 @@ ReelForge if you're doing short-form. It's not just one AI tool — it writes th
 ---
 
 **When someone says they can't afford a video editor:**
+
 ```
 You don't need one anymore. ReelForge does script, voice, visuals, subtitles, final video — $5 to try it (3 full videos): [LINK]
 ```
@@ -268,6 +289,7 @@ You don't need one anymore. ReelForge does script, voice, visuals, subtitles, fi
 ---
 
 **When someone mentions their niche (real estate, fitness, coaching, etc.):**
+
 ```
 I actually made a [niche] video with ReelForge recently — typed the idea, got the finished reel in under an hour. $5 try-out if you're curious what it'd look like for your content: [LINK]
 ```
@@ -275,11 +297,13 @@ I actually made a [niche] video with ReelForge recently — typed the idea, got 
 ---
 
 ### TYPE D — ReelForge Page Posts
-*Post these on the ReelForge Page before promoting anywhere. Page needs to look active.*
+
+_Post these on the ReelForge Page before promoting anywhere. Page needs to look active._
 
 ---
 
 **Page Post 1 — Origin Story**
+
 ```
 Why I built ReelForge:
 
@@ -297,6 +321,7 @@ $5 to try it. 3 videos. No subscription.
 ---
 
 **Page Post 2 — The Math**
+
 ```
 The math on short-form video is brutal.
 
@@ -312,6 +337,7 @@ That's the whole thing. $5 to see it yourself — 3 full videos.
 ---
 
 **Page Post 3 — Demo Drop**
+
 ```
 [attach demo video]
 
@@ -327,7 +353,8 @@ $5 for 3 videos like this. No subscription.
 ---
 
 ### TYPE E — DM Template
-*Send to everyone who likes, comments, or reacts to any post.*
+
+_Send to everyone who likes, comments, or reacts to any post._
 
 ```
 Hey [Name] — saw you checked out my ReelForge post, wanted to reach out directly.
@@ -346,21 +373,24 @@ Any questions happy to help: [LINK]
 ### Week 1 — Setup + First Wave
 
 **Day 1 — Monday: Setup Only, Zero Posts**
-- [ ] Optimize personal profile (bio, cover, website link, public settings)
-- [ ] Complete ReelForge Page (logo, cover, about, URL)
-- [ ] Post Page Posts 1, 2, 3 on the ReelForge Page
-- [ ] Join 10 groups from Tier 1 (read all pinned rules)
-- [ ] Leave 1–2 genuine comments in each group — no promo, just value
+
+- [x] Optimize personal profile (bio, cover, website link, public settings)
+- [x] Complete ReelForge Page (logo, cover, about, URL)
+- [x] Post Page Posts 1, 2, 3 on the ReelForge Page
+- [x] Join 10 groups from Tier 1 (read all pinned rules)
+- [x] Leave 1–2 genuine comments in each group — no promo, just value
 - [ ] Note which groups have "Promo Day" threads (usually Fri/Sun)
 
 **Day 2 — Tuesday: Join More, Start Engaging**
-- [ ] Join 10 more groups (Tier 1 + Tier 2 mix)
+
+- [x] Join 10 more groups (Tier 1 + Tier 2 mix)
 - [ ] Comment organically on 3–5 posts per new group
 - [ ] Watch all groups for threads about video tools → drop Type C templates
 - [ ] Post Template B2 (question post) in 2–3 groups that allow discussion posts
 - [ ] Reply to every comment on your posts — every single one
 
 **Day 3 — Wednesday: First Demo Drops**
+
 - [ ] Post Template A1 in 3 groups (different demo videos in each)
 - [ ] Post Template A2 in 2 different groups
 - [ ] Drop the link as your OWN first comment on every A post
@@ -368,6 +398,7 @@ Any questions happy to help: [LINK]
 - [ ] DM everyone who liked or commented using Template E
 
 **Day 4 — Thursday: Broaden the Posts**
+
 - [ ] Post Template B3 (insight post) in 3–4 groups
 - [ ] Post Template A3 (story format) in 2 new groups
 - [ ] Reply to ALL comments received so far — do not let any go unanswered
@@ -375,12 +406,14 @@ Any questions happy to help: [LINK]
 - [ ] Follow up via DM to people who didn't respond to Wednesday's messages
 
 **Day 5 — Friday: Promo Day Sweep**
+
 - [ ] Post in EVERY group that has a "Self-Promo" or "Share Your Business" thread — these are open doors
 - [ ] Use Template A1 or A2 for each promo thread
 - [ ] Keep posting Template B posts in groups that don't have promo threads
 - [ ] Count: how many link clicks, how many $5 signups this week?
 
 **Weekend**
+
 - [ ] Post new demo videos on ReelForge Page
 - [ ] Review which groups/templates got most engagement
 - [ ] Plan next week's posts with focus on what's working
@@ -391,15 +424,18 @@ Any questions happy to help: [LINK]
 ### Week 2+ — Daily Repeating Routine
 
 **Morning (30 min)**
+
 - [ ] Check all group notifications — reply to every comment within the first hour (FB rewards fast replies with more reach)
 - [ ] DM everyone who engaged with yesterday's posts
 
 **Midday (60–90 min)**
+
 - [ ] Post 2–3 new posts across groups (rotate templates, rotate groups — max 1 post per group per week)
 - [ ] Scan 5–10 threads per day across all your groups for Type C comment opportunities
 - [ ] Respond to any DMs
 
 **Evening (30 min)**
+
 - [ ] Final comment sweep — reply to everything
 - [ ] Log results in tracking sheet (see Part 6)
 - [ ] Plan tomorrow's posts
@@ -413,16 +449,18 @@ Any questions happy to help: [LINK]
 Create a spreadsheet with these columns. Fill it out every day.
 
 | Date | Group | Template | Demo Video # | Likes | Comments | "link" requests | Signups | Notes |
-|---|---|---|---|---|---|---|---|---|
-| | | | | | | | | |
+| ---- | ----- | -------- | ------------ | ----- | -------- | --------------- | ------- | ----- |
+|      |       |          |              |       |          |                 |         |       |
 
 **Review weekly:**
+
 - Best performing template → post more of it
 - Best performing group type → prioritize that tier
 - Best performing demo video → lead with it everywhere
 - Lowest engagement → stop posting there, try a new group
 
 **Weekly targets:**
+
 - Week 1: 5 signups minimum
 - Week 2: 10 signups
 - Week 3+: 15+ signups per week
@@ -464,6 +502,7 @@ The $5 price point is your biggest conversion lever. Here are the exact framings
 ## Part 9 — Group-Specific Post Variations
 
 ### For Real Estate Groups
+
 ```
 Agents posting video consistently are closing more deals. Not because the videos are perfect — because they show up every day.
 
@@ -475,6 +514,7 @@ Made this with ReelForge — typed the topic, got the finished Reel in under an 
 ```
 
 ### For Coaching/Consultant Groups
+
 ```
 The coaches blowing up on social aren't editing their own videos.
 
@@ -486,6 +526,7 @@ $5 for 3 videos: [LINK in comments]
 ```
 
 ### For Fitness/PT Groups
+
 ```
 Your clients want to see you posting every day. The algorithm does too.
 
@@ -497,6 +538,7 @@ Made this fitness video in under 10 minutes with ReelForge — typed the idea, g
 ```
 
 ### For E-commerce / Dropshipping Groups
+
 ```
 Product videos every day sounds insane when each one takes 3 hours.
 
@@ -515,3 +557,118 @@ This one took under 10 minutes. ReelForge handles the whole thing — script, vo
 - [ ] Week 4: 30+ signups total, at least 3 groups where you are a known name
 
 When you hit 30+ Try Out users, pull the conversion data — what % convert to Starter or Pro? That tells you whether to keep scaling FB groups or shift budget/time to a different channel.
+
+---
+
+## Part 11 — Hashtag Strategy
+
+Facebook hashtags are not Instagram. The ceiling is 5–8 hashtags per post — more than that tanks reach. The goal is discoverability, not volume.
+
+### How Many Per Context
+
+| Where You're Posting    | Hashtag Count | Why                                                                 |
+| ----------------------- | ------------- | ------------------------------------------------------------------- |
+| **ReelForge Page**      | 5–8           | Pages rely on hashtags for non-follower reach — use the full set   |
+| **Personal Profile**    | 3–5           | Feels more natural; too many reads as spam on a personal account   |
+| **Facebook Groups**     | 1–3           | The group already provides targeting — hashtags are secondary here |
+
+---
+
+### Master Hashtag List by Category
+
+**Brand (always include at least one):**
+`#ReelForge` `#ReelForgeAI`
+
+**Product / Feature:**
+`#AIVideo` `#AIVideoCreation` `#VideoAutomation` `#AIVideoTool` `#AIContentCreation`
+
+**Audience (what your ICP already follows):**
+`#ContentCreator` `#ContentCreators` `#VideoCreator` `#ShortFormVideo` `#ShortFormContent`
+
+**Platform-specific (use when posting niche content):**
+`#TikTokCreator` `#InstagramReels` `#YouTubeShorts` `#Reels`
+
+**Pain point / Discovery:**
+`#VideoEditing` `#VideoProduction` `#VideoMarketing` `#ContentCreation` `#SocialMediaContent`
+
+**Tool / Tech:**
+`#AITools` `#ArtificialIntelligence` `#CreatorTools` `#MarketingTools`
+
+**Niche-specific (swap in for Tier 2 posts):**
+`#RealEstateMarketing` `#FitnessContent` `#CoachingBusiness` `#Ecommerce` `#SocialMediaMarketing`
+
+**Founder / Entrepreneur:**
+`#Entrepreneur` `#SmallBusiness` `#SideProject` `#IndieFounder` `#StartupLife`
+
+---
+
+### Curated Sets — Copy and Paste
+
+#### ReelForge Page — Standard Post
+```
+#ReelForge #AIVideo #ContentCreator #ShortFormVideo #VideoAutomation #AITools #ContentCreation
+```
+
+#### ReelForge Page — Demo Drop Post
+```
+#ReelForge #AIVideo #VideoAutomation #ShortFormContent #ContentCreators #AIContentCreation #VideoMarketing
+```
+
+#### ReelForge Page — Founder/Origin Story Post
+```
+#ReelForge #Entrepreneur #SideProject #AIVideo #ContentCreator #IndieFounder #AITools
+```
+
+---
+
+#### Personal Profile — Demo Drop
+```
+#ReelForge #AIVideo #ContentCreator #VideoAutomation
+```
+
+#### Personal Profile — Value/Tips Post
+```
+#ContentCreator #ShortFormVideo #VideoMarketing #SocialMediaContent
+```
+
+#### Personal Profile — Founder Story
+```
+#Entrepreneur #SideProject #AIVideo #ReelForge #IndieFounder
+```
+
+---
+
+#### Facebook Groups — Any Promotional Post
+```
+#ReelForge #AIVideo #ContentCreator
+```
+
+#### Facebook Groups — Value Post (no promo)
+```
+#ContentCreator #ShortFormVideo
+```
+
+#### Facebook Groups — Niche Post (Tier 2)
+Swap the niche tag only:
+```
+#ReelForge #AIVideo #RealEstateMarketing
+```
+```
+#ReelForge #AIVideo #FitnessContent
+```
+```
+#ReelForge #AIVideo #CoachingBusiness
+```
+```
+#ReelForge #AIVideo #Ecommerce
+```
+
+---
+
+### Rules
+
+1. **Put hashtags at the bottom of the post**, separated from the body by a line break. Hashtags mid-post interrupt the read.
+2. **Always include `#ReelForge`** on every Page and Profile post — this builds a searchable archive of your content over time.
+3. **Never use hashtags in DMs** — looks automated.
+4. **Skip hashtags in Group comments (Type C drops)** — you're in a conversation, not broadcasting.
+5. **Rotate hashtag sets slightly week to week** — Facebook can suppress accounts that use the exact same tag block repeatedly.
