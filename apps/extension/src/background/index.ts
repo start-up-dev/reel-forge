@@ -31,7 +31,6 @@ interface TabEntry {
   sceneIndex: number;
   visualPrompt: string;
   motionPrompt: string;
-  baseImageUrl: string;
   textExcerpt: string | null;
   videoType: string | null;
   startedAt: number;
@@ -166,7 +165,6 @@ async function openClipTab(clip: ClaimedClip, settings: ExtensionSettings): Prom
     sceneIndex: clip.sceneIndex,
     visualPrompt: clip.visualPrompt,
     motionPrompt: clip.motionPrompt,
-    baseImageUrl: clip.baseImageUrl,
     textExcerpt: clip.textExcerpt ?? null,
     videoType: clip.videoType ?? null,
     startedAt: Date.now(),
@@ -197,41 +195,15 @@ async function openClipTab(clip: ClaimedClip, settings: ExtensionSettings): Prom
   chrome.tabs.onUpdated.addListener(handler);
 }
 
-// Pre-fetch the base image in the service worker so the content script never
-// has to make a cross-origin request to GCS (where CORS might block it).
 async function sendClipToTab(
   tabId: number,
   clip: ClaimedClip,
   settings: ExtensionSettings,
 ): Promise<void> {
-  let imageBytes: Uint8Array | null = null;
-  let imageType = "image/jpeg";
-
-  console.log(`[SW] baseImageUrl for clip ${clip.id}:`, clip.baseImageUrl || "(empty)");
-  if (clip.baseImageUrl) {
-    try {
-      const res = await fetch(clip.baseImageUrl);
-      if (res.ok) {
-        imageBytes = new Uint8Array(await res.arrayBuffer());
-        imageType = res.headers.get("content-type") || "image/jpeg";
-        console.log(`[SW] Base image fetched OK — ${imageBytes.byteLength} bytes, type: ${imageType}`);
-      } else {
-        console.warn(`[SW] Base image fetch failed: ${res.status} — imageBytes will be null`);
-      }
-    } catch (err) {
-      console.warn("[SW] Could not pre-fetch base image:", err);
-    }
-  } else {
-    console.warn(`[SW] Clip ${clip.id} has no baseImageUrl — skipping image attachment`);
-  }
-
   const msg = {
     type: "PROCESS_CLIP",
     clip,
-    // Convert to plain number[] — Chrome JSON-serializes Uint8Array as {"0":1,...}
-    // which loses the `length` property and arrives as 0 bytes on the other side.
-    imageBytes: imageBytes ? Array.from(imageBytes) : null,
-    imageType,
+    visualPrompt: clip.visualPrompt,
     autoClick: settings.autoClick,
     clickDelayMode: settings.clickDelayMode,
     selectors: settings.selectors,
@@ -274,7 +246,6 @@ async function handleTabError(
       sceneIndex: entry.sceneIndex,
       visualPrompt: entry.visualPrompt,
       motionPrompt: entry.motionPrompt,
-      baseImageUrl: entry.baseImageUrl,
       textExcerpt: entry.textExcerpt,
       videoType: entry.videoType,
       errorMessage: error,
@@ -299,15 +270,15 @@ async function handleTabError(
 }
 
 // ── Stale tab watchdog ────────────────────────────────────────────────────────
-// 10-minute timeout: page load (~15s) + image upload (~5s) + generation
-// (up to 3 min on Grok) + GCS download/upload (~60s) — 3 min was too tight.
+// 15-minute timeout: image gen (~2 min) + video gen (~3–4 min) + upload (~1 min)
+// + click delays — 10 min was too tight for the new 2-phase flow.
 
 function checkStaleTabs(): void {
-  const TEN_MIN = 10 * 60 * 1000;
+  const FIFTEEN_MIN = 15 * 60 * 1000;
   const now = Date.now();
   for (const [tabId, entry] of activeTabs) {
-    if (now - entry.startedAt > TEN_MIN) {
-      void handleTabError(tabId, entry.clipId, "Generation timeout (10 min)");
+    if (now - entry.startedAt > FIFTEEN_MIN) {
+      void handleTabError(tabId, entry.clipId, "Generation timeout (15 min)");
     }
   }
 }
@@ -514,8 +485,7 @@ type ContentMsg =
   | { type: "CLIP_DONE"; clipId: string }
   | { type: "CLIP_FAILED"; clipId: string; error: string }
   | { type: "SELECTOR_ERROR"; clipId: string; selectorName: string; selectorValue: string }
-  | { type: "UPLOAD_VIDEO"; clipId: string; videoUrl: string; backendUrl: string; operatorSecret: string }
-  | { type: "ATTACH_IMAGE"; clipId: string; imageBytes: number[]; imageType: string };
+  | { type: "UPLOAD_VIDEO"; clipId: string; videoUrl: string; backendUrl: string; operatorSecret: string };
 
 chrome.runtime.onMessage.addListener(
   (message: ContentMsg, sender, sendResponse) => {
@@ -815,100 +785,6 @@ chrome.runtime.onMessage.addListener(
         break;
       }
 
-      // Inject file attachment into MAIN world.
-      // Strategy: set files + events + React fiber + upload-trigger click.
-      // Then wait up to 8 s for Grok's UI to confirm (new img element).
-      // Returns ok:false if not confirmed — content script will fail the clip.
-      case "ATTACH_IMAGE": {
-        const { imageBytes: byteArray, imageType } = message; // already number[]
-
-        void (async () => {
-          try {
-            const results = await chrome.scripting.executeScript({
-              target: { tabId },
-              world: "MAIN",
-              func: async (bytes: number[], mimeType: string): Promise<{ ok: boolean; reason: string }> => {
-                const rf = (...a: unknown[]) => console.log("[RF-MAIN]", ...a);
-
-                const uint8 = new Uint8Array(bytes);
-                const blob = new Blob([uint8], { type: mimeType });
-                const file = new File([blob], "base_image.jpg", { type: mimeType });
-                rf("File ready:", file.size, "bytes");
-
-                const input = document.querySelector<HTMLInputElement>('input[type="file"]');
-                if (!input) {
-                  rf("No file input on page");
-                  return { ok: false, reason: "No file input on page" };
-                }
-                rf("Input found — accept:", input.accept, "id:", input.id);
-
-                // ── Attach the file ────────────────────────────────────────────
-                const dt = new DataTransfer();
-                dt.items.add(file);
-                input.files = dt.files;
-
-                // Confirm BEFORE dispatching events — Grok's sync onChange handler
-                // may clear input.files immediately, making a post-event check useless.
-                const confirmed = !!(input.files && input.files.length > 0);
-                rf("Files set on input:", confirmed, "count:", input.files?.length);
-
-                if (!confirmed) {
-                  return { ok: false, reason: "Browser rejected DataTransfer file assignment" };
-                }
-
-                // Dispatch events so React's delegated listener processes the change.
-                input.dispatchEvent(new Event("change", { bubbles: true }));
-                input.dispatchEvent(new Event("input", { bubbles: true }));
-
-                // React fiber — call onChange directly if present.
-                const inputAny = input as unknown as Record<string, unknown>;
-                const fKey = Object.keys(inputAny).find(
-                  (k) => k.startsWith("__reactFiber") || k.startsWith("__reactInternalInstance"),
-                );
-                if (fKey) {
-                  let fiber = inputAny[fKey] as Record<string, unknown> | null;
-                  while (fiber) {
-                    const props = (fiber["memoizedProps"] ?? fiber["pendingProps"]) as Record<string, unknown> | null;
-                    if (typeof props?.["onChange"] === "function") {
-                      rf("Calling React onChange via fiber");
-                      try {
-                        (props["onChange"] as (e: unknown) => void)({
-                          target: input, currentTarget: input,
-                          nativeEvent: new Event("change"),
-                          preventDefault: () => {}, stopPropagation: () => {},
-                        });
-                      } catch (e) { rf("Fiber error:", e); }
-                      break;
-                    }
-                    fiber = fiber["return"] as Record<string, unknown> | null;
-                  }
-                }
-                // Note: we do NOT click any upload trigger button — it can call
-                // input.click() internally which resets the FileList we just set.
-
-                rf("Attachment result:", confirmed ? "SUCCESS" : "FAILED");
-                return {
-                  ok: confirmed,
-                  reason: confirmed ? "ok" : "Grok did not confirm upload after 8 s",
-                };
-              },
-              args: [byteArray, imageType],
-            });
-
-            const result = results[0]?.result;
-            console.log("[SW] ATTACH_IMAGE:", JSON.stringify(result));
-            sendResponse(result?.ok
-              ? { ok: true }
-              : { ok: false, error: result?.reason ?? "Image attachment failed" },
-            );
-          } catch (err) {
-            const error = err instanceof Error ? err.message : String(err);
-            console.error("[SW] ATTACH_IMAGE failed:", error);
-            sendResponse({ ok: false, error });
-          }
-        })();
-        break;
-      }
     }
 
     return true;

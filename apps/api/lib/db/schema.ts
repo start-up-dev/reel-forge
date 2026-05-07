@@ -285,7 +285,7 @@ export const clipRequests = pgTable(
     sceneIndex: integer("scene_index").notNull(),
     visualPrompt: text("visual_prompt").notNull(),
     motionPrompt: text("motion_prompt").notNull().default(""),
-    baseImageUrl: text("base_image_url").notNull(),
+    baseImageUrl: text("base_image_url"),
     status: clipRequestStatusEnum("status").notNull().default("queued"),
     queuedAt: timestamp("queued_at", { withTimezone: true })
       .notNull()

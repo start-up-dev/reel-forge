@@ -5,11 +5,8 @@ import {
   CheckCircle2,
   ChevronDown,
   ChevronUp,
-  ImageIcon,
   Loader2,
   Pencil,
-  RefreshCw,
-  Upload,
 } from "lucide-react";
 import { VideoStatus } from "@repo/types";
 import type { Scene } from "@repo/types";
@@ -38,19 +35,14 @@ export function Step4Scenes({
   const [promptDraft, setPromptDraft] = useState("");
   const [editingMotion, setEditingMotion] = useState<number | null>(null);
   const [motionDraft, setMotionDraft] = useState("");
-  const [regeneratingScenes, setRegeneratingScenes] = useState<Set<number>>(
-    new Set(),
-  );
-  const [regeneratingAll, setRegeneratingAll] = useState(false);
   const [approvingAll, setApprovingAll] = useState(false);
 
   const isPending = video.status === VideoStatus.ScenesPending;
   const totalScenes = scenes.length;
-  const readyCount = scenes.filter((s) => s.baseImageUrl).length;
   const approvedCount = scenes.filter((s) => s.approved).length;
   const allApproved = totalScenes > 0 && approvedCount === totalScenes;
 
-  // Poll while generating — update partial scene results on every tick
+  // Poll while generating — update when scenes are ready
   useEffect(() => {
     if (!isPending) return;
     const interval = setInterval(async () => {
@@ -68,51 +60,6 @@ export function Step4Scenes({
     }, 3000);
     return () => clearInterval(interval);
   }, [isPending, api, video.id, onVideoUpdate]);
-
-  async function regenerateScene(sceneIndex: number) {
-    setRegeneratingScenes((prev) => new Set([...prev, sceneIndex]));
-    const result = await withToast(
-      () => api.scenes.regenerate(video.id, sceneIndex),
-      "Failed to regenerate scene",
-    );
-    if (result?.data) {
-      setScenes((prev) =>
-        prev.map((s) =>
-          s.sceneIndex === sceneIndex
-            ? { ...s, ...result.data, baseImageUrl: null }
-            : s,
-        ),
-      );
-      const poll = setInterval(async () => {
-        const r = await withToast(
-          () => api.videos.get(video.id),
-          "Failed to check scene",
-        );
-        if (r?.data) {
-          const updated = r.data.scenes.find(
-            (s) => s.sceneIndex === sceneIndex,
-          );
-          if (updated?.baseImageUrl) {
-            setScenes((prev) =>
-              prev.map((s) => (s.sceneIndex === sceneIndex ? updated : s)),
-            );
-            setRegeneratingScenes((prev) => {
-              const next = new Set(prev);
-              next.delete(sceneIndex);
-              return next;
-            });
-            clearInterval(poll);
-          }
-        }
-      }, 3000);
-    } else {
-      setRegeneratingScenes((prev) => {
-        const next = new Set(prev);
-        next.delete(sceneIndex);
-        return next;
-      });
-    }
-  }
 
   async function savePrompt(sceneIndex: number) {
     const result = await withToast(
@@ -146,36 +93,6 @@ export function Step4Scenes({
     setEditingMotion(null);
   }
 
-  async function handleUpload(sceneIndex: number, file: File) {
-    const urlResult = await withToast(
-      () => api.scenes.uploadUrl(video.id, sceneIndex),
-      "Failed to get upload URL",
-    );
-    if (!urlResult?.data) return;
-    const { uploadUrl, path } = urlResult.data;
-    const ok = await fetch(uploadUrl, {
-      method: "PUT",
-      body: file,
-      headers: { "Content-Type": file.type },
-    });
-    if (!ok.ok) return;
-    const confirmResult = await withToast(
-      () =>
-        api.scenes.update(video.id, sceneIndex, {
-          baseImageUrl: path,
-          baseImagePath: path,
-        }),
-      "Failed to confirm upload",
-    );
-    if (confirmResult?.data) {
-      setScenes((prev) =>
-        prev.map((s) =>
-          s.sceneIndex === sceneIndex ? { ...s, ...confirmResult.data } : s,
-        ),
-      );
-    }
-  }
-
   async function toggleApproval(sceneIndex: number, approved: boolean) {
     const result = await withToast(
       () => api.scenes.update(video.id, sceneIndex, { approved }),
@@ -196,23 +113,6 @@ export function Step4Scenes({
         .map((s) => toggleApproval(s.sceneIndex, true)),
     );
     setApprovingAll(false);
-  }
-
-  async function regenerateAll() {
-    setRegeneratingAll(true);
-    const result = await withToast(
-      () => api.videos.generateScenes(video.id),
-      "Failed to regenerate scenes",
-    );
-    if (result) {
-      onVideoUpdate({
-        ...video,
-        status: VideoStatus.ScenesPending,
-        scenes: [],
-      });
-      setScenes([]);
-    }
-    setRegeneratingAll(false);
   }
 
   // ─── Preparing state (pending, no scenes yet) ───────────────────────────────
@@ -247,65 +147,27 @@ export function Step4Scenes({
             {isPending ? "Generating scenes…" : "Review your scenes"}
           </h1>
           <p className="mt-1 text-sm text-[var(--text-muted)]">
-            {isPending
-              ? `${readyCount} of ${totalScenes} images ready`
-              : approvedCount === totalScenes
-                ? `${totalScenes} scenes · All approved`
-                : `${approvedCount} of ${totalScenes} approved`}
+            {approvedCount === totalScenes && totalScenes > 0
+              ? `${totalScenes} scenes · All approved`
+              : `${approvedCount} of ${totalScenes} approved`}
           </p>
         </div>
 
-        <div className="flex shrink-0 gap-2">
+        {!isPending && (
           <Button
-            variant="ghost"
-            size="sm"
-            onClick={regenerateAll}
-            loading={regeneratingAll}
-            className="gap-1.5"
+            onClick={() => void approveAll().then(() => onAdvance())}
+            loading={approvingAll}
+            disabled={totalScenes === 0}
+            className="shrink-0"
           >
-            <RefreshCw className="h-3.5 w-3.5" />
-            Regenerate All
+            Approve All →
           </Button>
-          {!isPending && (
-            <Button
-              onClick={() => void approveAll().then(() => onAdvance())}
-              loading={approvingAll}
-              disabled={totalScenes === 0}
-            >
-              Approve All →
-            </Button>
-          )}
-        </div>
+        )}
       </div>
-
-      {/* Generation progress bar */}
-      {isPending && totalScenes > 0 && (
-        <div className="mb-6 rounded-xl border border-[var(--bg-border)] bg-[var(--bg-surface)] p-4">
-          <div className="mb-2 flex items-center justify-between text-xs">
-            <span className="flex items-center gap-2 text-[var(--text-secondary)]">
-              <Loader2 className="h-3 w-3 animate-spin text-[var(--accent-primary)]" />
-              Generating images sequentially…
-            </span>
-            <span className="tabular-nums font-medium text-[var(--text-primary)]">
-              {readyCount} / {totalScenes}
-            </span>
-          </div>
-          <div className="h-1.5 w-full overflow-hidden rounded-full bg-[var(--bg-elevated)]">
-            <div
-              className="h-full rounded-full bg-[var(--accent-primary)] transition-all duration-700"
-              style={{
-                width: `${totalScenes > 0 ? (readyCount / totalScenes) * 100 : 0}%`,
-              }}
-            />
-          </div>
-        </div>
-      )}
 
       {/* Scene grid */}
       <div className="grid gap-4 sm:grid-cols-2">
         {scenes.map((scene) => {
-          const isGenerating = regeneratingScenes.has(scene.sceneIndex);
-          const isImageReady = !!scene.baseImageUrl;
           const isExpanded = expandedScene === scene.sceneIndex;
           const isEditingThisPrompt = editingPrompt === scene.sceneIndex;
           const isEditingThisMotion = editingMotion === scene.sceneIndex;
@@ -317,64 +179,20 @@ export function Step4Scenes({
                 "flex flex-col overflow-hidden rounded-xl border bg-[var(--bg-surface)] transition-all",
                 scene.approved
                   ? "border-[var(--accent-success)]"
-                  : "border-[var(--bg-border)] hover:border-[var(--bg-border)]",
+                  : "border-[var(--bg-border)]",
               )}
             >
-              {/* Image area */}
-              <div
-                className="relative w-full overflow-hidden bg-[var(--bg-base)]"
-                style={{ aspectRatio: "9/16", maxHeight: 220 }}
-              >
-                {isImageReady ? (
-                  // eslint-disable-next-line @next/next/no-img-element
-                  <img
-                    src={scene.baseImageUrl!}
-                    alt={`Scene ${scene.sceneIndex + 1}`}
-                    className="h-full w-full object-contain"
-                  />
-                ) : (
-                  <div className="flex h-full w-full flex-col items-center justify-center gap-2 bg-gradient-to-b from-[var(--bg-elevated)] to-[var(--bg-base)]">
-                    {isPending || isGenerating ? (
-                      <>
-                        <Loader2 className="h-6 w-6 animate-spin text-[var(--accent-primary)]" />
-                        <span className="text-[10px] text-[var(--text-muted)]">
-                          Generating…
-                        </span>
-                      </>
-                    ) : (
-                      <>
-                        <ImageIcon className="h-6 w-6 text-[var(--bg-border)]" />
-                        <span className="text-[10px] text-[var(--text-muted)]">
-                          No image
-                        </span>
-                      </>
-                    )}
-                  </div>
-                )}
-
-                {/* Regenerating overlay */}
-                {isGenerating && isImageReady && (
-                  <div className="absolute inset-0 flex items-center justify-center bg-black/60">
-                    <Loader2 className="h-7 w-7 animate-spin text-white" />
-                  </div>
-                )}
-
-                {/* Approved overlay */}
-                {scene.approved && isImageReady && (
-                  <div className="absolute inset-0 flex items-end justify-end bg-[var(--accent-success)]/10 p-2">
-                    <span className="flex h-6 w-6 items-center justify-center rounded-full bg-[var(--accent-success)]">
-                      <CheckCircle2 className="h-4 w-4 text-white" />
-                    </span>
-                  </div>
-                )}
-
-                {/* Scene number badge */}
-                <div className="absolute left-0 top-0 rounded-br-lg bg-black/60 px-2 py-1 text-[10px] font-semibold text-white">
-                  {scene.sceneIndex + 1}
+              {/* Scene header */}
+              <div className="flex items-center justify-between border-b border-[var(--bg-border)] px-3 py-2">
+                <span className="text-xs font-semibold text-[var(--text-muted)]">
+                  Scene {scene.sceneIndex + 1}
                   {scene.durationHintSeconds
                     ? ` · ${scene.durationHintSeconds}s`
                     : ""}
-                </div>
+                </span>
+                {scene.approved && (
+                  <CheckCircle2 className="h-4 w-4 text-[var(--accent-success)]" />
+                )}
               </div>
 
               {/* Text excerpt */}
@@ -403,7 +221,7 @@ export function Step4Scenes({
                   {/* Visual prompt */}
                   <div className="rounded-lg bg-[var(--bg-elevated)] px-3 py-2">
                     <p className="mb-1 text-[10px] font-semibold uppercase tracking-wide text-[var(--text-muted)]">
-                      Image Prompt
+                      Visual Prompt
                     </p>
                     {isEditingThisPrompt ? (
                       <div className="space-y-2">
@@ -419,7 +237,7 @@ export function Step4Scenes({
                             onClick={() => savePrompt(scene.sceneIndex)}
                             className="h-6 text-[10px]"
                           >
-                            Save & Regen
+                            Save
                           </Button>
                           <Button
                             variant="ghost"
@@ -432,16 +250,29 @@ export function Step4Scenes({
                         </div>
                       </div>
                     ) : (
-                      <p className="text-xs text-[var(--text-secondary)]">
-                        {scene.visualPrompt}
-                      </p>
+                      <div className="flex items-start justify-between gap-2">
+                        <p className="text-xs text-[var(--text-secondary)]">
+                          {scene.visualPrompt}
+                        </p>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setEditingPrompt(scene.sceneIndex);
+                            setPromptDraft(scene.visualPrompt);
+                            setExpandedScene(scene.sceneIndex);
+                          }}
+                          className="shrink-0 text-[var(--text-muted)] hover:text-[var(--text-secondary)]"
+                        >
+                          <Pencil className="h-3 w-3" />
+                        </button>
+                      </div>
                     )}
                   </div>
 
                   {/* Motion prompt */}
                   <div className="rounded-lg bg-[var(--bg-elevated)] px-3 py-2">
                     <p className="mb-1 text-[10px] font-semibold uppercase tracking-wide text-[var(--text-muted)]">
-                      Clip Motion
+                      Motion Prompt
                     </p>
                     {isEditingThisMotion ? (
                       <div className="space-y-2">
@@ -495,48 +326,8 @@ export function Step4Scenes({
                 </div>
               )}
 
-              {/* Action row + approve */}
-              <div className="mt-3 flex items-center justify-between border-t border-[var(--bg-border)] px-3 py-2">
-                <div className="flex items-center gap-0.5">
-                  <button
-                    type="button"
-                    onClick={() => regenerateScene(scene.sceneIndex)}
-                    disabled={isGenerating}
-                    className="flex items-center gap-1 rounded-md px-2 py-1.5 text-xs text-[var(--text-muted)] hover:bg-[var(--bg-elevated)] hover:text-[var(--text-primary)] transition-colors disabled:opacity-40"
-                  >
-                    <RefreshCw
-                      className={cn("h-3 w-3", isGenerating && "animate-spin")}
-                    />
-                    Regen
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setEditingPrompt(scene.sceneIndex);
-                      setPromptDraft(scene.visualPrompt);
-                      setExpandedScene(scene.sceneIndex);
-                    }}
-                    className="flex items-center gap-1 rounded-md px-2 py-1.5 text-xs text-[var(--text-muted)] hover:bg-[var(--bg-elevated)] hover:text-[var(--text-primary)] transition-colors"
-                  >
-                    <Pencil className="h-3 w-3" />
-                    Edit
-                  </button>
-                  <label className="flex cursor-pointer items-center gap-1 rounded-md px-2 py-1.5 text-xs text-[var(--text-muted)] hover:bg-[var(--bg-elevated)] hover:text-[var(--text-primary)] transition-colors">
-                    <Upload className="h-3 w-3" />
-                    Upload
-                    <input
-                      type="file"
-                      accept="image/jpeg,image/png"
-                      className="sr-only"
-                      onChange={(e) => {
-                        const file = e.target.files?.[0];
-                        if (file) void handleUpload(scene.sceneIndex, file);
-                      }}
-                    />
-                  </label>
-                </div>
-
-                {/* Approve toggle */}
+              {/* Action row */}
+              <div className="mt-3 flex items-center justify-end border-t border-[var(--bg-border)] px-3 py-2">
                 <button
                   type="button"
                   onClick={() =>

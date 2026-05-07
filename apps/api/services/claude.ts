@@ -3,7 +3,6 @@ import { jsonrepair } from "jsonrepair";
 import { env } from "../lib/env.js";
 import type { ProjectRow } from "../lib/db/schema.js";
 import {
-  buildCharacterSheetPrompt,
   buildIdeasMessages,
   buildScriptMessages,
   buildScenesMessages,
@@ -72,26 +71,6 @@ export async function generateIdeas(project: ProjectRow, topic: string, videoTyp
   if (!toolUse) throw new Error("Idea generation returned no tool call.");
   const { ideas } = toolUse.input as { ideas: IdeaCard[] };
   return ideas ?? [];
-}
-
-// ─── Character sheet generation ───────────────────────────────────────────────
-
-export async function generateCharacterSheet(
-  project: ProjectRow,
-  renderStyle: "cartoon" | "mascot",
-): Promise<string> {
-  const { system, user } = buildCharacterSheetPrompt(project, renderStyle);
-
-  const message = await client.messages.create({
-    model: "claude-sonnet-4-6",
-    max_tokens: 1024,
-    system,
-    messages: [{ role: "user", content: user }],
-  });
-
-  const text = message.content[0]?.type === "text" ? message.content[0].text.trim() : "";
-  if (!text) throw new Error("Character sheet generation returned empty.");
-  return text;
 }
 
 // ─── UGC character description generation ─────────────────────────────────────

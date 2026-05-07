@@ -59,7 +59,7 @@ export async function operatorRoutes(fastify: FastifyInstance): Promise<void> {
             LIMIT ${batchSize}
             FOR UPDATE SKIP LOCKED
           )
-          RETURNING id, video_id, scene_index, visual_prompt, motion_prompt, base_image_url
+          RETURNING id, video_id, scene_index, visual_prompt, motion_prompt
         )
         SELECT
           u.id,
@@ -67,7 +67,6 @@ export async function operatorRoutes(fastify: FastifyInstance): Promise<void> {
           u.scene_index     AS "sceneIndex",
           u.visual_prompt   AS "visualPrompt",
           u.motion_prompt   AS "motionPrompt",
-          u.base_image_url  AS "baseImageUrl",
           s.text_excerpt    AS "textExcerpt",
           v.video_type      AS "videoType",
           v.title           AS "videoTitle"
@@ -82,7 +81,6 @@ export async function operatorRoutes(fastify: FastifyInstance): Promise<void> {
         sceneIndex: number;
         visualPrompt: string;
         motionPrompt: string;
-        baseImageUrl: string;
         textExcerpt: string | null;
         videoType: string | null;
         videoTitle: string | null;

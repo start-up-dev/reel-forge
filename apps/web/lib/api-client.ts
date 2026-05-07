@@ -240,37 +240,10 @@ export function createApiClient(getToken: () => Promise<string | null>) {
 
     // ── Scenes ────────────────────────────────────────────────────────────
     scenes: {
-      regenerate(
-        videoId: string,
-        sceneIndex: number
-      ): Promise<ApiResponse<Scene>> {
-        return authedRequest(
-          `/api/videos/${videoId}/scenes/${sceneIndex}/regenerate`,
-          { method: "POST" }
-        );
-      },
-      uploadUrl(
-        videoId: string,
-        sceneIndex: number
-      ): Promise<ApiResponse<{ uploadUrl: string; path: string }>> {
-        return authedRequest(
-          `/api/videos/${videoId}/scenes/${sceneIndex}/upload-url`,
-          { method: "POST" }
-        );
-      },
       update(
         videoId: string,
         sceneIndex: number,
-        data: Partial<
-          Pick<
-            Scene,
-            | "baseImageUrl"
-            | "baseImagePath"
-            | "visualPrompt"
-            | "motionPrompt"
-            | "approved"
-          >
-        >
+        data: Partial<Pick<Scene, "visualPrompt" | "motionPrompt" | "approved">>
       ): Promise<ApiResponse<Scene>> {
         return authedRequest(`/api/videos/${videoId}/scenes/${sceneIndex}`, {
           method: "PATCH",

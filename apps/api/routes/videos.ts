@@ -12,9 +12,8 @@ import {
   uploadBuffer,
 } from "../lib/storage.js";
 import { subscribeToVideo } from "../lib/clip-events.js";
-import { generateCharacterSheet, generateIdeas, generateScript, generateTitle, generateUGCCharacter, splitScenes } from "../services/claude.js";
+import { generateIdeas, generateScript, generateTitle, generateUGCCharacter, splitScenes } from "../services/claude.js";
 import { generateVoiceover } from "../services/elevenlabs.js";
-import { generateImage, generateImageFromReference } from "../services/grok-image.js";
 
 const createVideoBody = z.object({
   title: z.string().min(1).max(200).default("Untitled Video"),
@@ -68,12 +67,6 @@ async function processVoice(videoId: string, script: string, voiceId: string): P
 
 // ─── Background: scene generation ────────────────────────────────────────────
 
-function withCharacterNote(visualPrompt: string, characterNote?: string | null): string {
-  return characterNote ? `${characterNote}. ${visualPrompt}` : visualPrompt;
-}
-
-const UGC_REFERENCE_STRENGTH = 0.65;
-
 async function processScenes(
   videoId: string,
   script: string,
@@ -84,20 +77,15 @@ async function processScenes(
   actionReelStyle?: string | null,
 ): Promise<void> {
   try {
-    // Step 1 — video row query at top, before splitScenes
+    // Step 1 — fetch only what's needed for scene generation
     const [videoRow] = await db
       .select({
-        characterBaseGcsPath: videos.characterBaseGcsPath,
         ugcCharacterDescription: videos.ugcCharacterDescription,
         projectId: videos.projectId,
       })
       .from(videos)
       .where(eq(videos.id, videoId))
       .limit(1);
-    let charBase: string | null = videoRow?.characterBaseGcsPath ?? null;
-    let charBaseSignedUrl: string | null = charBase
-      ? await generateSignedReadUrl(charBase, ASSET_URL_TTL_MINUTES)
-      : null;
 
     // Phase A — character description (UGC non-ai_clone only, before splitScenes)
     let effectiveCharacterNote: string | null = null;
@@ -144,63 +132,6 @@ async function processScenes(
       .update(videos)
       .set({ sceneCount: inserted.length, updatedAt: new Date() })
       .where(eq(videos.id, videoId));
-
-    // Phase B — neutral character sheet (UGC non-ai_clone only; skipped for action_reel)
-    if (videoType === "talking" && ugcVisualStyle !== "ai_clone" && !charBase && effectiveCharacterNote) {
-      try {
-        const sheetPrompt = `CHARACTER: ${effectiveCharacterNote}. Front-facing. Neutral resting expression. Soft flat even lighting from front. Plain light gradient background. Full figure visible from head to mid-torso. 9:16 vertical frame. Character reference sheet.`;
-        const sheetBuffer = await generateImage(sheetPrompt);
-        const sheetPath = `videos/${videoId}/character_sheet.jpg`;
-        await uploadBuffer(sheetPath, sheetBuffer, "image/jpeg");
-        const sheetUrl = await generateSignedReadUrl(sheetPath, ASSET_URL_TTL_MINUTES);
-        await db
-          .update(videos)
-          .set({ characterBaseGcsPath: sheetPath, updatedAt: new Date() })
-          .where(eq(videos.id, videoId));
-        charBase = sheetPath;
-        charBaseSignedUrl = sheetUrl;
-      } catch (err) {
-        console.error(`[processScenes] character sheet generation failed (video ${videoId}):`, err);
-      }
-    }
-
-    // Phase C — scene image loop
-    const sorted = [...inserted].sort((a, b) => a.sceneIndex - b.sceneIndex);
-    for (const scene of sorted) {
-      try {
-        const imagePrompt = videoType === "talking"
-          ? scene.visualPrompt
-          : withCharacterNote(scene.visualPrompt, effectiveCharacterNote);
-        const isAiClone = videoType === "talking" && ugcVisualStyle === "ai_clone";
-        // Action Reel visual consistency is maintained via VISUAL BIBLE prompts, not reference images.
-      // Using the first clip as reference would incorrectly anchor all shots to the same visual.
-      const useRef = videoType !== "action_reel" && charBaseSignedUrl !== null && (scene.sceneIndex > 0 || isAiClone);
-        const imageBuffer = useRef
-          ? await generateImageFromReference(
-              imagePrompt,
-              charBaseSignedUrl!,
-              videoType === "talking" ? UGC_REFERENCE_STRENGTH : 0.85,
-            )
-          : await generateImage(imagePrompt);
-        const imagePath = `videos/${videoId}/scenes/${scene.sceneIndex}/base_image.jpg`;
-        await uploadBuffer(imagePath, imageBuffer, "image/jpeg");
-        const imageUrl = await generateSignedReadUrl(imagePath, ASSET_URL_TTL_MINUTES);
-        await db
-          .update(scenes)
-          .set({ baseImageUrl: imageUrl, baseImagePath: imagePath, updatedAt: new Date() })
-          .where(eq(scenes.id, scene.id));
-        if (scene.sceneIndex === 0 && !charBase && videoType !== "action_reel") {
-          charBase = imagePath;
-          charBaseSignedUrl = imageUrl;
-          await db
-            .update(videos)
-            .set({ characterBaseGcsPath: imagePath, updatedAt: new Date() })
-            .where(eq(videos.id, videoId));
-        }
-      } catch (err) {
-        console.error(`[processScenes] image failed for scene ${scene.sceneIndex} (video ${videoId}):`, err);
-      }
-    }
 
     await db
       .update(videos)
@@ -796,106 +727,6 @@ export async function videosRoutes(fastify: FastifyInstance): Promise<void> {
     },
   );
 
-  // POST /api/videos/:id/scenes/:index/regenerate — regenerate a single scene's base image
-  fastify.post<{ Params: { id: string; index: string } }>(
-    "/videos/:id/scenes/:index/regenerate",
-    async (request, reply) => {
-      const user = request.currentUser!;
-      const { id, index: indexStr } = request.params;
-      const sceneIndex = parseInt(indexStr, 10);
-
-      const [video] = await db
-        .select({ id: videos.id, projectId: videos.projectId })
-        .from(videos)
-        .where(
-          and(eq(videos.id, id), eq(videos.userId, user.id), isNull(videos.deletedAt)),
-        )
-        .limit(1);
-
-      if (!video) {
-        return reply.status(404).send({
-          error: { code: "NOT_FOUND", message: "Video not found." },
-        });
-      }
-
-      const [scene] = await db
-        .select()
-        .from(scenes)
-        .where(and(eq(scenes.videoId, id), eq(scenes.sceneIndex, sceneIndex)))
-        .limit(1);
-
-      if (!scene) {
-        return reply.status(404).send({
-          error: { code: "NOT_FOUND", message: "Scene not found." },
-        });
-      }
-
-      try {
-        const [regenProj] = await db
-          .select({ claudeSystemPrompt: projects.claudeSystemPrompt })
-          .from(projects)
-          .where(eq(projects.id, video.projectId))
-          .limit(1);
-        const regenPrompt = withCharacterNote(scene.visualPrompt, regenProj?.claudeSystemPrompt ?? null);
-        const imageBuffer = await generateImage(regenPrompt);
-        const imagePath = `videos/${id}/scenes/${sceneIndex}/base_image.jpg`;
-        await uploadBuffer(imagePath, imageBuffer, "image/jpeg");
-        const imageUrl = await generateSignedReadUrl(imagePath, ASSET_URL_TTL_MINUTES);
-
-        const [updated] = await db
-          .update(scenes)
-          .set({ baseImageUrl: imageUrl, baseImagePath: imagePath, updatedAt: new Date() })
-          .where(eq(scenes.id, scene.id))
-          .returning();
-
-        return reply.send({ data: updated });
-      } catch (err) {
-        const message = err instanceof Error ? err.message : "Image regeneration failed";
-        return reply.status(500).send({ error: { code: "GENERATION_ERROR", message } });
-      }
-    },
-  );
-
-  // POST /api/videos/:id/scenes/:index/upload-url — signed GCS URL for user-supplied base image
-  fastify.post<{ Params: { id: string; index: string } }>(
-    "/videos/:id/scenes/:index/upload-url",
-    async (request, reply) => {
-      const user = request.currentUser!;
-      const { id, index: indexStr } = request.params;
-      const sceneIndex = parseInt(indexStr, 10);
-
-      const [video] = await db
-        .select({ id: videos.id })
-        .from(videos)
-        .where(
-          and(eq(videos.id, id), eq(videos.userId, user.id), isNull(videos.deletedAt)),
-        )
-        .limit(1);
-
-      if (!video) {
-        return reply.status(404).send({
-          error: { code: "NOT_FOUND", message: "Video not found." },
-        });
-      }
-
-      const [scene] = await db
-        .select({ id: scenes.id })
-        .from(scenes)
-        .where(and(eq(scenes.videoId, id), eq(scenes.sceneIndex, sceneIndex)))
-        .limit(1);
-
-      if (!scene) {
-        return reply.status(404).send({
-          error: { code: "NOT_FOUND", message: "Scene not found." },
-        });
-      }
-
-      const gcsPath = `videos/${id}/scenes/${sceneIndex}/base_image.jpg`;
-      const uploadUrl = await generateSignedUploadUrl(gcsPath, "image/jpeg", 15);
-
-      return reply.send({ data: { uploadUrl, gcsPath } });
-    },
-  );
 
   // PATCH /api/videos/:id/scenes/:index — confirm base image after user upload, or edit prompt/approval
   fastify.patch<{ Params: { id: string; index: string } }>(
@@ -906,7 +737,6 @@ export async function videosRoutes(fastify: FastifyInstance): Promise<void> {
       const sceneIndex = parseInt(indexStr, 10);
 
       const patchBody = z.object({
-        baseImagePath: z.string().optional(),
         visualPrompt: z.string().optional(),
         motionPrompt: z.string().optional(),
         approved: z.boolean().optional(),
@@ -946,21 +776,12 @@ export async function videosRoutes(fastify: FastifyInstance): Promise<void> {
       }
 
       const updateFields: {
-        baseImageUrl?: string;
-        baseImagePath?: string;
         visualPrompt?: string;
         motionPrompt?: string;
         approved?: boolean;
         updatedAt: Date;
       } = { updatedAt: new Date() };
 
-      if (parsed.data.baseImagePath !== undefined) {
-        updateFields.baseImageUrl = await generateSignedReadUrl(
-          parsed.data.baseImagePath,
-          ASSET_URL_TTL_MINUTES,
-        );
-        updateFields.baseImagePath = parsed.data.baseImagePath;
-      }
       if (parsed.data.visualPrompt !== undefined) {
         updateFields.visualPrompt = parsed.data.visualPrompt;
       }
@@ -1090,63 +911,6 @@ export async function videosRoutes(fastify: FastifyInstance): Promise<void> {
     },
   );
 
-  // POST /api/videos/:id/generate-character — generate a base character image for cartoon/mascot videos
-  fastify.post<{ Params: { id: string } }>(
-    "/videos/:id/generate-character",
-    async (request, reply) => {
-      const user = request.currentUser!;
-      const { id } = request.params;
-
-      const [video] = await db
-        .select()
-        .from(videos)
-        .where(and(eq(videos.id, id), eq(videos.userId, user.id), isNull(videos.deletedAt)))
-        .limit(1);
-
-      if (!video) {
-        return reply.status(404).send({ error: { code: "NOT_FOUND", message: "Video not found." } });
-      }
-
-      if (video.renderStyle !== "cartoon" && video.renderStyle !== "mascot") {
-        return reply.status(400).send({
-          error: {
-            code: "INVALID_STYLE",
-            message: "Character generation is only available for cartoon and mascot render styles.",
-          },
-        });
-      }
-
-      const [project] = await db
-        .select()
-        .from(projects)
-        .where(eq(projects.id, video.projectId))
-        .limit(1);
-
-      if (!project) {
-        return reply.status(404).send({ error: { code: "NOT_FOUND", message: "Project not found." } });
-      }
-
-      try {
-        const characterPrompt = await generateCharacterSheet(project, video.renderStyle as "cartoon" | "mascot");
-        const imageBuffer = await generateImage(characterPrompt);
-        const gcsPath = `videos/${id}/character_base.png`;
-        await uploadBuffer(gcsPath, imageBuffer, "image/png");
-        const characterBaseUrl = await generateSignedReadUrl(gcsPath, ASSET_URL_TTL_MINUTES);
-
-        const [updated] = await db
-          .update(videos)
-          .set({ characterBaseGcsPath: gcsPath, updatedAt: new Date() })
-          .where(eq(videos.id, id))
-          .returning();
-
-        return reply.send({ data: { characterBaseUrl, characterBaseGcsPath: gcsPath, video: updated } });
-      } catch (err) {
-        const message = err instanceof Error ? err.message : "Character generation failed";
-        return reply.status(500).send({ error: { code: "GENERATION_ERROR", message } });
-      }
-    },
-  );
-
   // POST /api/videos/:id/character-image/upload-url — signed GCS PUT URL for AI Clone face reference
   fastify.post<{ Params: { id: string } }>(
     "/videos/:id/character-image/upload-url",
@@ -1228,23 +992,12 @@ export async function videosRoutes(fastify: FastifyInstance): Promise<void> {
         });
       }
 
-      const missingImages = approvedScenes.filter((s) => !s.baseImageUrl);
-      if (missingImages.length > 0) {
-        return reply.status(409).send({
-          error: {
-            code: "MISSING_BASE_IMAGES",
-            message: `${missingImages.length} scene(s) are missing base images.`,
-          },
-        });
-      }
-
       const clipValues = approvedScenes.map((scene) => ({
         videoId: id,
         userId: user.id,
         sceneIndex: scene.sceneIndex,
         visualPrompt: scene.visualPrompt,
         motionPrompt: scene.motionPrompt,
-        baseImageUrl: scene.baseImageUrl!,
         status: "queued" as const,
         queuedAt: new Date(),
       }));

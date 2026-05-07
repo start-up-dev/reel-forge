@@ -10,7 +10,6 @@ export interface ClaimedClip {
   sceneIndex: number;
   visualPrompt: string;
   motionPrompt: string;
-  baseImageUrl: string;
   textExcerpt: string | null;
   videoType: string | null;
   videoTitle: string;

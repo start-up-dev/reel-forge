@@ -10,9 +10,7 @@ import type { ClaimedClip } from "../lib/api-client.js";
 interface ProcessClipMsg {
   type: "PROCESS_CLIP";
   clip: ClaimedClip;
-  /** Base image pre-fetched by the SW, sent as number[] to survive Chrome JSON serialization. */
-  imageBytes: number[] | null;
-  imageType: string;
+  visualPrompt: string;
   autoClick: boolean;
   clickDelayMode: ExtensionSettings["clickDelayMode"];
   selectors: DomSelectors;
@@ -52,16 +50,12 @@ chrome.runtime.onMessage.addListener(
 );
 
 async function processClip(msg: ProcessClipMsg): Promise<void> {
-  const { clip, imageType, autoClick, clickDelayMode, selectors, backendUrl, operatorSecret } = msg;
+  const { clip, visualPrompt, autoClick, clickDelayMode, selectors, backendUrl, operatorSecret } = msg;
 
-  // imageBytes arrives as number[] (plain array survives Chrome JSON serialization).
-  const imageBytes: Uint8Array | null =
-    msg.imageBytes && msg.imageBytes.length > 0 ? new Uint8Array(msg.imageBytes) : null;
+  // ── Phase 1: text → image ─────────────────────────────────────────────────
+  const preExistingImageSrcs = snapshotImageSrcs();
 
-  const basePrompt = clip.motionPrompt || clip.visualPrompt;
-
-  // 1. Wait for the prompt input to appear (Grok SPA needs time to hydrate).
-  await waitForResolved<HTMLElement>(
+  const promptEl = await waitForResolved<HTMLElement>(
     () => resolvePromptInput(selectors.promptInput),
     30_000,
     clip.id,
@@ -69,21 +63,63 @@ async function processClip(msg: ProcessClipMsg): Promise<void> {
     selectors.promptInput,
   );
 
-  // 2. Snapshot ALL video srcs currently on the page BEFORE we touch anything.
-  //    Anything that appears after this point is treated as newly generated.
+  setReactValue(promptEl, "");
+  await sleep(200);
+  setReactValue(promptEl, visualPrompt);
+  await sleep(500);
+
+  const generateBtn = resolveGenerateButton(selectors.generateButton);
+  if (!generateBtn) {
+    reportSelectorError(clip.id, "generateButton", selectors.generateButton);
+    return;
+  }
+
+  if (isAlreadyGenerating(generateBtn)) {
+    console.log("[RF] Grok is already generating — skipping Phase 1 click");
+  } else if (autoClick) {
+    const [min, max] = DELAY_RANGES[clickDelayMode];
+    await sleep(randomBetween(min, max));
+    const liveEl = resolvePromptInput(selectors.promptInput) ?? promptEl;
+    setReactValue(liveEl, visualPrompt);
+    await sleep(200);
+    if (!isAlreadyGenerating(generateBtn)) generateBtn.click();
+  } else {
+    const liveEl = resolvePromptInput(selectors.promptInput) ?? promptEl;
+    setReactValue(liveEl, visualPrompt);
+    await sleep(200);
+    highlightElement(generateBtn);
+    await waitForClick(generateBtn, 120_000);
+    removeHighlight(generateBtn);
+  }
+
+  const newImg = await waitForNewImage(preExistingImageSrcs, 2 * 60 * 1000, clip.id);
+
+  const imgDeadline = Date.now() + 30_000;
+  while (!(newImg.complete && newImg.naturalWidth > 0)) {
+    if (Date.now() > imgDeadline) throw new Error("Generated image did not load within 30s");
+    await sleep(500);
+  }
+
+  // ── Phase 1.5: open lightbox ──────────────────────────────────────────────
+  const clickTarget =
+    newImg.closest<HTMLElement>('[role="button"], button, a, [tabindex]') ?? newImg;
+  clickTarget.click();
+
+  await waitForResolved(
+    () => resolveVideoIcon(),
+    10_000,
+    clip.id,
+    "videoIcon",
+    "video camera icon",
+  );
+
+  // ── Phase 2: image → video ────────────────────────────────────────────────
   const preExistingVideoSrcs = snapshotVideoSrcs();
 
-  // 3. Attach the reference image — required for every clip.
-  console.log("[RF] imageBytes:", imageBytes ? `${imageBytes.byteLength} bytes` : "null");
-  if (!imageBytes || imageBytes.byteLength === 0) {
-    throw new Error("No base image bytes received — clip cannot be processed without reference image");
-  }
-  await attachImageViaMainWorld(clip.id, imageBytes, imageType);
-  // Sleep gives Grok time to upload the file to their servers.
-  // Grok re-renders the UI after processing the image, so promptEl is now stale.
-  await sleep(3000);
+  const videoIcon = resolveVideoIcon()!;
+  videoIcon.click();
+  await sleep(500);
 
-  // 4. Re-resolve prompt input — Grok unmounts/remounts the textarea after image upload.
   const freshPromptEl = await waitForResolved<HTMLElement>(
     () => resolvePromptInput(selectors.promptInput),
     10_000,
@@ -92,68 +128,43 @@ async function processClip(msg: ProcessClipMsg): Promise<void> {
     selectors.promptInput,
   );
 
-  // 5. Clear any existing text first, then set our prompt.
-  //    This prevents Grok from auto-submitting with stale text when the image
-  //    is attached (image + pre-existing prompt can trigger auto-generation).
-  const promptText = basePrompt;
-
   setReactValue(freshPromptEl, "");
   await sleep(200);
-  setReactValue(freshPromptEl, promptText);
-
-  // Brief pause — give Grok time to react to the input events before we check
-  // whether generation has already started.
+  setReactValue(freshPromptEl, clip.motionPrompt);
   await sleep(500);
 
-  // 6. Find the generate button.
-  const generateBtn = resolveGenerateButton(selectors.generateButton);
-  if (!generateBtn) {
-    reportSelectorError(clip.id, "generateButton", selectors.generateButton);
+  const submitBtn = resolveSubmitButton();
+  if (!submitBtn) {
+    reportSelectorError(clip.id, "submitButton", "submit arrow button");
     return;
   }
 
-  // 7. Only click if Grok isn't already generating.
-  //    Setting React value on the prompt can trigger Grok's own auto-submit
-  //    (e.g. "press Enter" or debounced form submit), causing a double generation.
-  if (isAlreadyGenerating(generateBtn)) {
-    console.log("[RF] Grok is already generating — skipping button click to prevent double submission");
+  if (isAlreadyGenerating(submitBtn)) {
+    console.log("[RF] Grok is already generating — skipping Phase 2 submit click");
   } else if (autoClick) {
     const [min, max] = DELAY_RANGES[clickDelayMode];
     await sleep(randomBetween(min, max));
-    // Re-set prompt right before clicking — Grok can reset the input during the delay.
-    const liveEl = resolvePromptInput(selectors.promptInput) ?? freshPromptEl;
-    setReactValue(liveEl, promptText);
+    const liveEl2 = resolvePromptInput(selectors.promptInput) ?? freshPromptEl;
+    setReactValue(liveEl2, clip.motionPrompt);
     await sleep(200);
-    if (!isAlreadyGenerating(generateBtn)) {
-      generateBtn.click();
-    }
+    if (!isAlreadyGenerating(submitBtn)) submitBtn.click();
   } else {
-    // Re-set prompt before handing off to operator — Grok can clear it.
-    const liveEl = resolvePromptInput(selectors.promptInput) ?? freshPromptEl;
-    setReactValue(liveEl, promptText);
+    const liveEl2 = resolvePromptInput(selectors.promptInput) ?? freshPromptEl;
+    setReactValue(liveEl2, clip.motionPrompt);
     await sleep(200);
-    highlightElement(generateBtn);
-    await waitForClick(generateBtn, 120_000);
-    removeHighlight(generateBtn);
+    highlightElement(submitBtn);
+    await waitForClick(submitBtn, 120_000);
+    removeHighlight(submitBtn);
   }
 
-  // 8. Refresh the pre-existing snapshot to exclude any demo/preview videos that
-  //    Grok loaded during image upload and prompt setup. We wait 1 s so React
-  //    finishes reacting to the button click before we capture the new baseline.
   await sleep(1000);
   const refreshedVideoSrcs = snapshotVideoSrcs();
   const allPreExisting = new Set([...preExistingVideoSrcs, ...refreshedVideoSrcs]);
 
   const videoEl = await waitForNewVideo(allPreExisting, 8 * 60 * 1000, clip.id, selectors.outputVideo);
 
-  // 9. Wait for the video to be fully generated before capturing the src.
-  //    Grok shows a video element early (even at ~10% generation progress) with a
-  //    streaming URL. Downloading at that point returns empty bytes. We wait until
-  //    the src stabilises and the browser can read video metadata (duration).
   await waitForVideoReady(videoEl, 5 * 60 * 1000);
 
-  // currentSrc is what the browser is actually playing (may differ from the src
-  // attribute after React re-renders); prefer it over video.src.
   const videoSrc =
     videoEl.currentSrc ||
     videoEl.src ||
@@ -167,10 +178,6 @@ async function processClip(msg: ProcessClipMsg): Promise<void> {
     videoSrc.substring(0, 80),
   );
 
-  // 10. Hand off to the service worker.
-  //     The SW injects a downloader into the page MAIN world (Origin = grok.com,
-  //     full cookies) — the only way assets.grok.com returns 200.
-  //     The SW then uploads to GCS and marks the clip complete.
   chrome.runtime.sendMessage({
     type: "UPLOAD_VIDEO",
     clipId: clip.id,
@@ -250,6 +257,139 @@ async function waitForVideoReady(
     `readyState=${videoEl.readyState} networkState=${videoEl.networkState}`,
     `error=${videoEl.error ? `${videoEl.error.code}/${videoEl.error.message}` : "none"}`,
   );
+}
+
+// ── Image snapshot & new-image detection ─────────────────────────────────────
+
+function snapshotImageSrcs(): Set<string> {
+  const srcs = new Set<string>();
+  document.querySelectorAll<HTMLImageElement>("img").forEach((img) => {
+    if (img.src) srcs.add(img.src);
+  });
+  return srcs;
+}
+
+function isGeneratedImage(img: HTMLImageElement): boolean {
+  const src = img.src;
+  if (!src || src.startsWith("data:")) return false;
+  if (!(/x\.ai|grok\.com/i.test(src))) return false;
+  return (img.complete && img.naturalWidth > 100) || !img.complete;
+}
+
+function waitForNewImage(
+  preExisting: Set<string>,
+  timeoutMs: number,
+  clipId: string,
+): Promise<HTMLImageElement> {
+  return new Promise<HTMLImageElement>((resolve, reject) => {
+    function isNew(img: HTMLImageElement): boolean {
+      return isGeneratedImage(img) && !preExisting.has(img.src);
+    }
+
+    function findNew(): HTMLImageElement | null {
+      for (const img of document.querySelectorAll<HTMLImageElement>("img")) {
+        if (isNew(img)) return img;
+      }
+      return null;
+    }
+
+    const already = findNew();
+    if (already) { resolve(already); return; }
+
+    const deadline = Date.now() + timeoutMs;
+    let resolved = false;
+
+    function tryResolve(img: HTMLImageElement): void {
+      if (resolved) return;
+      resolved = true;
+      observer.disconnect();
+      clearInterval(iv);
+      resolve(img);
+    }
+
+    const observer = new MutationObserver((mutations) => {
+      if (resolved) return;
+      for (const mutation of mutations) {
+        for (const node of mutation.addedNodes) {
+          if (node instanceof HTMLImageElement && isNew(node)) { tryResolve(node); return; }
+          if (node instanceof Element) {
+            for (const img of node.querySelectorAll<HTMLImageElement>("img")) {
+              if (isNew(img)) { tryResolve(img); return; }
+            }
+          }
+        }
+        if (
+          mutation.type === "attributes" &&
+          mutation.target instanceof HTMLImageElement &&
+          isNew(mutation.target)
+        ) { tryResolve(mutation.target); return; }
+      }
+      const el = findNew();
+      if (el) tryResolve(el);
+    });
+    observer.observe(document.body, {
+      childList: true,
+      subtree: true,
+      attributes: true,
+      attributeFilter: ["src"],
+    });
+
+    const iv = setInterval(() => {
+      if (resolved) { clearInterval(iv); return; }
+      const el = findNew();
+      if (el) { tryResolve(el); return; }
+      if (Date.now() > deadline) {
+        observer.disconnect();
+        clearInterval(iv);
+        chrome.runtime.sendMessage({
+          type: "SELECTOR_ERROR",
+          clipId,
+          selectorName: "outputImage",
+          selectorValue: "generated image",
+        });
+        reject(new Error(`No new generated image appeared after ${timeoutMs / 60000} min`));
+      }
+    }, 1000);
+  });
+}
+
+// ── Lightbox button resolvers ─────────────────────────────────────────────────
+
+function resolveVideoIcon(): HTMLElement | null {
+  for (const el of visibleAll<HTMLElement>('button, [role="button"]')) {
+    const label = (
+      (el.getAttribute("aria-label") ?? "") +
+      " " +
+      (el.getAttribute("title") ?? "") +
+      " " +
+      (el.getAttribute("data-tooltip") ?? "")
+    ).toLowerCase();
+    if (/\bvideo\b|\banimate\b|\bmake video\b/i.test(label)) return el;
+  }
+  const durationBtn = [...document.querySelectorAll<HTMLElement>('button, [role="button"]')]
+    .find((el) => /^(6s|10s|480p|720p)$/i.test(el.textContent?.trim() ?? ""));
+  if (durationBtn?.parentElement) {
+    const siblings = visibleAll<HTMLElement>('button, [role="button"]').filter(
+      (el) => durationBtn.parentElement!.contains(el) && !el.textContent?.trim(),
+    );
+    if (siblings.length) return siblings[siblings.length - 1] ?? null;
+  }
+  return null;
+}
+
+function resolveSubmitButton(): HTMLElement | null {
+  for (const el of visibleAll<HTMLElement>('button[type="submit"], button, [role="button"]')) {
+    const label = (
+      (el.getAttribute("aria-label") ?? "") +
+      " " +
+      (el.getAttribute("title") ?? "")
+    ).toLowerCase();
+    if (/\b(send|submit|go|generate)\b/.test(label)) return el;
+  }
+  const candidates = visibleAll<HTMLElement>('button, [role="button"]').filter(
+    (el) => !el.textContent?.trim() && el.querySelector("svg"),
+  );
+  return candidates[candidates.length - 1] ?? null;
 }
 
 // ── Video snapshot & new-video detection ─────────────────────────────────────
@@ -385,25 +525,6 @@ function resolvePromptInput(configured: string): HTMLElement | null {
   return null;
 }
 
-function resolveImageUpload(configured: string): HTMLElement | null {
-  const fromConfig = findBySelectorList<HTMLElement>(configured);
-  if (fromConfig) return fromConfig;
-
-  // Prefer a real file input (hidden or not) — we set files on it programmatically.
-  for (const inp of document.querySelectorAll<HTMLInputElement>('input[type="file"]')) {
-    if (/image|photo|picture|\*/i.test(inp.accept || "")) return inp;
-  }
-  const anyFile = document.querySelector<HTMLInputElement>('input[type="file"]');
-  if (anyFile) return anyFile;
-
-  for (const el of visibleAll<HTMLElement>('button, [role="button"], label')) {
-    const label = attrs(el, "aria-label", "title") + " " + (el.textContent?.trim() ?? "");
-    if (/upload|attach|image|photo|picture|add.?image/i.test(label)) return el;
-  }
-
-  return null;
-}
-
 function resolveGenerateButton(configured: string): HTMLElement | null {
   const fromConfig = findBySelectorList<HTMLElement>(configured);
   if (fromConfig) return fromConfig;
@@ -440,69 +561,6 @@ function setReactValue(el: HTMLElement, value: string): void {
   }
   el.dispatchEvent(new Event("input", { bubbles: true }));
   el.dispatchEvent(new Event("change", { bubbles: true }));
-}
-
-// ── File attachment ───────────────────────────────────────────────────────────
-
-function attachImageViaMainWorld(
-  clipId: string,
-  imageBytes: Uint8Array,
-  imageType: string,
-): Promise<void> {
-  return new Promise((resolve, reject) => {
-    chrome.runtime.sendMessage(
-      // Send as number[] — same serialization reason as PROCESS_CLIP.
-      { type: "ATTACH_IMAGE", clipId, imageBytes: Array.from(imageBytes), imageType },
-      (response: { ok: boolean; error?: string } | undefined) => {
-        if (chrome.runtime.lastError) {
-          reject(new Error(chrome.runtime.lastError.message ?? "ATTACH_IMAGE: runtime error"));
-          return;
-        }
-        if (!response?.ok) {
-          reject(new Error(response?.error ?? "ATTACH_IMAGE failed"));
-          return;
-        }
-        resolve();
-      },
-    );
-  });
-}
-
-async function setFileOnElement(el: HTMLElement, blob: Blob): Promise<void> {
-  const file = new File([blob], "base_image.jpg", { type: blob.type || "image/jpeg" });
-
-  const fileInput =
-    el instanceof HTMLInputElement && el.type === "file"
-      ? el
-      : findNearestFileInput(el);
-
-  if (fileInput) {
-    const dt = new DataTransfer();
-    dt.items.add(file);
-    fileInput.files = dt.files;
-    fileInput.dispatchEvent(new Event("change", { bubbles: true }));
-    fileInput.dispatchEvent(new Event("input", { bubbles: true }));
-    return;
-  }
-
-  // Fallback: drag-and-drop event on the element (works for drop-zone UIs).
-  const dt = new DataTransfer();
-  dt.items.add(file);
-  el.dispatchEvent(new DragEvent("dragenter", { bubbles: true, dataTransfer: dt }));
-  await sleep(100);
-  el.dispatchEvent(new DragEvent("dragover", { bubbles: true, dataTransfer: dt }));
-  await sleep(100);
-  el.dispatchEvent(new DragEvent("drop", { bubbles: true, dataTransfer: dt }));
-}
-
-function findNearestFileInput(el: HTMLElement): HTMLInputElement | null {
-  let cur: Element | null = el;
-  for (let i = 0; i < 5 && cur; i++) {
-    const found = cur.querySelector<HTMLInputElement>('input[type="file"]');
-    if (found) return found;
-    cur = cur.parentElement;
-  }
-  return document.querySelector<HTMLInputElement>('input[type="file"]');
 }
 
 // ── Teach mode ────────────────────────────────────────────────────────────────
