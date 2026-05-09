@@ -53,23 +53,13 @@ export type WorkerMessage =
   | { type: "STATE_UPDATE"; state: WorkerState }
   | { type: "STATE_RESPONSE"; state: WorkerState };
 
-// Settings stored in chrome.storage.local / chrome.storage.sync
+// Settings stored in chrome.storage.local
 
 export interface ExtensionSettings {
   backendUrl: string;
   operatorSecret: string;
   batchSize: number;
   concurrentTabs: number;
-  autoClick: boolean;
-  clickDelayMode: "fast" | "normal" | "slow";
-  selectors: DomSelectors;
-}
-
-export interface DomSelectors {
-  promptInput: string;
-  imageUpload: string;
-  generateButton: string;
-  outputVideo: string;
 }
 
 export const DEFAULT_SETTINGS: ExtensionSettings = {
@@ -77,18 +67,4 @@ export const DEFAULT_SETTINGS: ExtensionSettings = {
   operatorSecret: "",
   batchSize: 30,
   concurrentTabs: 5,
-  autoClick: true,
-  clickDelayMode: "normal",
-  selectors: {
-    promptInput: 'textarea[placeholder*="prompt"], textarea[data-testid="prompt-input"]',
-    imageUpload: 'input[type="file"][accept*="image"]',
-    generateButton: 'button[type="submit"], button[aria-label*="Generate"], button[data-testid="generate-btn"]',
-    outputVideo: "video[src], video source",
-  },
-};
-
-export const DELAY_RANGES: Record<ExtensionSettings["clickDelayMode"], [number, number]> = {
-  fast: [1000, 2000],
-  normal: [2000, 5000],
-  slow: [5000, 10000],
 };

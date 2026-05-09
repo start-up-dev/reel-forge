@@ -93,24 +93,6 @@ async function getSettings(): Promise<ExtensionSettings> {
     operatorSecret: (s.operatorSecret as string | undefined) ?? DEFAULT_SETTINGS.operatorSecret,
     batchSize: (s.batchSize as number | undefined) ?? DEFAULT_SETTINGS.batchSize,
     concurrentTabs: (s.concurrentTabs as number | undefined) ?? DEFAULT_SETTINGS.concurrentTabs,
-    autoClick: (s.autoClick as boolean | undefined) ?? DEFAULT_SETTINGS.autoClick,
-    clickDelayMode:
-      (s.clickDelayMode as ExtensionSettings["clickDelayMode"] | undefined) ??
-      DEFAULT_SETTINGS.clickDelayMode,
-    selectors: {
-      promptInput:
-        (s["selectors.promptInput"] as string | undefined) ??
-        DEFAULT_SETTINGS.selectors.promptInput,
-      imageUpload:
-        (s["selectors.imageUpload"] as string | undefined) ??
-        DEFAULT_SETTINGS.selectors.imageUpload,
-      generateButton:
-        (s["selectors.generateButton"] as string | undefined) ??
-        DEFAULT_SETTINGS.selectors.generateButton,
-      outputVideo:
-        (s["selectors.outputVideo"] as string | undefined) ??
-        DEFAULT_SETTINGS.selectors.outputVideo,
-    },
   };
 }
 
@@ -204,9 +186,6 @@ async function sendClipToTab(
     type: "PROCESS_CLIP",
     clip,
     visualPrompt: clip.visualPrompt,
-    autoClick: settings.autoClick,
-    clickDelayMode: settings.clickDelayMode,
-    selectors: settings.selectors,
     backendUrl: settings.backendUrl,
     operatorSecret: settings.operatorSecret,
     textExcerpt: clip.textExcerpt ?? null,
@@ -270,15 +249,15 @@ async function handleTabError(
 }
 
 // ── Stale tab watchdog ────────────────────────────────────────────────────────
-// 15-minute timeout: image gen (~2 min) + video gen (~3–4 min) + upload (~1 min)
-// + click delays — 10 min was too tight for the new 2-phase flow.
+// 30-minute timeout: operator manually generates image + video, which takes
+// longer than automated flow. Cancelled tabs are caught by onRemoved listener.
 
 function checkStaleTabs(): void {
-  const FIFTEEN_MIN = 15 * 60 * 1000;
+  const THIRTY_MIN = 30 * 60 * 1000;
   const now = Date.now();
   for (const [tabId, entry] of activeTabs) {
-    if (now - entry.startedAt > FIFTEEN_MIN) {
-      void handleTabError(tabId, entry.clipId, "Generation timeout (15 min)");
+    if (now - entry.startedAt > THIRTY_MIN) {
+      void handleTabError(tabId, entry.clipId, "Generation timeout (30 min)");
     }
   }
 }

@@ -11,21 +11,6 @@ async function loadSettings(): Promise<ExtensionSettings> {
     operatorSecret: (s.operatorSecret as string | undefined) ?? DEFAULT_SETTINGS.operatorSecret,
     batchSize: (s.batchSize as number | undefined) ?? DEFAULT_SETTINGS.batchSize,
     concurrentTabs: (s.concurrentTabs as number | undefined) ?? DEFAULT_SETTINGS.concurrentTabs,
-    autoClick: (s.autoClick as boolean | undefined) ?? DEFAULT_SETTINGS.autoClick,
-    clickDelayMode:
-      (s.clickDelayMode as ExtensionSettings["clickDelayMode"] | undefined) ??
-      DEFAULT_SETTINGS.clickDelayMode,
-    selectors: {
-      promptInput:
-        (s["selectors.promptInput"] as string | undefined) ?? DEFAULT_SETTINGS.selectors.promptInput,
-      imageUpload:
-        (s["selectors.imageUpload"] as string | undefined) ?? DEFAULT_SETTINGS.selectors.imageUpload,
-      generateButton:
-        (s["selectors.generateButton"] as string | undefined) ??
-        DEFAULT_SETTINGS.selectors.generateButton,
-      outputVideo:
-        (s["selectors.outputVideo"] as string | undefined) ?? DEFAULT_SETTINGS.selectors.outputVideo,
-    },
   };
 }
 
@@ -35,12 +20,6 @@ async function saveSettings(settings: ExtensionSettings): Promise<void> {
     operatorSecret: settings.operatorSecret,
     batchSize: settings.batchSize,
     concurrentTabs: settings.concurrentTabs,
-    autoClick: settings.autoClick,
-    clickDelayMode: settings.clickDelayMode,
-    "selectors.promptInput": settings.selectors.promptInput,
-    "selectors.imageUpload": settings.selectors.imageUpload,
-    "selectors.generateButton": settings.selectors.generateButton,
-    "selectors.outputVideo": settings.selectors.outputVideo,
   });
 }
 
@@ -58,17 +37,6 @@ export function Options() {
   const update = useCallback(
     <K extends keyof ExtensionSettings>(key: K, value: ExtensionSettings[K]) => {
       setSettings((prev) => ({ ...prev, [key]: value }));
-      setSaved(false);
-    },
-    [],
-  );
-
-  const updateSelector = useCallback(
-    (key: keyof ExtensionSettings["selectors"], value: string) => {
-      setSettings((prev) => ({
-        ...prev,
-        selectors: { ...prev.selectors, [key]: value },
-      }));
       setSaved(false);
     },
     [],
@@ -93,30 +61,6 @@ export function Options() {
     setTimeout(() => setTestStatus("idle"), 3000);
   };
 
-  const SELECTORS: { key: keyof ExtensionSettings["selectors"]; label: string; hint: string }[] =
-    [
-      {
-        key: "promptInput",
-        label: "Prompt textarea",
-        hint: "CSS selector for the text prompt input on Grok",
-      },
-      {
-        key: "imageUpload",
-        label: "Image upload input",
-        hint: "CSS selector for the file input that accepts the base image",
-      },
-      {
-        key: "generateButton",
-        label: "Generate button",
-        hint: "CSS selector for the button that starts video generation",
-      },
-      {
-        key: "outputVideo",
-        label: "Output video element",
-        hint: "CSS selector for the <video> element that appears when generation completes",
-      },
-    ];
-
   return (
     <div className="bg-bg-base min-h-screen text-text-primary font-sans">
       <div className="max-w-2xl mx-auto px-6 py-8">
@@ -127,7 +71,7 @@ export function Options() {
           </div>
           <div>
             <h1 className="text-lg font-semibold">ReelForge Operator Settings</h1>
-            <p className="text-text-muted text-xs">Configure API connection and DOM selectors</p>
+            <p className="text-text-muted text-xs">Configure API connection and queue behaviour</p>
           </div>
         </div>
 
@@ -164,42 +108,28 @@ export function Options() {
           </div>
         </Section>
 
-        {/* DOM Selector Configuration */}
-        <Section
-          title="DOM Selectors"
-          hint="The extension auto-discovers elements using semantic heuristics — you only need to set these if auto-discovery fails."
-        >
-          <div className="flex items-center gap-3 pb-1 border-b border-border">
-            <button
-              onClick={() => window.open("https://grok.com/imagine?rf_teach=1", "_blank")}
-              className={primaryBtnCls}
-            >
-              🎯 Detect Selectors on Grok →
-            </button>
-            <p className="text-text-muted text-xs">
-              Opens Grok Imagine with an overlay — click each element once to teach the extension.
-              Selectors are saved automatically.
-            </p>
-          </div>
-
-          {SELECTORS.map(({ key, label, hint }) => (
-            <Field key={key} label={label} hint={hint}>
-              <input
-                type="text"
-                value={settings.selectors[key]}
-                onChange={(e) => updateSelector(key, e.target.value)}
-                className={`${inputCls} font-mono text-xs`}
-              />
-            </Field>
-          ))}
-          <p className="text-text-muted text-xs">
-            Manual override: enter CSS selectors here. The extension tries these before falling back
-            to auto-discovery. To verify, run{" "}
-            <code className="bg-bg-elevated px-1 rounded text-text-secondary">
-              document.querySelector("…")
-            </code>{" "}
-            in DevTools on a Grok tab.
-          </p>
+        {/* Queue Settings */}
+        <Section title="Queue Settings">
+          <Field label="Batch size" hint="How many clips to claim at once from the queue">
+            <input
+              type="number"
+              min={1}
+              max={100}
+              value={settings.batchSize}
+              onChange={(e) => update("batchSize", Number(e.target.value))}
+              className={`${inputCls} w-24`}
+            />
+          </Field>
+          <Field label="Concurrent tabs" hint="Maximum number of Grok tabs open simultaneously">
+            <input
+              type="number"
+              min={1}
+              max={20}
+              value={settings.concurrentTabs}
+              onChange={(e) => update("concurrentTabs", Number(e.target.value))}
+              className={`${inputCls} w-24`}
+            />
+          </Field>
         </Section>
 
         {/* Save */}
