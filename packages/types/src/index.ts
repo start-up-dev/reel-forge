@@ -249,7 +249,7 @@ export interface Scene {
 /**
  * ClipRequest — aligned to PRD §7.7.
  * Removed: sceneId FK (scene linked via videoId + sceneIndex).
- * Added: userId, visualPrompt, baseImageUrl (denormalised for extension queue).
+ * Added: userId, visualPrompt (denormalised for extension queue).
  */
 export interface ClipRequest {
   id: string;
@@ -258,7 +258,7 @@ export interface ClipRequest {
   sceneIndex: number;
   visualPrompt: string;
   motionPrompt: string;
-  baseImageUrl: string;
+  baseImageUrl: string | null;
   status: ClipRequestStatus;
   queuedAt: Date;
   claimedAt: Date | null;

@@ -53,9 +53,9 @@ One track:
 
 **File: `apps/api/lib/db/schema.ts`**
 
-- [ ] Change `clipRequests.baseImageUrl` from `.notNull()` to nullable: `text("base_image_url")` (remove `.notNull()`)
-- [ ] `scenes.baseImageUrl` and `scenes.baseImagePath` are already nullable — no schema change needed
-- [ ] `videos.characterBaseGcsPath` stays in schema but is no longer populated — no schema change needed
+- [x] Change `clipRequests.baseImageUrl` from `.notNull()` to nullable: `text("base_image_url")` (remove `.notNull()`)
+- [x] `scenes.baseImageUrl` and `scenes.baseImagePath` are already nullable — no schema change needed
+- [x] `videos.characterBaseGcsPath` stays in schema but is no longer populated — no schema change needed
 
 **Migration file: `apps/api/lib/db/migrations/0016_nullable_clip_base_image.sql`**
 
@@ -63,8 +63,8 @@ One track:
 ALTER TABLE "clip_requests" ALTER COLUMN "base_image_url" DROP NOT NULL;
 ```
 
-- [ ] Add the migration entry to `apps/api/lib/db/migrations/meta/_journal.json` as entry `0016` (idx: 16) — entries 0014 and 0015 already exist; do not reuse those indices
-- [ ] Run `pnpm --filter @repo/api db:migrate` to apply
+- [x] Add the migration entry to `apps/api/lib/db/migrations/meta/_journal.json` as entry `0016` (idx: 16) — entries 0014 and 0015 already exist; do not reuse those indices
+- [x] Run `pnpm --filter @repo/api db:migrate` to apply
 
 ---
 
@@ -74,50 +74,50 @@ ALTER TABLE "clip_requests" ALTER COLUMN "base_image_url" DROP NOT NULL;
 
 **In `processScenes` function:**
 
-- [ ] Remove import of `generateImage` and `generateImageFromReference` from `../services/grok-image.js`
-- [ ] Remove the `charBase` and `charBaseSignedUrl` variables (lines ~97–99) — they only existed to feed Phase B and C
-- [ ] Simplify the Step 1 DB query (lines ~88–96): `characterBaseGcsPath` is no longer needed. Only select `ugcCharacterDescription` and `projectId` (still required for Phase A character description generation)
-- [ ] Remove Phase B entirely (character sheet generation for UGC/talking videos, lines ~148–165)
-- [ ] Remove Phase C entirely (the `for (const scene of sorted)` image generation loop, lines ~167–203)
-- [ ] Remove the `withCharacterNote` helper function (lines ~71–73) — dead code after Phase C removal
-- [ ] Remove the `UGC_REFERENCE_STRENGTH = 0.65` constant (line ~75) — dead code after Phase C removal
-- [ ] After scene insert and `sceneCount` update, immediately set video status to `SCENES_READY` — no other async work needed:
+- [x] Remove import of `generateImage` and `generateImageFromReference` from `../services/grok-image.js`
+- [x] Remove the `charBase` and `charBaseSignedUrl` variables (lines ~97–99) — they only existed to feed Phase B and C
+- [x] Simplify the Step 1 DB query (lines ~88–96): `characterBaseGcsPath` is no longer needed. Only select `ugcCharacterDescription` and `projectId` (still required for Phase A character description generation)
+- [x] Remove Phase B entirely (character sheet generation for UGC/talking videos, lines ~148–165)
+- [x] Remove Phase C entirely (the `for (const scene of sorted)` image generation loop, lines ~167–203)
+- [x] Remove the `withCharacterNote` helper function (lines ~71–73) — dead code after Phase C removal
+- [x] Remove the `UGC_REFERENCE_STRENGTH = 0.65` constant (line ~75) — dead code after Phase C removal
+- [x] After scene insert and `sceneCount` update, immediately set video status to `SCENES_READY` — no other async work needed:
   ```typescript
   await db
     .update(videos)
     .set({ status: "SCENES_READY", updatedAt: new Date() })
     .where(eq(videos.id, videoId));
   ```
-- [ ] Remove the try/catch wrapper around Phase C (the outer try still covers scene insertion)
+- [x] Remove the try/catch wrapper around Phase C (the outer try still covers scene insertion)
 
 **In the submit-for-clips endpoint (`POST /api/videos/:id/submit`):**
 
-- [ ] Remove the `missingImages` check (lines ~1231–1238) — there are no base images to check for
-- [ ] In `clipValues`, remove `baseImageUrl: scene.baseImageUrl!` — the column is now nullable and defaults to `null`
+- [x] Remove the `missingImages` check (lines ~1231–1238) — there are no base images to check for
+- [x] In `clipValues`, remove `baseImageUrl: scene.baseImageUrl!` — the column is now nullable and defaults to `null`
 
 **Remove endpoints entirely:**
 
-- [ ] `POST /api/videos/:id/scenes/:index/regenerate` — delete the handler (lines ~800–857). This was the "regenerate base image" endpoint. (Note: the route slug is `/regenerate`, not `/regen-image`.)
-- [ ] `POST /api/videos/:id/scenes/:index/upload-url` — delete the handler (lines ~859 onward). This was the signed URL endpoint for user-supplied custom base images.
-- [ ] `POST /api/videos/:id/generate-character` — delete the handler (lines ~1093–1148). This was the manual character sheet generation endpoint for cartoon/mascot Stories videos.
+- [x] `POST /api/videos/:id/scenes/:index/regenerate` — delete the handler (lines ~800–857). This was the "regenerate base image" endpoint. (Note: the route slug is `/regenerate`, not `/regen-image`.)
+- [x] `POST /api/videos/:id/scenes/:index/upload-url` — delete the handler (lines ~859 onward). This was the signed URL endpoint for user-supplied custom base images.
+- [x] `POST /api/videos/:id/generate-character` — delete the handler (lines ~1093–1148). This was the manual character sheet generation endpoint for cartoon/mascot Stories videos.
 
 **In the scene update endpoint (`PATCH /api/videos/:id/scenes/:index`):**
 
-- [ ] Remove `baseImagePath` from the accepted request body schema (line ~909)
-- [ ] Remove the `updateFields.baseImageUrl` and `updateFields.baseImagePath` assignment block (lines ~957–962) — `baseImagePath` is no longer an accepted field
+- [x] Remove `baseImagePath` from the accepted request body schema (line ~909)
+- [x] Remove the `updateFields.baseImageUrl` and `updateFields.baseImagePath` assignment block (lines ~957–962) — `baseImagePath` is no longer an accepted field
 
 ---
 
 ### 15.3 — API: Delete grok-image Service and generateCharacterSheet
 
-- [ ] Delete `apps/api/services/grok-image.ts` entirely
-- [ ] Check all imports of `grok-image` across the `apps/api` directory and remove them:
+- [x] Delete `apps/api/services/grok-image.ts` entirely
+- [x] Check all imports of `grok-image` across the `apps/api` directory and remove them:
   ```bash
   grep -r "grok-image" apps/api/
   ```
   Expected: only `apps/api/routes/videos.ts` (already handled in 15.2)
 
-- [ ] Delete `generateCharacterSheet` from `apps/api/services/claude.ts`. Verify it has no other callers first:
+- [x] Delete `generateCharacterSheet` from `apps/api/services/claude.ts`. Verify it has no other callers first:
   ```bash
   grep -rn "generateCharacterSheet" apps/ packages/
   ```
@@ -125,12 +125,12 @@ ALTER TABLE "clip_requests" ALTER COLUMN "base_image_url" DROP NOT NULL;
 
 **Environment variable cleanup:**
 
-- [ ] Check whether `XAI_API_KEY` is used anywhere else in `apps/api`:
+- [x] Check whether `XAI_API_KEY` is used anywhere else in `apps/api`:
   ```bash
   grep -r "XAI_API_KEY" apps/api/
   ```
-- [ ] If `XAI_API_KEY` is only referenced in `grok-image.ts` and `apps/api/lib/env.ts`, remove it from `env.ts` validation and from `.env.example`
-- [ ] Remove `XAI_API_KEY` from any deployment environment configs (Cloud Run, etc.)
+- [x] If `XAI_API_KEY` is only referenced in `grok-image.ts` and `apps/api/lib/env.ts`, remove it from `env.ts` validation and from `.env.example`
+- [x] Remove `XAI_API_KEY` from any deployment environment configs (Cloud Run, etc.)
 
 ---
 
@@ -140,8 +140,8 @@ ALTER TABLE "clip_requests" ALTER COLUMN "base_image_url" DROP NOT NULL;
 
 In `GET /api/operator/queue` SQL:
 
-- [ ] Remove `u.base_image_url AS "baseImageUrl"` from the `SELECT` in the `WITH updated AS (...)` CTE (and from the `RETURNING` clause of the inner `UPDATE`)
-- [ ] Remove `baseImageUrl` from the TypeScript type annotation on `claimed` rows
+- [x] Remove `u.base_image_url AS "baseImageUrl"` from the `SELECT` in the `WITH updated AS (...)` CTE (and from the `RETURNING` clause of the inner `UPDATE`)
+- [x] Remove `baseImageUrl` from the TypeScript type annotation on `claimed` rows
 
 The returned `ClaimedClip` objects will no longer carry `baseImageUrl`. The extension no longer needs it.
 
@@ -151,11 +151,11 @@ The returned `ClaimedClip` objects will no longer carry `baseImageUrl`. The exte
 
 **File: `apps/extension/src/lib/api-client.ts`**
 
-- [ ] Remove `baseImageUrl: string` from the `ClaimedClip` interface
+- [x] Remove `baseImageUrl: string` from the `ClaimedClip` interface
 
 **File: `apps/extension/src/lib/messages.ts`**
 
-- [ ] Remove `baseImageUrl: string` from the `FailedClipEntry` interface (line ~11). This field is no longer populated since clips have no pre-generated base image.
+- [x] Remove `baseImageUrl: string` from the `FailedClipEntry` interface (line ~11). This field is no longer populated since clips have no pre-generated base image.
 
 No new message types are needed. The image capture handshake originally planned here is obsolete: clicking the generated image in Phase 1.5 causes Grok to embed it as the video reference automatically — no image bytes need to be captured or transferred.
 
@@ -167,27 +167,27 @@ No new message types are needed. The image capture handshake originally planned 
 
 **`TabEntry` interface:**
 
-- [ ] Remove `baseImageUrl: string` from the `TabEntry` interface
-- [ ] Remove `baseImageUrl: entry.baseImageUrl` from wherever `TabEntry` objects are constructed (line ~169)
+- [x] Remove `baseImageUrl: string` from the `TabEntry` interface
+- [x] Remove `baseImageUrl: entry.baseImageUrl` from wherever `TabEntry` objects are constructed (line ~169)
 
 **`FailedClipEntry` construction (line ~279):**
 
-- [ ] Remove `baseImageUrl: entry.baseImageUrl` from the object literal passed to `failedClips.push(...)` — the field no longer exists on either `TabEntry` or `FailedClipEntry`
+- [x] Remove `baseImageUrl: entry.baseImageUrl` from the object literal passed to `failedClips.push(...)` — the field no longer exists on either `TabEntry` or `FailedClipEntry`
 
 **Base image fetch block (lines ~207–225) in `sendClipToTab`:**
 
-- [ ] Remove the entire block that declares `imageBytes`, `imageType`, fetches `clip.baseImageUrl`, and logs the result
-- [ ] Remove `imageBytes` and `imageType` from the `PROCESS_CLIP` message construction (lines ~229–234)
-- [ ] Add `visualPrompt: clip.visualPrompt` to the `PROCESS_CLIP` message
+- [x] Remove the entire block that declares `imageBytes`, `imageType`, fetches `clip.baseImageUrl`, and logs the result
+- [x] Remove `imageBytes` and `imageType` from the `PROCESS_CLIP` message construction (lines ~229–234)
+- [x] Add `visualPrompt: clip.visualPrompt` to the `PROCESS_CLIP` message
 
 **Stale-tab watchdog timeout:**
 
-- [ ] Change `TEN_MIN` (currently `10 * 60 * 1000`) to `FIFTEEN_MIN = 15 * 60 * 1000`. The new 2-phase flow (image gen ~2 min + video gen ~3–4 min + upload ~1 min + click delays) can approach 10 minutes on slow generations; 15 minutes provides safe headroom.
+- [x] Change `TEN_MIN` (currently `10 * 60 * 1000`) to `FIFTEEN_MIN = 15 * 60 * 1000`. The new 2-phase flow (image gen ~2 min + video gen ~3–4 min + upload ~1 min + click delays) can approach 10 minutes on slow generations; 15 minutes provides safe headroom.
 
 **`ATTACH_IMAGE` handler — remove entirely:**
 
-- [ ] Delete the `case "ATTACH_IMAGE":` block from the content-script message listener. With Phase 2 no longer needing a file upload (Grok embeds the reference automatically when the image is clicked), `ATTACH_IMAGE` has no remaining callers and is dead code.
-- [ ] Remove `ATTACH_IMAGE` from the `ContentMsg` union type.
+- [x] Delete the `case "ATTACH_IMAGE":` block from the content-script message listener. With Phase 2 no longer needing a file upload (Grok embeds the reference automatically when the image is clicked), `ATTACH_IMAGE` has no remaining callers and is dead code.
+- [x] Remove `ATTACH_IMAGE` from the `ContentMsg` union type.
 
 No new SW message handlers are needed for Track 15.
 
@@ -201,22 +201,22 @@ This is the primary implementation change. `processClip` is restructured into tw
 
 **Update `ProcessClipMsg` interface (defined locally at lines ~10–23 in this file):**
 
-- [ ] Remove `imageBytes: number[] | null` field
-- [ ] Remove `imageType: string` field
-- [ ] Add `visualPrompt: string` field (the content script needs this for the text→image phase)
+- [x] Remove `imageBytes: number[] | null` field
+- [x] Remove `imageType: string` field
+- [x] Add `visualPrompt: string` field (the content script needs this for the text→image phase)
 
 **Update `processClip` destructuring:**
 
-- [ ] Remove `imageBytes` and `imageType` from the destructured `msg` fields
-- [ ] Add `visualPrompt` (from `msg.visualPrompt` or directly from `msg.clip.visualPrompt`)
+- [x] Remove `imageBytes` and `imageType` from the destructured `msg` fields
+- [x] Add `visualPrompt` (from `msg.visualPrompt` or directly from `msg.clip.visualPrompt`)
 
 **Remove the hard-throw guard:**
 
-- [ ] Delete the `if (!imageBytes || imageBytes.byteLength === 0) throw new Error(...)` block (lines ~78–81) — there is no longer a pre-supplied image to check
+- [x] Delete the `if (!imageBytes || imageBytes.byteLength === 0) throw new Error(...)` block (lines ~78–81) — there is no longer a pre-supplied image to check
 
 **Remove dead helper:**
 
-- [ ] Delete `resolveImageUpload` (lines ~388–405) — it is never called in the automated clip-processing flow (the SW's `ATTACH_IMAGE` handler uses its own hardcoded `input[type="file"]` selector). Verify no call sites remain before deleting.
+- [x] Delete `resolveImageUpload` (lines ~388–405) — it is never called in the automated clip-processing flow (the SW's `ATTACH_IMAGE` handler uses its own hardcoded `input[type="file"]` selector). Verify no call sites remain before deleting.
 
 ---
 
@@ -228,19 +228,19 @@ Insert this block at the start of `processClip`, before the `preExistingVideoSrc
 // ── Phase 1: text → image ─────────────────────────────────────────────────
 ```
 
-- [ ] **Snapshot pre-existing images** — collect all `<img>` src values currently in the DOM before touching anything:
+- [x] **Snapshot pre-existing images** — collect all `<img>` src values currently in the DOM before touching anything:
 
   ```typescript
   const preExistingImageSrcs = snapshotImageSrcs();
   ```
 
-- [ ] **Enter the visual prompt** — wait for the prompt input, clear it, then set it to `visualPrompt` (same `waitForResolved` + `setReactValue` approach used for the motion prompt). Timeout: 30 seconds.
+- [x] **Enter the visual prompt** — wait for the prompt input, clear it, then set it to `visualPrompt` (same `waitForResolved` + `setReactValue` approach used for the motion prompt). Timeout: 30 seconds.
 
-- [ ] **Click generate** — use `resolveGenerateButton` + `autoClick` + `isAlreadyGenerating`, identical to the existing video generation flow
+- [x] **Click generate** — use `resolveGenerateButton` + `autoClick` + `isAlreadyGenerating`, identical to the existing video generation flow
 
-- [ ] **Wait for new image** — wait for a new `<img>` element whose `src` was not in `preExistingImageSrcs`, using `waitForNewImage`. Grok generates two images; `waitForNewImage` resolves with the **first** new one in DOM insertion order. Timeout: 2 minutes.
+- [x] **Wait for new image** — wait for a new `<img>` element whose `src` was not in `preExistingImageSrcs`, using `waitForNewImage`. Grok generates two images; `waitForNewImage` resolves with the **first** new one in DOM insertion order. Timeout: 2 minutes.
 
-- [ ] **Wait for image load** — poll until `newImg.complete && newImg.naturalWidth > 0`. Timeout: 30 seconds. Ensures Grok has fully rendered the image before clicking; clicking a loading placeholder may not trigger the video mode transition.
+- [x] **Wait for image load** — poll until `newImg.complete && newImg.naturalWidth > 0`. Timeout: 30 seconds. Ensures Grok has fully rendered the image before clicking; clicking a loading placeholder may not trigger the video mode transition.
 
 ---
 
@@ -252,13 +252,13 @@ After the image is fully loaded, the content script clicks it to open the full-s
 // ── Phase 1.5: open lightbox ──────────────────────────────────────────────
 ```
 
-- [ ] **Click the image** — click `newImg` or its nearest clickable ancestor:
+- [x] **Click the image** — click `newImg` or its nearest clickable ancestor:
   ```typescript
   const clickTarget =
     newImg.closest<HTMLElement>('[role="button"], button, a, [tabindex]') ?? newImg;
   clickTarget.click();
   ```
-- [ ] **Wait for lightbox / video camera icon** — poll until `resolveVideoIcon()` returns a non-null element. This confirms the lightbox has opened and the bottom bar is ready. Timeout: 10 seconds.
+- [x] **Wait for lightbox / video camera icon** — poll until `resolveVideoIcon()` returns a non-null element. This confirms the lightbox has opened and the bottom bar is ready. Timeout: 10 seconds.
   ```typescript
   await waitForResolved(
     () => resolveVideoIcon(),
@@ -279,18 +279,18 @@ After Phase 1.5, the lightbox is open. The sequence is: **click video icon → e
 // ── Phase 2: image → video ────────────────────────────────────────────────
 ```
 
-- [ ] **Snapshot video srcs** — call `const preExistingVideoSrcs = snapshotVideoSrcs()` here (moved from the top of `processClip`)
-- [ ] **Click the video camera icon** — call `resolveVideoIcon()` and click it. This switches the mode to video generation.
+- [x] **Snapshot video srcs** — call `const preExistingVideoSrcs = snapshotVideoSrcs()` here (moved from the top of `processClip`)
+- [x] **Click the video camera icon** — call `resolveVideoIcon()` and click it. This switches the mode to video generation.
   ```typescript
   const videoIcon = resolveVideoIcon()!;
   videoIcon.click();
   await sleep(500); // brief pause for mode transition
   ```
-- [ ] **Re-resolve prompt input** — the lightbox prompt input (`"Type to imagine, @ to reference images"`) may be a different element from the Phase 1 prompt. Re-resolve with `waitForResolved(resolvePromptInput, 10_000, ...)`.
-- [ ] **Clear prompt, enter motion prompt** — `setReactValue(freshPromptEl, "")` then `setReactValue(freshPromptEl, clip.motionPrompt)`.
-- [ ] **Find and click the submit arrow** — use `resolveSubmitButton()` (see new helpers below). This is the arrow/send button, distinct from both the Phase 1 generate button and the video camera icon. Apply the same `autoClick` + `isAlreadyGenerating` guard.
-- [ ] **Refresh video snapshot** — same as existing step 8
-- [ ] **Wait for new video, wait for ready, send UPLOAD_VIDEO** — unchanged
+- [x] **Re-resolve prompt input** — the lightbox prompt input (`"Type to imagine, @ to reference images"`) may be a different element from the Phase 1 prompt. Re-resolve with `waitForResolved(resolvePromptInput, 10_000, ...)`.
+- [x] **Clear prompt, enter motion prompt** — `setReactValue(freshPromptEl, "")` then `setReactValue(freshPromptEl, clip.motionPrompt)`.
+- [x] **Find and click the submit arrow** — use `resolveSubmitButton()` (see new helpers below). This is the arrow/send button, distinct from both the Phase 1 generate button and the video camera icon. Apply the same `autoClick` + `isAlreadyGenerating` guard.
+- [x] **Refresh video snapshot** — same as existing step 8
+- [x] **Wait for new video, wait for ready, send UPLOAD_VIDEO** — unchanged
 
 ---
 
@@ -298,7 +298,7 @@ After Phase 1.5, the lightbox is open. The sequence is: **click video icon → e
 
 **`resolveVideoIcon()`** — finds the video camera icon button in the lightbox bottom bar. This button switches the mode to video generation and is distinct from both the Phase 1 generate button and the submit arrow:
 
-- [ ] Implement with a multi-signal heuristic (the icon has no visible text label):
+- [x] Implement with a multi-signal heuristic (the icon has no visible text label):
   ```typescript
   function resolveVideoIcon(): HTMLElement | null {
     // Prefer aria-label or title containing "video" / "animate"
@@ -330,7 +330,7 @@ After Phase 1.5, the lightbox is open. The sequence is: **click video icon → e
 
 **`resolveSubmitButton()`** — finds the arrow/send submit button in the lightbox. This is the button that actually triggers video generation after the motion prompt is entered:
 
-- [ ] Implement:
+- [x] Implement:
   ```typescript
   function resolveSubmitButton(): HTMLElement | null {
     // Arrow/send buttons typically have type="submit" or aria-label "Send" / "Submit" / "Go"
@@ -353,7 +353,7 @@ After Phase 1.5, the lightbox is open. The sequence is: **click video icon → e
 
 **`snapshotImageSrcs()`** — mirrors `snapshotVideoSrcs()` for `<img>` elements:
 
-- [ ] Implement:
+- [x] Implement:
   ```typescript
   function snapshotImageSrcs(): Set<string> {
     const srcs = new Set<string>();
@@ -366,7 +366,7 @@ After Phase 1.5, the lightbox is open. The sequence is: **click video icon → e
 
 **`waitForNewImage(preExisting, timeoutMs, clipId)`** — mirrors `waitForNewVideo`:
 
-- [ ] Implement using `MutationObserver` + polling fallback, watching for a new `<img>` whose `src` is not in `preExisting` and passes the CDN origin filter:
+- [x] Implement using `MutationObserver` + polling fallback, watching for a new `<img>` whose `src` is not in `preExisting` and passes the CDN origin filter:
   ```typescript
   function isGeneratedImage(img: HTMLImageElement): boolean {
     // Must be a CDN-hosted image from Grok/xAI (not a data URI, icon, or tracker)
@@ -378,14 +378,14 @@ After Phase 1.5, the lightbox is open. The sequence is: **click video icon → e
   }
   ```
   The `!img.complete` branch catches the element the moment Grok inserts it; the subsequent "wait for image load" step then waits until it is fully decoded. This is intentional — we want to capture the reference to the element as early as possible.
-- [ ] On timeout, send `SELECTOR_ERROR` to SW with `selectorName: "outputImage"` and reject
-- [ ] Return the `HTMLImageElement` (not just a boolean) so the caller can pass `img.src` to `captureGeneratedImage`
+- [x] On timeout, send `SELECTOR_ERROR` to SW with `selectorName: "outputImage"` and reject
+- [x] Return the `HTMLImageElement` (not just a boolean) so the caller can pass `img.src` to `captureGeneratedImage`
 
 **Dead code to remove from `content/index.ts`:**
 
-- [ ] Delete `attachImageViaMainWorld` — no longer called; Phase 2 needs no file upload
-- [ ] Delete `setFileOnElement` — never called in the automation path (pre-existing dead code)
-- [ ] Delete `findNearestFileInput` — only called by `setFileOnElement`
+- [x] Delete `attachImageViaMainWorld` — no longer called; Phase 2 needs no file upload
+- [x] Delete `setFileOnElement` — never called in the automation path (pre-existing dead code)
+- [x] Delete `findNearestFileInput` — only called by `setFileOnElement`
 
 ---
 
@@ -395,73 +395,73 @@ After Phase 1.5, the lightbox is open. The sequence is: **click video icon → e
 
 Remove all base-image-related UI and logic:
 
-- [ ] Remove `readyCount` (was `scenes.filter(s => s.baseImageUrl).length`) — all scenes are content-ready once the API returns them
-- [ ] Remove `regeneratingScenes` state and all references
-- [ ] Remove `regeneratingAll` state and all references
-- [ ] Remove `regenerateScene(sceneIndex)` function entirely
-- [ ] Remove `regenerateAll()` function entirely
-- [ ] Remove all API calls to `api.scenes.regenerate()`
-- [ ] Remove the upload-url / custom base image flow (the `<input type="file">` and the signed URL fetch at line ~165)
+- [x] Remove `readyCount` (was `scenes.filter(s => s.baseImageUrl).length`) — all scenes are content-ready once the API returns them
+- [x] Remove `regeneratingScenes` state and all references
+- [x] Remove `regeneratingAll` state and all references
+- [x] Remove `regenerateScene(sceneIndex)` function entirely
+- [x] Remove `regenerateAll()` function entirely
+- [x] Remove all API calls to `api.scenes.regenerate()`
+- [x] Remove the upload-url / custom base image flow (the `<input type="file">` and the signed URL fetch at line ~165)
 
 In scene cards:
 
-- [ ] Remove the `<img src={scene.baseImageUrl!} />` image display block (line ~331)
-- [ ] Remove the loading/generating state that was tied to `isImageReady = !!scene.baseImageUrl`
-- [ ] Remove the per-scene "Regenerate" button (line ~503)
-- [ ] Remove the "Regenerate All" button (line ~262)
+- [x] Remove the `<img src={scene.baseImageUrl!} />` image display block (line ~331)
+- [x] Remove the loading/generating state that was tied to `isImageReady = !!scene.baseImageUrl`
+- [x] Remove the per-scene "Regenerate" button (line ~503)
+- [x] Remove the "Regenerate All" button (line ~262)
 
 Update scene card layout:
 
-- [ ] Scene card now shows: `visualPrompt` and `motionPrompt` as styled text blocks (similar to the action reel scene card design, which already showed text prompts). A scene is "ready to approve" immediately when it exists.
-- [ ] The approve/reject toggle and scene edit flows remain unchanged
+- [x] Scene card now shows: `visualPrompt` and `motionPrompt` as styled text blocks (similar to the action reel scene card design, which already showed text prompts). A scene is "ready to approve" immediately when it exists.
+- [x] The approve/reject toggle and scene edit flows remain unchanged
 
 **File: `apps/web/lib/api-client.ts` (web app API client):**
 
-- [ ] Remove `api.scenes.regenerate()` method (called the deleted `/regenerate` endpoint)
-- [ ] Remove `api.scenes.uploadUrl()` (or equivalent) method (called the deleted `/upload-url` endpoint)
-- [ ] Remove `api.videos.generateCharacter()` (or equivalent) method (called the deleted `/generate-character` endpoint)
-- [ ] Confirm with:
+- [x] Remove `api.scenes.regenerate()` method (called the deleted `/regenerate` endpoint)
+- [x] Remove `api.scenes.uploadUrl()` (or equivalent) method (called the deleted `/upload-url` endpoint)
+- [x] Remove `api.videos.generateCharacter()` (or equivalent) method (called the deleted `/generate-character` endpoint)
+- [x] Confirm with:
   ```bash
   grep -n "regenerate\|uploadUrl\|generateCharacter\|upload-url\|generate-character" apps/web/lib/api-client.ts
   ```
 
 **Files: `apps/web/components/wizard/steps/step-2-script.tsx` and `step-3-voice.tsx`**
 
-- [ ] Search for any `baseImageUrl` references and remove them
+- [x] Search for any `baseImageUrl` references and remove them
 
 ---
 
 ### 15.9 — Cleanup & Verification
 
-- [ ] Run `pnpm check-types` — fix any TypeScript errors from removed fields
-- [ ] Run `pnpm lint` — fix any linting errors
-- [ ] Run `pnpm build` — confirm full build passes
-- [ ] Confirm `grok-image.ts` has zero remaining importers:
+- [x] Run `pnpm check-types` — fix any TypeScript errors from removed fields
+- [x] Run `pnpm lint` — fix any linting errors
+- [x] Run `pnpm build` — confirm full build passes
+- [x] Confirm `grok-image.ts` has zero remaining importers:
   ```bash
   grep -r "grok-image" apps/ packages/
   ```
-- [ ] Confirm `baseImageUrl` is only referenced where expected (nullable DB column, no hard usage in business logic):
+- [x] Confirm `baseImageUrl` is only referenced where expected (nullable DB column, no hard usage in business logic):
   ```bash
   grep -r "baseImageUrl" apps/ packages/
   ```
-- [ ] Confirm `imageBytes`, `imageType`, `attachImageViaMainWorld`, `ATTACH_IMAGE`, `setFileOnElement`, `findNearestFileInput` are fully gone from the extension:
+- [x] Confirm `imageBytes`, `imageType`, `attachImageViaMainWorld`, `ATTACH_IMAGE`, `setFileOnElement`, `findNearestFileInput` are fully gone from the extension:
   ```bash
   grep -r "imageBytes\|imageType\|attachImageViaMainWorld\|ATTACH_IMAGE\|setFileOnElement\|findNearestFileInput\|captureGeneratedImage" apps/extension/src/
   ```
   Expected: zero hits.
-- [ ] Confirm `withCharacterNote` and `UGC_REFERENCE_STRENGTH` have been removed from `videos.ts`:
+- [x] Confirm `withCharacterNote` and `UGC_REFERENCE_STRENGTH` have been removed from `videos.ts`:
   ```bash
   grep -n "withCharacterNote\|UGC_REFERENCE_STRENGTH" apps/api/routes/videos.ts
   ```
-- [ ] Confirm `resolveImageUpload` has been removed from `content/index.ts`:
+- [x] Confirm `resolveImageUpload` has been removed from `content/index.ts`:
   ```bash
   grep -n "resolveImageUpload" apps/extension/src/content/index.ts
   ```
-- [ ] Confirm `generateCharacterSheet` has been removed from `claude.ts`:
+- [x] Confirm `generateCharacterSheet` has been removed from `claude.ts`:
   ```bash
   grep -rn "generateCharacterSheet" apps/ packages/
   ```
-- [ ] Update `ReelForge_MVP_Tasks.md` — mark Track 15 tasks complete as they are finished
+- [x] Update `ReelForge_MVP_Tasks.md` — mark Track 15 tasks complete as they are finished
 
 ---
 

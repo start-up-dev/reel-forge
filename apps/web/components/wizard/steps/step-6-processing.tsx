@@ -69,7 +69,7 @@ function buildTimeline(video: VideoDetail, queuePosition: number): TimelineItem[
   return [
     { label: "Script approved", status: scriptDone ? "done" : "active" },
     { label: "Voiceover ready", status: voiceDone ? "done" : scriptDone ? "active" : "pending" },
-    { label: "Base images ready", status: scenesDone ? "done" : voiceDone ? "active" : "pending" },
+    { label: "Scenes ready", status: scenesDone ? "done" : voiceDone ? "active" : "pending" },
     {
       label: "Clips generating",
       status: clipsDone ? "done" : clipsActive ? "active" : "pending",
