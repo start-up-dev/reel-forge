@@ -84,22 +84,21 @@ function showOverlay(
     shadow.getElementById("rf-copy-visual")?.addEventListener("click", () => {
       void flashCopy(visualPrompt, shadow.getElementById("rf-copy-visual") as HTMLButtonElement);
     });
-    shadow.getElementById("rf-copy-motion")?.addEventListener("click", () => {
-      void flashCopy(
-        clip.motionPrompt,
-        shadow.getElementById("rf-copy-motion") as HTMLButtonElement,
-      );
-    });
 
     let resolvedVideoSrc: string | null = null;
     let stopWatching = (): void => {};
+    let watchStarted = false;
 
-    // Delay the watch start so Grok has time to lazy-load its default placeholder
-    // videos. Re-snapshot inside the timeout so any videos that appeared during
-    // those 3 seconds are treated as pre-existing and ignored.
-    const watchTimer = setTimeout(() => {
+    function startWatching(): void {
+      if (watchStarted) return;
+      watchStarted = true;
+
+      // Snapshot at this moment — user has just copied the motion prompt and
+      // is about to generate. Any video in the DOM right now is pre-existing.
       const freshPreExisting = snapshotVideoSrcs();
       for (const src of preExisting) freshPreExisting.add(src);
+
+      setStatus("Watching for generated video…", "waiting");
 
       stopWatching = watchForVideo(freshPreExisting, async (videoEl) => {
         setStatus("Video detected — checking readiness…", "detecting");
@@ -124,19 +123,32 @@ function showOverlay(
         dlBtn.style.opacity = "1";
         dlBtn.style.cursor = "pointer";
       });
-    }, 3000);
+    }
+
+    shadow.getElementById("rf-copy-motion")?.addEventListener("click", () => {
+      void flashCopy(
+        clip.motionPrompt,
+        shadow.getElementById("rf-copy-motion") as HTMLButtonElement,
+      );
+      startWatching();
+    });
 
     dlBtn.addEventListener("click", () => {
       if (!resolvedVideoSrc) return;
       stopWatching();
       setStatus("Uploading… tab will close when done", "uploading");
       dlBtn.disabled = true;
+      dlBtn.style.background = "#27272a";
+      dlBtn.style.color = "#52525b";
+      dlBtn.style.opacity = "0.45";
+      dlBtn.style.cursor = "not-allowed";
       cancelBtn.disabled = true;
+      cancelBtn.style.opacity = "0.45";
+      cancelBtn.style.cursor = "not-allowed";
       resolve(resolvedVideoSrc);
     });
 
     cancelBtn.addEventListener("click", () => {
-      clearTimeout(watchTimer);
       stopWatching();
       host.remove();
       reject(new Error("Operator cancelled clip"));
@@ -190,7 +202,7 @@ function buildOverlayHTML(clip: ClaimedClip, visualPrompt: string): string {
   <div style="padding:10px 14px;">
     <div style="display:flex;align-items:center;gap:6px;margin-bottom:8px;">
       <div id="rf-dot" style="width:6px;height:6px;border-radius:50%;flex-shrink:0;background:#a1a1aa;"></div>
-      <div id="rf-status" style="font-size:11px;color:#a1a1aa;">Watching for generated video…</div>
+      <div id="rf-status" style="font-size:11px;color:#a1a1aa;">Copy Motion Prompt to begin watching</div>
     </div>
     <div style="display:flex;gap:6px;">
       <button id="rf-download" disabled style="flex:1;border:none;border-radius:5px;padding:6px 10px;font-size:12px;font-family:inherit;font-weight:600;background:#27272a;color:#52525b;opacity:.45;cursor:not-allowed;">Download & Upload</button>

@@ -10,7 +10,7 @@ const STATUS_ORDER: Record<StoredClipStatus["status"], number> = {
   done: 3,
 };
 
-// ── Sound notifications (Web Audio API) ──────────────────────────────────────
+// ── Sound notifications ───────────────────────────────────────────────────────
 
 let _audioCtx: AudioContext | null = null;
 function getAudioCtx(): AudioContext {
@@ -72,8 +72,6 @@ async function soundStop(): Promise<void> {
   await tone(ctx, 261, 0.14);
 }
 
-// ── Sound hook ────────────────────────────────────────────────────────────────
-
 function useSoundNotifications(
   state: WorkerState,
   clipCounts: Record<StoredClipStatus["status"], number>,
@@ -82,41 +80,19 @@ function useSoundNotifications(
   const prev = useRef({ done: 0, failed: 0, running: false, seeded: false });
 
   useEffect(() => {
-    // Seed on first render — don't fire sounds for pre-existing state.
     if (!prev.current.seeded) {
       prev.current = { done: clipCounts.done, failed: clipCounts.failed, running: state.running, seeded: true };
       return;
     }
-
     const { done: prevDone, failed: prevFailed, running: wasRunning } = prev.current;
     prev.current = { done: clipCounts.done, failed: clipCounts.failed, running: state.running, seeded: true };
-
     if (!soundEnabled) return;
 
-    // Started
-    if (!wasRunning && state.running) {
-      void soundStart();
-      return;
-    }
-
-    // All done — queue drained and worker stopped
-    if (wasRunning && !state.running && state.queueCount === 0 && state.activeTabs === 0) {
-      void soundAllDone();
-      return;
-    }
-
-    // Manually stopped (queue still has items)
-    if (wasRunning && !state.running) {
-      void soundStop();
-      return;
-    }
-
-    // Clip events (check failed first — it's more urgent)
-    if (clipCounts.failed > prevFailed) {
-      void soundFailed();
-    } else if (clipCounts.done > prevDone) {
-      void soundDone();
-    }
+    if (!wasRunning && state.running) { void soundStart(); return; }
+    if (wasRunning && !state.running && state.queueCount === 0 && state.activeTabs === 0) { void soundAllDone(); return; }
+    if (wasRunning && !state.running) { void soundStop(); return; }
+    if (clipCounts.failed > prevFailed) { void soundFailed(); }
+    else if (clipCounts.done > prevDone) { void soundDone(); }
   }, [clipCounts.done, clipCounts.failed, state.running, state.queueCount, state.activeTabs, soundEnabled]);
 }
 
@@ -135,28 +111,24 @@ const EMPTY_STATE: WorkerState = {
 // ── Popup root ────────────────────────────────────────────────────────────────
 
 export function Popup() {
+  // window.innerWidth > 600 means we're opened as a tab, not a popup
+  const [isFullPage] = useState(() => window.innerWidth > 600);
+
   const [state, setState] = useReducer(
     (_prev: WorkerState, next: WorkerState) => next,
     EMPTY_STATE,
   );
   const [soundEnabled, setSoundEnabled] = useStorageValue<boolean>("soundEnabled", true);
 
-  // Fetch initial state from SW on mount, then do a live health + queue check.
   useEffect(() => {
     chrome.runtime
       .sendMessage({ type: "GET_STATE" })
-      .then((res: { state: WorkerState }) => {
-        if (res?.state) setState(res.state);
-      })
+      .then((res: { state: WorkerState }) => { if (res?.state) setState(res.state); })
       .catch(() => {});
-
-    // Refresh connection status and queue count immediately.
     chrome.runtime.sendMessage({ type: "REFRESH_QUEUE" }).catch(() => {});
 
     const listener = (msg: { type: string; state?: WorkerState }) => {
-      if (msg.type === "STATE_UPDATE" && msg.state) {
-        setState(msg.state);
-      }
+      if (msg.type === "STATE_UPDATE" && msg.state) setState(msg.state);
     };
     chrome.runtime.onMessage.addListener(listener);
     return () => chrome.runtime.onMessage.removeListener(listener);
@@ -166,164 +138,157 @@ export function Popup() {
     chrome.runtime.sendMessage({ type, ...extra }).catch(() => {});
   }, []);
 
-  const handleStartStop = () => {
-    send(state.running ? "STOP" : "START");
-  };
-
-  const handleRetry = (clipId: string) => {
-    send("RETRY_CLIP", { clipId });
-  };
+  const handleRetry = (clipId: string) => send("RETRY_CLIP", { clipId });
 
   const clipCounts = Object.values(state.clipStatuses).reduce(
     (acc, c) => { acc[c.status] = (acc[c.status] ?? 0) + 1; return acc; },
     { done: 0, failed: 0, processing: 0, queued: 0 } as Record<StoredClipStatus["status"], number>,
   );
 
-  const sessionDuration = state.session.startedAt
-    ? Math.floor((Date.now() - state.session.startedAt) / 1000)
-    : 0;
-  const estRemaining =
-    state.queueCount > 0 && clipCounts.done > 0 && sessionDuration > 0
-      ? Math.round((state.queueCount / clipCounts.done) * sessionDuration)
-      : null;
-
   useSoundNotifications(state, clipCounts, soundEnabled);
+
+  const header = (
+    <div className="flex items-center justify-between">
+      <div className="flex items-center gap-2">
+        <div className="w-6 h-6 rounded bg-accent-primary flex items-center justify-center">
+          <span className="text-xs font-bold text-white">RF</span>
+        </div>
+        <span className="font-semibold text-base">ReelForge Operator</span>
+      </div>
+      <div className="flex items-center gap-2">
+        <div className="flex items-center gap-1.5">
+          <div className={`w-2 h-2 rounded-full ${state.connected ? "bg-accent-success" : "bg-accent-danger"}`} />
+          <span className="text-xs text-text-secondary">{state.connected ? "Connected" : "Disconnected"}</span>
+        </div>
+        <button
+          onClick={() => setSoundEnabled(!soundEnabled)}
+          className={`text-sm transition-colors ${soundEnabled ? "text-accent-primary hover:text-accent-primary/70" : "text-text-muted hover:text-text-secondary"}`}
+          title={soundEnabled ? "Sound on" : "Sound off"}
+        >
+          {soundEnabled ? "🔔" : "🔕"}
+        </button>
+        <button
+          onClick={() => send("REFRESH_QUEUE")}
+          className="text-text-muted hover:text-text-secondary text-xs transition-colors"
+          title="Refresh"
+        >
+          ↻
+        </button>
+        {!isFullPage && (
+          <button
+            onClick={() => chrome.tabs.create({ url: chrome.runtime.getURL("popup/index.html") })}
+            className="text-text-muted hover:text-text-secondary text-xs transition-colors"
+            title="Open in full tab"
+          >
+            ⤢
+          </button>
+        )}
+      </div>
+    </div>
+  );
+
+  const queueCard = (
+    <div className="bg-bg-surface rounded-xl p-4 flex items-center justify-between">
+      <div>
+        <p className="text-text-muted text-xs uppercase tracking-wide mb-1">Queue</p>
+        <p className="text-2xl font-bold">
+          {state.queueCount}{" "}
+          <span className="text-text-secondary text-sm font-normal">pending</span>
+        </p>
+      </div>
+      <div className="text-right">
+        <p className="text-text-muted text-xs uppercase tracking-wide mb-1">Active tabs</p>
+        <p className="text-2xl font-bold text-accent-secondary">{state.activeTabs}</p>
+      </div>
+    </div>
+  );
+
+  const startStopBtn = (
+    <button
+      onClick={() => send(state.running ? "STOP" : "START")}
+      className={`w-full py-3 rounded-xl font-semibold text-sm transition-all ${
+        state.running
+          ? "bg-accent-danger/20 border border-accent-danger/40 text-accent-danger hover:bg-accent-danger/30"
+          : "bg-accent-primary hover:bg-accent-primary/90 text-white"
+      }`}
+    >
+      {state.running ? (
+        <span className="flex items-center justify-center gap-2">
+          <span className="w-2 h-2 rounded-full bg-accent-danger animate-pulse" />
+          Stop Processing
+        </span>
+      ) : (
+        "▶ Start Processing"
+      )}
+    </button>
+  );
+
+  const selectorError = state.selectorError && (
+    <div className="bg-accent-danger/10 border border-accent-danger/30 rounded-lg p-3">
+      <p className="text-accent-danger text-xs font-semibold mb-1">Selector Error</p>
+      <p className="text-text-secondary text-xs">
+        <span className="text-text-primary font-mono">{state.selectorError.name}</span> not found.
+      </p>
+      <p className="text-text-muted text-xs mt-1">
+        <button className="text-accent-primary underline" onClick={() => chrome.runtime.openOptionsPage()}>
+          Open Settings
+        </button>
+      </p>
+    </div>
+  );
+
+  const settingsFooter = (
+    <div className="pt-1 flex justify-end">
+      <button
+        onClick={() => chrome.runtime.openOptionsPage()}
+        className="text-text-muted text-xs hover:text-text-secondary transition-colors"
+      >
+        ⚙ Settings
+      </button>
+    </div>
+  );
+
+  if (isFullPage) {
+    return (
+      <div className="bg-bg-base text-text-primary font-sans p-6 w-full min-h-screen flex flex-col gap-4">
+        {header}
+        <div className="h-px bg-border" />
+        {selectorError}
+        <div className="grid grid-cols-[340px_1fr] gap-6 flex-1 min-h-0">
+          {/* Left column */}
+          <div className="flex flex-col gap-4">
+            {queueCard}
+            <Controls />
+            {startStopBtn}
+            {settingsFooter}
+          </div>
+          {/* Right column — clips fill full height */}
+          <div className="flex flex-col min-h-0">
+            <ClipStatusBoard statuses={state.clipStatuses} onRetry={handleRetry} isFullPage />
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="bg-bg-base text-text-primary font-sans p-4 w-[480px] min-h-[520px] flex flex-col gap-4">
-      {/* Header */}
-      <div className="flex items-center justify-between">
-        <div className="flex items-center gap-2">
-          <div className="w-6 h-6 rounded bg-accent-primary flex items-center justify-center">
-            <span className="text-xs font-bold text-white">RF</span>
-          </div>
-          <span className="font-semibold text-base">ReelForge Operator</span>
-        </div>
-        <div className="flex items-center gap-2">
-          <div className="flex items-center gap-1.5">
-            <div
-              className={`w-2 h-2 rounded-full ${state.connected ? "bg-accent-success" : "bg-accent-danger"}`}
-            />
-            <span className="text-xs text-text-secondary">
-              {state.connected ? "Connected" : "Disconnected"}
-            </span>
-          </div>
-          <button
-            onClick={() => setSoundEnabled(!soundEnabled)}
-            className={`text-sm transition-colors ${soundEnabled ? "text-accent-primary hover:text-accent-primary/70" : "text-text-muted hover:text-text-secondary"}`}
-            title={soundEnabled ? "Sound on — click to mute" : "Sound off — click to unmute"}
-          >
-            {soundEnabled ? "🔔" : "🔕"}
-          </button>
-          <button
-            onClick={() => send("REFRESH_QUEUE")}
-            className="text-text-muted hover:text-text-secondary text-xs transition-colors"
-            title="Refresh connection & queue"
-          >
-            ↻
-          </button>
-        </div>
-      </div>
-
+      {header}
       <div className="h-px bg-border" />
-
-      {/* Selector error banner */}
-      {state.selectorError && (
-        <div className="bg-accent-danger/10 border border-accent-danger/30 rounded-lg p-3">
-          <p className="text-accent-danger text-xs font-semibold mb-1">Selector Error</p>
-          <p className="text-text-secondary text-xs">
-            <span className="text-text-primary font-mono">{state.selectorError.name}</span> not
-            found on page.
-          </p>
-          <p className="text-text-muted text-xs mt-1 font-mono break-all">
-            {state.selectorError.selector}
-          </p>
-          <p className="text-text-muted text-xs mt-1">
-            Update it in{" "}
-            <button
-              className="text-accent-primary underline"
-              onClick={() => chrome.runtime.openOptionsPage()}
-            >
-              Settings
-            </button>
-          </p>
-        </div>
-      )}
-
-      {/* Queue stat */}
-      <div className="bg-bg-surface rounded-xl p-4 flex items-center justify-between">
-        <div>
-          <p className="text-text-muted text-xs uppercase tracking-wide mb-1">Queue</p>
-          <p className="text-2xl font-bold">
-            {state.queueCount}{" "}
-            <span className="text-text-secondary text-sm font-normal">pending clips</span>
-          </p>
-        </div>
-        <div className="text-right">
-          <p className="text-text-muted text-xs uppercase tracking-wide mb-1">Active tabs</p>
-          <p className="text-2xl font-bold text-accent-secondary">{state.activeTabs}</p>
-        </div>
-      </div>
-
-      {/* Controls */}
+      {selectorError}
+      {queueCard}
       <Controls />
-
-      {/* Start / Stop */}
-      <button
-        onClick={handleStartStop}
-        className={`w-full py-3 rounded-xl font-semibold text-sm transition-all ${
-          state.running
-            ? "bg-accent-danger/20 border border-accent-danger/40 text-accent-danger hover:bg-accent-danger/30"
-            : "bg-accent-primary hover:bg-accent-primary/90 text-white"
-        }`}
-      >
-        {state.running ? (
-          <span className="flex items-center justify-center gap-2">
-            <span className="w-2 h-2 rounded-full bg-accent-danger animate-pulse" />
-            Stop Processing
-          </span>
-        ) : (
-          "▶ Start Processing"
-        )}
-      </button>
-
-      {/* Session stats */}
-      {state.session.startedAt && (
-        <div className="bg-bg-surface rounded-xl p-3 flex items-center justify-between text-sm">
-          <div className="flex gap-4">
-            <Stat label="Done" value={clipCounts.done} color="text-accent-success" />
-            <Stat label="Failed" value={clipCounts.failed} color="text-accent-danger" />
-          </div>
-          {estRemaining && (
-            <p className="text-text-muted text-xs">
-              Est. remaining: ~{formatDuration(estRemaining)}
-            </p>
-          )}
-        </div>
-      )}
-
-      {/* Clip Status Board */}
-      <ClipStatusBoard statuses={state.clipStatuses} onRetry={handleRetry} />
-
-      {/* Footer link to options */}
-      <div className="mt-auto pt-2 flex justify-end">
-        <button
-          onClick={() => chrome.runtime.openOptionsPage()}
-          className="text-text-muted text-xs hover:text-text-secondary transition-colors"
-        >
-          ⚙ Settings
-        </button>
-      </div>
+      {startStopBtn}
+      <ClipStatusBoard statuses={state.clipStatuses} onRetry={handleRetry} isFullPage={false} />
+      {settingsFooter}
     </div>
   );
 }
 
-// ── Controls (reads / writes chrome.storage.local) ────────────────────────────
+// ── Controls ──────────────────────────────────────────────────────────────────
 
 function Controls() {
   const [batchSize, setBatchSize] = useStorageValue<number>("batchSize", 30);
-  const [autoClick, setAutoClick] = useStorageValue<boolean>("autoClick", true);
-  const [delayMode, setDelayMode] = useStorageValue<string>("clickDelayMode", "normal");
   const [concurrentTabs, setConcurrentTabs] = useStorageValue<number>("concurrentTabs", 5);
 
   return (
@@ -339,7 +304,6 @@ function Controls() {
           className="bg-bg-elevated border border-border rounded-lg px-2 py-1 text-text-primary text-sm w-full"
         />
       </label>
-
       <label className="flex flex-col gap-1">
         <span className="text-text-muted text-xs">Concurrent tabs</span>
         <input
@@ -351,33 +315,6 @@ function Controls() {
           className="bg-bg-elevated border border-border rounded-lg px-2 py-1 text-text-primary text-sm w-full"
         />
       </label>
-
-      <label className="flex flex-col gap-1">
-        <span className="text-text-muted text-xs">Auto-click</span>
-        <button
-          onClick={() => setAutoClick(!autoClick)}
-          className={`w-full py-1 rounded-lg border text-xs font-semibold transition-colors ${
-            autoClick
-              ? "border-accent-success/40 text-accent-success bg-accent-success/10"
-              : "border-border text-text-muted"
-          }`}
-        >
-          {autoClick ? "ON" : "OFF"}
-        </button>
-      </label>
-
-      <label className="flex flex-col gap-1">
-        <span className="text-text-muted text-xs">Click delay</span>
-        <select
-          value={delayMode}
-          onChange={(e) => setDelayMode(e.target.value)}
-          className="bg-bg-elevated border border-border rounded-lg px-2 py-1 text-text-primary text-sm w-full"
-        >
-          <option value="fast">Fast (1–2s)</option>
-          <option value="normal">Normal (2–5s)</option>
-          <option value="slow">Slow (5–10s)</option>
-        </select>
-      </label>
     </div>
   );
 }
@@ -386,16 +323,13 @@ function Controls() {
 
 function StatusPill({ status }: { status: StoredClipStatus["status"] }) {
   const styles: Record<StoredClipStatus["status"], string> = {
-    queued: "bg-bg-elevated text-text-muted",
+    queued:     "bg-bg-elevated text-text-muted",
     processing: "bg-accent-warning/20 text-accent-warning animate-pulse",
-    done: "bg-accent-success/20 text-accent-success",
-    failed: "bg-accent-danger/20 text-accent-danger",
+    done:       "bg-accent-success/20 text-accent-success",
+    failed:     "bg-accent-danger/20 text-accent-danger",
   };
   const labels: Record<StoredClipStatus["status"], string> = {
-    queued: "Queued",
-    processing: "Processing",
-    done: "Done",
-    failed: "Failed",
+    queued: "Queued", processing: "Processing", done: "Done", failed: "Failed",
   };
   return (
     <span className={`rounded px-1.5 py-0.5 text-[10px] font-medium ${styles[status]}`}>
@@ -407,16 +341,18 @@ function StatusPill({ status }: { status: StoredClipStatus["status"] }) {
 function ClipStatusBoard({
   statuses,
   onRetry,
+  isFullPage,
 }: {
   statuses: StoredClipStatusMap;
   onRetry: (id: string) => void;
+  isFullPage: boolean;
 }) {
   const [filter, setFilter] = useState<StatusFilter>("all");
   const [retrying, setRetrying] = useState<Set<string>>(new Set());
 
   const allEntries = Object.values(statuses).sort((a, b) => {
-    const statusDiff = STATUS_ORDER[a.status] - STATUS_ORDER[b.status];
-    if (statusDiff !== 0) return statusDiff;
+    const d = STATUS_ORDER[a.status] - STATUS_ORDER[b.status];
+    if (d !== 0) return d;
     if (a.status === "failed") return (b.updatedAt ?? 0) - (a.updatedAt ?? 0);
     return (a.videoTitle ?? "").localeCompare(b.videoTitle ?? "") || a.sceneIndex - b.sceneIndex;
   });
@@ -437,31 +373,30 @@ function ClipStatusBoard({
     setRetrying((prev) => new Set([...prev, clipId]));
     onRetry(clipId);
     setTimeout(() => {
-      setRetrying((prev) => {
-        const next = new Set(prev);
-        next.delete(clipId);
-        return next;
-      });
+      setRetrying((prev) => { const next = new Set(prev); next.delete(clipId); return next; });
     }, 10_000);
   };
 
   const filterTabs: { key: StatusFilter; label: string; count: number }[] = [
-    { key: "all", label: "All", count: allEntries.length },
-    { key: "failed", label: "Failed", count: counts.failed },
-    { key: "processing", label: "Active", count: counts.processing },
-    { key: "queued", label: "Queued", count: counts.queued },
-    { key: "done", label: "Done", count: counts.done },
+    { key: "all",        label: "All",        count: allEntries.length },
+    { key: "failed",     label: "Failed",     count: counts.failed },
+    { key: "processing", label: "Active",     count: counts.processing },
+    { key: "queued",     label: "Queued",     count: counts.queued },
+    { key: "done",       label: "Done",       count: counts.done },
   ];
 
+  const listCls = isFullPage
+    ? "flex flex-col gap-3 overflow-y-auto flex-1 min-h-0 pr-1"
+    : "flex flex-col gap-3 max-h-72 overflow-y-auto";
+
   return (
-    <div className="bg-bg-surface rounded-xl p-3">
+    <div className={`bg-bg-surface rounded-xl p-3 ${isFullPage ? "flex flex-col flex-1 min-h-0" : ""}`}>
       <div className="flex items-center justify-between mb-2">
         <p className="text-text-muted text-xs uppercase tracking-wide">
-          Clips {allEntries.length > 0 ? `(${allEntries.length})` : ""}
+          Clips{allEntries.length > 0 ? ` (${allEntries.length})` : ""}
         </p>
       </div>
 
-      {/* Filter tabs */}
       {allEntries.length > 0 && (
         <div className="flex gap-1 mb-2 flex-wrap">
           {filterTabs.map(({ key, label, count }) => (
@@ -480,18 +415,18 @@ function ClipStatusBoard({
                   : "border-border text-text-muted hover:text-text-secondary"
               }`}
             >
-              {label} {count > 0 ? `(${count})` : ""}
+              {label}{count > 0 ? ` (${count})` : ""}
             </button>
           ))}
         </div>
       )}
 
       {allEntries.length === 0 ? (
-        <p className="text-text-muted text-xs text-center py-4">No active clips</p>
+        <p className="text-text-muted text-xs text-center py-4">No clips yet</p>
       ) : filtered.length === 0 ? (
         <p className="text-text-muted text-xs text-center py-4">No {filter} clips</p>
       ) : (
-        <div className="flex flex-col gap-3 max-h-64 overflow-y-auto">
+        <div className={listCls}>
           {Object.entries(groups).map(([videoId, clips]) => (
             <div key={videoId}>
               <p className="text-[10px] text-text-muted uppercase tracking-wide mb-1.5 truncate">
@@ -507,12 +442,12 @@ function ClipStatusBoard({
                       Scene {clip.sceneIndex + 1}
                     </span>
                     <span className="text-xs text-text-secondary truncate flex-1 min-w-0">
-                      {clip.motionPrompt.slice(0, 40)}
-                      {clip.motionPrompt.length > 40 ? "…" : ""}
+                      {clip.motionPrompt.slice(0, isFullPage ? 80 : 40)}
+                      {clip.motionPrompt.length > (isFullPage ? 80 : 40) ? "…" : ""}
                     </span>
                     <StatusPill status={clip.status} />
                     {clip.status === "failed" && clip.error && (
-                      <span className="text-[10px] text-accent-danger truncate max-w-[80px]">
+                      <span className="text-[10px] text-accent-danger truncate max-w-[100px]">
                         {clip.error}
                       </span>
                     )}
@@ -536,34 +471,9 @@ function ClipStatusBoard({
   );
 }
 
-// ── Small helpers ─────────────────────────────────────────────────────────────
+// ── Helpers ───────────────────────────────────────────────────────────────────
 
-function Stat({
-  label,
-  value,
-  color,
-}: {
-  label: string;
-  value: number;
-  color: string;
-}) {
-  return (
-    <div>
-      <span className={`font-bold text-lg ${color}`}>{value}</span>{" "}
-      <span className="text-text-muted text-xs">{label}</span>
-    </div>
-  );
-}
-
-function formatDuration(seconds: number): string {
-  if (seconds < 60) return `${seconds}s`;
-  return `${Math.floor(seconds / 60)}m ${seconds % 60}s`;
-}
-
-function useStorageValue<T>(
-  key: string,
-  defaultValue: T,
-): [T, (val: T) => void] {
+function useStorageValue<T>(key: string, defaultValue: T): [T, (val: T) => void] {
   const [value, setValue] = useReducer((_: T, next: T) => next, defaultValue);
 
   useEffect(() => {
@@ -572,13 +482,10 @@ function useStorageValue<T>(
     });
   }, [key]);
 
-  const set = useCallback(
-    (val: T) => {
-      setValue(val);
-      chrome.storage.local.set({ [key]: val });
-    },
-    [key],
-  );
+  const set = useCallback((val: T) => {
+    setValue(val);
+    chrome.storage.local.set({ [key]: val });
+  }, [key]);
 
   return [value, set];
 }

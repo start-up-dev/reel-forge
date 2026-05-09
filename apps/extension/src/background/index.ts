@@ -561,10 +561,6 @@ chrome.runtime.onMessage.addListener(
             // executeScript MAIN world fetch which has access to page cookies and
             // the browser's blob store.
             //
-            // We also wait 30 s before the first attempt: Grok's CDN sometimes
-            // needs a moment after the video element appears before the file is
-            // fully written and serveable.
-
             const isPublicCdn =
               !videoUrl.startsWith("blob:") && !/grok\.com|x\.com/i.test(videoUrl);
 
@@ -572,10 +568,6 @@ chrome.runtime.onMessage.addListener(
               `[SW] Download strategy: ${isPublicCdn ? "SW-direct (public CDN)" : "MAIN-world fetch"}`,
               videoUrl.substring(0, 80),
             );
-
-            // Wait for CDN to finalise the video file before first attempt.
-            console.log("[SW] Waiting 30 s for CDN to finalise video...");
-            await new Promise((r) => setTimeout(r, 30_000));
 
             let videoBytes: Uint8Array | undefined;
 
