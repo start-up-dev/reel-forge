@@ -92,30 +92,39 @@ function showOverlay(
     });
 
     let resolvedVideoSrc: string | null = null;
+    let stopWatching = (): void => {};
 
-    const stopWatching = watchForVideo(preExisting, async (videoEl) => {
-      setStatus("Video detected — checking readiness…", "detecting");
-      try {
-        await waitForVideoReady(videoEl, 5 * 60 * 1000);
-      } catch {
-        // Timed out — proceed; SW download handles its own retries.
-      }
-      const src =
-        videoEl.currentSrc ||
-        videoEl.src ||
-        videoEl.querySelector("source")?.src;
-      if (!src) {
-        setStatus("Video found but URL is empty — try again", "error");
-        return;
-      }
-      resolvedVideoSrc = src;
-      setStatus("Video ready — click Download to upload", "ready");
-      dlBtn.disabled = false;
-      dlBtn.style.background = "#34D399";
-      dlBtn.style.color = "#09090b";
-      dlBtn.style.opacity = "1";
-      dlBtn.style.cursor = "pointer";
-    });
+    // Delay the watch start so Grok has time to lazy-load its default placeholder
+    // videos. Re-snapshot inside the timeout so any videos that appeared during
+    // those 3 seconds are treated as pre-existing and ignored.
+    const watchTimer = setTimeout(() => {
+      const freshPreExisting = snapshotVideoSrcs();
+      for (const src of preExisting) freshPreExisting.add(src);
+
+      stopWatching = watchForVideo(freshPreExisting, async (videoEl) => {
+        setStatus("Video detected — checking readiness…", "detecting");
+        try {
+          await waitForVideoReady(videoEl, 5 * 60 * 1000);
+        } catch {
+          // Timed out — proceed; SW download handles its own retries.
+        }
+        const src =
+          videoEl.currentSrc ||
+          videoEl.src ||
+          videoEl.querySelector("source")?.src;
+        if (!src) {
+          setStatus("Video found but URL is empty — try again", "error");
+          return;
+        }
+        resolvedVideoSrc = src;
+        setStatus("Video ready — click Download to upload", "ready");
+        dlBtn.disabled = false;
+        dlBtn.style.background = "#34D399";
+        dlBtn.style.color = "#09090b";
+        dlBtn.style.opacity = "1";
+        dlBtn.style.cursor = "pointer";
+      });
+    }, 3000);
 
     dlBtn.addEventListener("click", () => {
       if (!resolvedVideoSrc) return;
@@ -127,6 +136,7 @@ function showOverlay(
     });
 
     cancelBtn.addEventListener("click", () => {
+      clearTimeout(watchTimer);
       stopWatching();
       host.remove();
       reject(new Error("Operator cancelled clip"));
@@ -225,7 +235,14 @@ function watchForVideo(
 
   function isNew(v: HTMLVideoElement): boolean {
     const src = v.src || v.querySelector("source")?.src || "";
-    return !!(src && !preExisting.has(src));
+    // Mirror the SW's placeholder check: Grok's default dancing-bear video is
+    // always served from imagine-public.x.ai/imagine-public/share-videos/.
+    // Real generated clips come from assets.grok.com/users/{id}/generated/.
+    return !!(
+      src &&
+      !preExisting.has(src) &&
+      !src.includes("imagine-public.x.ai/imagine-public/share-videos/")
+    );
   }
 
   function findNew(): HTMLVideoElement | null {
