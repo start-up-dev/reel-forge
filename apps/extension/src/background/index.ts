@@ -33,6 +33,9 @@ interface TabEntry {
   motionPrompt: string;
   textExcerpt: string | null;
   videoType: string | null;
+  characterSheetUrl: string | null;
+  characterSheetBytes: number[] | null;
+  characterSheetType: string;
   startedAt: number;
 }
 
@@ -149,6 +152,9 @@ async function openClipTab(clip: ClaimedClip, settings: ExtensionSettings): Prom
     motionPrompt: clip.motionPrompt,
     textExcerpt: clip.textExcerpt ?? null,
     videoType: clip.videoType ?? null,
+    characterSheetUrl: clip.characterSheetUrl ?? null,
+    characterSheetBytes: null,
+    characterSheetType: "image/png",
     startedAt: Date.now(),
   });
 
@@ -182,6 +188,30 @@ async function sendClipToTab(
   clip: ClaimedClip,
   settings: ExtensionSettings,
 ): Promise<void> {
+  // Pre-fetch character sheet so the content script can attach it synchronously
+  let characterSheetBytes: number[] | null = null;
+  let characterSheetType = "image/png";
+  if (clip.characterSheetUrl) {
+    try {
+      const res = await fetch(clip.characterSheetUrl);
+      if (res.ok) {
+        const arr = new Uint8Array(await res.arrayBuffer());
+        characterSheetBytes = Array.from(arr);
+        characterSheetType = res.headers.get("content-type") ?? "image/png";
+      }
+    } catch (err) {
+      console.warn("[SW] Character sheet fetch failed:", err);
+      // Non-fatal — proceed without character sheet
+    }
+  }
+
+  // Store bytes in tab entry for reference
+  const entry = activeTabs.get(tabId);
+  if (entry) {
+    entry.characterSheetBytes = characterSheetBytes;
+    entry.characterSheetType = characterSheetType;
+  }
+
   const msg = {
     type: "PROCESS_CLIP",
     clip,
@@ -190,6 +220,8 @@ async function sendClipToTab(
     operatorSecret: settings.operatorSecret,
     textExcerpt: clip.textExcerpt ?? null,
     videoType: clip.videoType ?? null,
+    characterSheetBytes,
+    characterSheetType,
   };
 
   chrome.tabs.sendMessage(tabId, msg).catch(() => {
@@ -464,7 +496,8 @@ type ContentMsg =
   | { type: "CLIP_DONE"; clipId: string }
   | { type: "CLIP_FAILED"; clipId: string; error: string }
   | { type: "SELECTOR_ERROR"; clipId: string; selectorName: string; selectorValue: string }
-  | { type: "UPLOAD_VIDEO"; clipId: string; videoUrl: string; backendUrl: string; operatorSecret: string };
+  | { type: "UPLOAD_VIDEO"; clipId: string; videoUrl: string; backendUrl: string; operatorSecret: string }
+  | { type: "ATTACH_IMAGE"; clipId: string; imageBytes: number[]; imageType: string };
 
 chrome.runtime.onMessage.addListener(
   (message: ContentMsg, sender, sendResponse) => {
@@ -512,6 +545,61 @@ chrome.runtime.onMessage.addListener(
           `Selector "${message.selectorName}" not found`,
         );
         sendResponse({ ok: true });
+        break;
+      }
+
+      // Content script requests image attachment via file input injection (MAIN world).
+      // The SW executes the injection script so it runs with the page's JS context.
+      case "ATTACH_IMAGE": {
+        const { clipId, imageBytes, imageType } = message;
+        void (async () => {
+          try {
+            const results = await chrome.scripting.executeScript({
+              target: { tabId },
+              world: "MAIN",
+              func: (bytes: number[], type: string, id: string): { ok: boolean; reason: string } => {
+                const input = document.querySelector<HTMLInputElement>('input[type="file"]');
+                if (!input) return { ok: false, reason: `No file input found for clip ${id}` };
+
+                const uint8 = new Uint8Array(bytes);
+                const blob = new Blob([uint8], { type });
+                const file = new File([blob], "character_sheet.png", { type });
+
+                const dt = new DataTransfer();
+                dt.items.add(file);
+                input.files = dt.files;
+
+                input.dispatchEvent(new Event("change", { bubbles: true }));
+                input.dispatchEvent(new Event("input", { bubbles: true }));
+
+                // Trigger React fiber onChange if present
+                const fiberKey = Object.keys(input).find((k) => k.startsWith("__reactFiber"));
+                if (fiberKey) {
+                  let fiber = (input as unknown as Record<string, { memoizedProps?: { onChange?: (e: Event) => void } } | null>)[fiberKey];
+                  while (fiber) {
+                    if (fiber.memoizedProps?.onChange) {
+                      fiber.memoizedProps.onChange(new Event("change", { bubbles: true }));
+                      break;
+                    }
+                    fiber = (fiber as unknown as { return?: typeof fiber }).return ?? null;
+                  }
+                }
+
+                return { ok: true, reason: "" };
+              },
+              args: [imageBytes, imageType, clipId],
+            });
+
+            const result = results[0]?.result;
+            if (result?.ok) {
+              sendResponse({ ok: true });
+            } else {
+              sendResponse({ ok: false, reason: result?.reason ?? "Attachment failed" });
+            }
+          } catch (err) {
+            sendResponse({ ok: false, reason: err instanceof Error ? err.message : String(err) });
+          }
+        })();
         break;
       }
 

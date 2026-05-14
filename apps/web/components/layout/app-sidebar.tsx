@@ -5,8 +5,10 @@ import { usePathname } from "next/navigation";
 import {
   FolderOpen,
   Library,
+  Radio,
   Settings,
   CreditCard,
+  UserSquare2,
   Zap,
   TrendingUp,
 } from "lucide-react";
@@ -16,6 +18,8 @@ import { cn } from "@repo/ui/utils";
 const navItems = [
   { href: "/dashboard", label: "Projects", icon: FolderOpen },
   { href: "/library", label: "My Videos", icon: Library },
+  { href: "/channels", label: "Channels", icon: Radio },
+  { href: "/brands", label: "Brand Profiles", icon: UserSquare2 },
   { href: "/settings", label: "Settings", icon: Settings },
   { href: "/billing", label: "Billing", icon: CreditCard },
 ];

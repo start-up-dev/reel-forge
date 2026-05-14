@@ -4,23 +4,30 @@ import { toast } from "sonner";
 import type {
   ActionReelStyle,
   ApiResponse,
+  BrandProfile,
+  CharacterType,
+  ContentFormat,
+  ContentPlan,
+  ContentTone,
+  FacebookPage,
   PaginatedResponse,
+  PostSchedule,
+  PostType,
   Project,
   RenderStyle,
   Scene,
+  SocialAccount,
   SubtitleStyle,
+  TargetAudienceAge,
+  TargetAudienceVibe,
+  TopicEntry,
   User,
   Video,
   VideoType,
+  VisualStyle,
 } from "@repo/types";
 
-export interface VoiceInfo {
-  id: string;
-  name: string;
-  language: string;
-  gender: string | null;
-  previewUrl: string | null;
-}
+export type VideoLibraryItem = Video & { postSchedule: PostSchedule | null };
 
 export type VideoDetail = Video & {
   scenes: Scene[];
@@ -104,16 +111,6 @@ export function createApiClient(getToken: () => Promise<string | null>) {
     return request<T>(path, { ...options, token: token ?? undefined });
   }
 
-  async function authedBlobUrl(path: string): Promise<string> {
-    const token = await getToken();
-    const res = await fetch(`${API_BASE}${path}`, {
-      headers: token ? { Authorization: `Bearer ${token}` } : {},
-    });
-    if (!res.ok) throw new ApiError(res.status, `Failed to fetch audio (${res.status})`);
-    const blob = await res.blob();
-    return URL.createObjectURL(blob);
-  }
-
   return {
     // ── Projects ──────────────────────────────────────────────────────────
     projects: {
@@ -124,7 +121,7 @@ export function createApiClient(getToken: () => Promise<string | null>) {
         return authedRequest(`/api/projects/${id}`);
       },
       create(
-        data: Pick<Project, "name" | "platforms" | "niche" | "tone"> & Partial<Pick<Project, "voiceId" | "language" | "targetAudience" | "videoStyle">>
+        data: Pick<Project, "name" | "platforms" | "niche" | "tone"> & Partial<Pick<Project, "language" | "targetAudience" | "videoStyle">>
       ): Promise<ApiResponse<Project>> {
         return authedRequest("/api/projects", {
           method: "POST",
@@ -133,7 +130,7 @@ export function createApiClient(getToken: () => Promise<string | null>) {
       },
       update(
         id: string,
-        data: Partial<Pick<Project, "name" | "platforms" | "niche" | "voiceId" | "tone" | "language" | "targetAudience" | "videoStyle">>
+        data: Partial<Pick<Project, "name" | "platforms" | "niche" | "tone" | "language" | "targetAudience" | "videoStyle">>
       ): Promise<ApiResponse<Project>> {
         return authedRequest(`/api/projects/${id}`, {
           method: "PUT",
@@ -181,7 +178,6 @@ export function createApiClient(getToken: () => Promise<string | null>) {
             | "bgmEnabled"
             | "bgmAssetId"
             | "bgmVolume"
-            | "voiceId"
             | "targetDurationSeconds"
             | "renderStyle"
             | "videoType"
@@ -221,9 +217,6 @@ export function createApiClient(getToken: () => Promise<string | null>) {
           body: JSON.stringify(data),
         });
       },
-      generateVoice(id: string): Promise<ApiResponse<Video>> {
-        return authedRequest(`/api/videos/${id}/voice`, { method: "POST" });
-      },
       generateScenes(id: string): Promise<ApiResponse<VideoDetail>> {
         return authedRequest(`/api/videos/${id}/scenes`, { method: "POST" });
       },
@@ -235,6 +228,18 @@ export function createApiClient(getToken: () => Promise<string | null>) {
           method: "POST",
           body: JSON.stringify({ contentType }),
         });
+      },
+      post(
+        id: string,
+        data: { socialAccountId: string; postType: PostType; scheduledAt?: string }
+      ): Promise<ApiResponse<{ postSchedule: PostSchedule }>> {
+        return authedRequest(`/api/videos/${id}/post`, {
+          method: "POST",
+          body: JSON.stringify(data),
+        });
+      },
+      postStatus(id: string): Promise<ApiResponse<PostSchedule[]>> {
+        return authedRequest(`/api/videos/${id}/post-status`);
       },
     },
 
@@ -286,14 +291,6 @@ export function createApiClient(getToken: () => Promise<string | null>) {
       bgm(): Promise<ApiResponse<unknown[]>> {
         return authedRequest("/api/assets/bgm");
       },
-      voices(language?: string): Promise<ApiResponse<VoiceInfo[]>> {
-        const qs = language ? `?language=${encodeURIComponent(language)}` : "";
-        return authedRequest(`/api/assets/voices${qs}`);
-      },
-      voicePreviewBlobUrl(voiceId: string, language?: string): Promise<string> {
-        const qs = language ? `?language=${encodeURIComponent(language)}` : "";
-        return authedBlobUrl(`/api/assets/voices/${voiceId}/preview${qs}`);
-      },
     },
 
     // ── Billing ───────────────────────────────────────────────────────────
@@ -329,7 +326,7 @@ export function createApiClient(getToken: () => Promise<string | null>) {
         projectId?: string;
         status?: string;
         search?: string;
-      }): Promise<PaginatedResponse<Video>> {
+      }): Promise<PaginatedResponse<VideoLibraryItem>> {
         const qs = new URLSearchParams();
         if (params?.page) qs.set("page", String(params.page));
         if (params?.limit) qs.set("limit", String(params.limit));
@@ -338,6 +335,157 @@ export function createApiClient(getToken: () => Promise<string | null>) {
         if (params?.search) qs.set("search", params.search);
         const query = qs.toString() ? `?${qs}` : "";
         return authedRequest(`/api/videos${query}`);
+      },
+    },
+
+    // ── Brand profiles ────────────────────────────────────────────────────
+    brands: {
+      list(): Promise<ApiResponse<BrandProfile[]>> {
+        return authedRequest("/api/brand-profiles");
+      },
+      get(id: string): Promise<ApiResponse<BrandProfile & { characterSheetUrl: string | null }>> {
+        return authedRequest(`/api/brand-profiles/${id}`);
+      },
+      create(data: {
+        name: string;
+        niche: string;
+        tone: ContentTone;
+        visualStyle: VisualStyle;
+        characterType: CharacterType;
+        socialAccountId?: string;
+        nicheDescription?: string;
+        targetAudienceAge?: TargetAudienceAge;
+        targetAudienceVibe?: TargetAudienceVibe;
+        characterDescription?: string;
+        primaryColor?: string;
+        secondaryColor?: string;
+        referenceVideoUrl?: string;
+      }): Promise<ApiResponse<BrandProfile>> {
+        return authedRequest("/api/brand-profiles", {
+          method: "POST",
+          body: JSON.stringify(data),
+        });
+      },
+      update(
+        id: string,
+        data: Partial<{
+          name: string;
+          niche: string;
+          tone: ContentTone;
+          visualStyle: VisualStyle;
+          characterType: CharacterType;
+          socialAccountId: string;
+          nicheDescription: string;
+          targetAudienceAge: TargetAudienceAge;
+          targetAudienceVibe: TargetAudienceVibe;
+          characterDescription: string;
+          primaryColor: string;
+          secondaryColor: string;
+          referenceVideoUrl: string;
+          logoGcsPath: string;
+        }>
+      ): Promise<ApiResponse<BrandProfile>> {
+        return authedRequest(`/api/brand-profiles/${id}`, {
+          method: "PATCH",
+          body: JSON.stringify(data),
+        });
+      },
+      delete(id: string): Promise<ApiResponse<{ ok: boolean }>> {
+        return authedRequest(`/api/brand-profiles/${id}`, { method: "DELETE" });
+      },
+      logoUploadUrl(
+        id: string,
+        contentType: "image/jpeg" | "image/png" | "image/webp"
+      ): Promise<ApiResponse<{ uploadUrl: string; gcsPath: string }>> {
+        return authedRequest(`/api/brand-profiles/${id}/logo-upload-url`, {
+          method: "POST",
+          body: JSON.stringify({ contentType }),
+        });
+      },
+      completeOnboarding(id: string): Promise<ApiResponse<{ ok: boolean }>> {
+        return authedRequest(`/api/brand-profiles/${id}/complete-onboarding`, {
+          method: "POST",
+        });
+      },
+      generateCharacterSheet(id: string): Promise<ApiResponse<{ characterSheetUrl: string }>> {
+        return authedRequest(`/api/brand-profiles/${id}/generate-character-sheet`, {
+          method: "POST",
+        });
+      },
+      characterSheetUrl(id: string): Promise<ApiResponse<{ url: string | null; generationCount: number }>> {
+        return authedRequest(`/api/brand-profiles/${id}/character-sheet-url`);
+      },
+    },
+
+    // ── Content Plans ─────────────────────────────────────────────────────
+    contentPlans: {
+      create(data: {
+        brandProfileId: string;
+        postsPerDay: 1 | 2 | 3 | 5;
+      }): Promise<ApiResponse<ContentPlan>> {
+        return authedRequest("/api/content-plans", {
+          method: "POST",
+          body: JSON.stringify(data),
+        });
+      },
+      listForBrand(brandId: string): Promise<ApiResponse<ContentPlan[]>> {
+        return authedRequest(`/api/brand-profiles/${brandId}/content-plans`);
+      },
+      get(id: string): Promise<ApiResponse<ContentPlan & { videos: Array<{ id: string; title: string; status: string; outputUrl: string | null; contentPlanId: string | null }> }>> {
+        return authedRequest(`/api/content-plans/${id}`);
+      },
+      overrideTopic(
+        id: string,
+        index: number,
+        data: Partial<Pick<TopicEntry, "title" | "hook" | "angle" | "scriptOutline"> & { format: ContentFormat }>
+      ): Promise<ApiResponse<ContentPlan>> {
+        return authedRequest(`/api/content-plans/${id}/topics/${index}`, {
+          method: "PATCH",
+          body: JSON.stringify(data),
+        });
+      },
+      regenerate(id: string): Promise<ApiResponse<ContentPlan>> {
+        return authedRequest(`/api/content-plans/${id}/regenerate`, { method: "POST" });
+      },
+      approve(
+        id: string,
+        data?: { postType?: PostType }
+      ): Promise<ApiResponse<{ ok: boolean; videoIds: string[] }>> {
+        return authedRequest(`/api/content-plans/${id}/approve`, {
+          method: "POST",
+          body: JSON.stringify(data ?? {}),
+        });
+      },
+      delete(id: string): Promise<ApiResponse<{ ok: boolean }>> {
+        return authedRequest(`/api/content-plans/${id}`, { method: "DELETE" });
+      },
+    },
+
+    // ── Social accounts ───────────────────────────────────────────────────
+    social: {
+      authorize(): Promise<ApiResponse<{ authUrl: string }>> {
+        return authedRequest("/api/auth/facebook/authorize");
+      },
+      callback(code: string, state: string): Promise<ApiResponse<{ pages: FacebookPage[] }>> {
+        const qs = new URLSearchParams({ code, state });
+        return authedRequest(`/api/auth/facebook/callback?${qs.toString()}`);
+      },
+      connect(data: {
+        pageId: string;
+        pageName: string;
+        pageAvatarUrl?: string;
+        accessToken: string;
+      }): Promise<ApiResponse<SocialAccount>> {
+        return authedRequest("/api/social/facebook/connect", {
+          method: "POST",
+          body: JSON.stringify(data),
+        });
+      },
+      list(): Promise<ApiResponse<SocialAccount[]>> {
+        return authedRequest("/api/social/accounts");
+      },
+      disconnect(id: string): Promise<ApiResponse<{ ok: boolean }>> {
+        return authedRequest(`/api/social/accounts/${id}`, { method: "DELETE" });
       },
     },
   };

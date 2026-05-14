@@ -1,19 +1,17 @@
-import { and, asc, desc, eq, ilike, isNull, sql } from "drizzle-orm";
+import { and, asc, desc, eq, ilike, inArray, isNull, sql } from "drizzle-orm";
 import type { FastifyInstance } from "fastify";
 import { z } from "zod";
 import type { SnapshotClip } from "@repo/types";
 import { db } from "../lib/db/index.js";
-import { clipRequests, projects, scenes, users, videos } from "../lib/db/schema.js";
+import { clipRequests, postSchedules, projects, scenes, users, videos } from "../lib/db/schema.js";
 import { checkQuota } from "../lib/quota.js";
 import {
   ASSET_URL_TTL_MINUTES,
   generateSignedReadUrl,
   generateSignedUploadUrl,
-  uploadBuffer,
 } from "../lib/storage.js";
 import { subscribeToVideo } from "../lib/clip-events.js";
-import { generateIdeas, generateScript, generateTitle, generateUGCCharacter, splitScenes } from "../services/claude.js";
-import { generateVoiceover } from "../services/elevenlabs.js";
+import { generateIdeas, generateScript, generateTitle, generateUGCCharacter, splitScenes, generateDialogueSegments } from "../services/claude.js";
 
 const createVideoBody = z.object({
   title: z.string().min(1).max(200).default("Untitled Video"),
@@ -23,47 +21,6 @@ const createVideoBody = z.object({
 });
 
 const PAGE_SIZE = 20;
-
-
-// ─── Background: voice generation ────────────────────────────────────────────
-
-async function processVoice(videoId: string, script: string, voiceId: string): Promise<void> {
-  try {
-    const { audioBuffer, wordTimestamps, durationSeconds } = await generateVoiceover(
-      script,
-      voiceId,
-    );
-    const audioPath = `videos/${videoId}/audio.mp3`;
-    const timestampsPath = `videos/${videoId}/word_timestamps.json`;
-
-    await uploadBuffer(audioPath, audioBuffer, "audio/mpeg");
-    await uploadBuffer(
-      timestampsPath,
-      Buffer.from(JSON.stringify(wordTimestamps)),
-      "application/json",
-    );
-
-    const [audioUrl, wordTimestampsUrl] = await Promise.all([
-      generateSignedReadUrl(audioPath, ASSET_URL_TTL_MINUTES),
-      generateSignedReadUrl(timestampsPath, ASSET_URL_TTL_MINUTES),
-    ]);
-
-    await db
-      .update(videos)
-      .set({ audioUrl, wordTimestampsUrl, durationSeconds, status: "VOICE_READY", updatedAt: new Date() })
-      .where(eq(videos.id, videoId));
-  } catch (err) {
-    console.error("[processVoice] error:", err);
-    await db
-      .update(videos)
-      .set({
-        status: "FAILED",
-        error: err instanceof Error ? err.message : "Voice generation failed",
-        updatedAt: new Date(),
-      })
-      .where(eq(videos.id, videoId));
-  }
-}
 
 // ─── Background: scene generation ────────────────────────────────────────────
 
@@ -132,6 +89,21 @@ async function processScenes(
       .update(videos)
       .set({ sceneCount: inserted.length, updatedAt: new Date() })
       .where(eq(videos.id, videoId));
+
+    // Generate per-scene dialogue segments (best-effort; errors are non-fatal)
+    if (script && inserted.length > 0 && videoType !== "action_reel") {
+      try {
+        const segments = await generateDialogueSegments(script, inserted.length);
+        if (segments.length > 0) {
+          await db
+            .update(videos)
+            .set({ dialogueSegments: segments, updatedAt: new Date() })
+            .where(eq(videos.id, videoId));
+        }
+      } catch (err) {
+        console.warn(`[processScenes] dialogue segment generation failed for video ${videoId}:`, err);
+      }
+    }
 
     await db
       .update(videos)
@@ -373,8 +345,22 @@ export async function videosRoutes(fastify: FastifyInstance): Promise<void> {
         .where(and(...conditions));
       const total = countResult[0]?.count ?? 0;
 
+      // Attach latest post_schedule per video (one extra query, not N+1)
+      const videoIds = rows.map((r) => r.id);
+      const scheduleRows = videoIds.length > 0
+        ? await db
+            .select()
+            .from(postSchedules)
+            .where(inArray(postSchedules.videoId, videoIds))
+            .orderBy(desc(postSchedules.createdAt))
+        : [];
+      const scheduleMap = new Map<string, typeof scheduleRows[0]>();
+      for (const s of scheduleRows) {
+        if (!scheduleMap.has(s.videoId)) scheduleMap.set(s.videoId, s);
+      }
+
       return reply.send({
-        data: rows,
+        data: rows.map((r) => ({ ...r, postSchedule: scheduleMap.get(r.id) ?? null })),
         total,
         page,
         pageSize: PAGE_SIZE,
@@ -400,7 +386,6 @@ export async function videosRoutes(fastify: FastifyInstance): Promise<void> {
         bgmEnabled: z.boolean().optional(),
         bgmAssetId: z.string().nullable().optional(),
         bgmVolume: z.number().int().min(0).max(100).optional(),
-        voiceId: z.string().nullable().optional(),
         targetDurationSeconds: z.number().int()
           .refine(v => [15, 30, 45, 60].includes(v))
           .optional(),
@@ -584,78 +569,6 @@ export async function videosRoutes(fastify: FastifyInstance): Promise<void> {
     },
   );
 
-  // POST /api/videos/:id/voice — generate voiceover via ElevenLabs (async)
-  fastify.post<{ Params: { id: string } }>(
-    "/videos/:id/voice",
-    async (request, reply) => {
-      const user = request.currentUser!;
-      const { id } = request.params;
-
-      const [video] = await db
-        .select()
-        .from(videos)
-        .where(
-          and(eq(videos.id, id), eq(videos.userId, user.id), isNull(videos.deletedAt)),
-        )
-        .limit(1);
-
-      if (!video) {
-        return reply.status(404).send({
-          error: { code: "NOT_FOUND", message: "Video not found." },
-        });
-      }
-      if (video.videoType === "talking" || video.videoType === "action_reel") {
-        return reply.status(400).send({
-          error: {
-            code: "NOT_APPLICABLE",
-            message: video.videoType === "action_reel"
-              ? "Action Reel videos are silent — no voice generation needed."
-              : "Talking videos generate voice via Grok Imagine lipsync — ElevenLabs voiceover is not used.",
-          },
-        });
-      }
-
-      // Allow rolling back to voice from any post-voice state (including stuck SCENES_PENDING)
-      const voiceAllowedStates = ["SCRIPT_READY", "VOICE_READY", "SCENES_PENDING", "SCENES_READY", "FAILED"];
-      if (!voiceAllowedStates.includes(video.status)) {
-        return reply.status(409).send({
-          error: {
-            code: "INVALID_STATE",
-            message: `Video must be in SCRIPT_READY or a later state to regenerate voice (currently: ${video.status}).`,
-          },
-        });
-      }
-      if (!video.script) {
-        return reply.status(409).send({
-          error: { code: "NO_SCRIPT", message: "Video has no script." },
-        });
-      }
-
-      const [project] = await db
-        .select({ voiceId: projects.voiceId })
-        .from(projects)
-        .where(eq(projects.id, video.projectId))
-        .limit(1);
-
-      const voiceId = video.voiceId ?? project?.voiceId;
-      if (!voiceId) {
-        return reply.status(409).send({
-          error: { code: "NO_VOICE", message: "Select a voice in Step 1 before generating audio." },
-        });
-      }
-
-      await db
-        .update(videos)
-        .set({ status: "VOICE_PENDING", updatedAt: new Date() })
-        .where(eq(videos.id, id));
-
-      // Fire and forget — client polls status via SSE
-      void processVoice(id, video.script, voiceId);
-
-      return reply.status(202).send({ data: { videoId: id, status: "VOICE_PENDING" } });
-    },
-  );
-
   // POST /api/videos/:id/scenes — split script into scenes and generate base images (async)
   fastify.post<{ Params: { id: string } }>(
     "/videos/:id/scenes",
@@ -676,16 +589,13 @@ export async function videosRoutes(fastify: FastifyInstance): Promise<void> {
           error: { code: "NOT_FOUND", message: "Video not found." },
         });
       }
-      // Talking and Action Reel videos skip voice (no ElevenLabs) so they arrive here from SCRIPT_READY.
-      // Generated videos require VOICE_READY (ElevenLabs completed).
-      const scenesAllowedStates = (video.videoType === "talking" || video.videoType === "action_reel")
-        ? ["SCRIPT_READY", "SCENES_PENDING", "SCENES_READY", "FAILED"]
-        : ["VOICE_READY", "SCENES_PENDING", "SCENES_READY", "FAILED"];
+      // All video types proceed from SCRIPT_READY (voice step removed).
+      const scenesAllowedStates = ["SCRIPT_READY", "VOICE_READY", "SCENES_PENDING", "SCENES_READY", "FAILED"];
       if (!scenesAllowedStates.includes(video.status)) {
         return reply.status(409).send({
           error: {
             code: "INVALID_STATE",
-            message: `Video must be in the correct state to generate scenes (currently: ${video.status}).`,
+            message: `Video must be in SCRIPT_READY state to generate scenes (currently: ${video.status}).`,
           },
         });
       }
@@ -705,13 +615,11 @@ export async function videosRoutes(fastify: FastifyInstance): Promise<void> {
         });
       }
 
-      // Talking and Action Reel videos have no ElevenLabs duration; use targetDurationSeconds as the scene-split budget.
-      const effectiveDuration = (video.videoType === "talking" || video.videoType === "action_reel")
-        ? video.targetDurationSeconds
-        : video.durationSeconds;
+      // All video types use targetDurationSeconds (voice step removed; no ElevenLabs duration).
+      const effectiveDuration = video.targetDurationSeconds;
       if (!effectiveDuration) {
         return reply.status(409).send({
-          error: { code: "NO_DURATION", message: "Video duration not yet set — voice must complete first." },
+          error: { code: "NO_DURATION", message: "Video has no target duration set." },
         });
       }
 
@@ -992,15 +900,30 @@ export async function videosRoutes(fastify: FastifyInstance): Promise<void> {
         });
       }
 
-      const clipValues = approvedScenes.map((scene) => ({
-        videoId: id,
-        userId: user.id,
-        sceneIndex: scene.sceneIndex,
-        visualPrompt: scene.visualPrompt,
-        motionPrompt: scene.motionPrompt,
-        status: "queued" as const,
-        queuedAt: new Date(),
-      }));
+      // Build dialogue lookup from stored segments
+      const dialogueMap = new Map<number, string>();
+      if (video.dialogueSegments) {
+        const segs = video.dialogueSegments as { sceneIndex: number; dialogue: string }[];
+        for (const seg of segs) {
+          dialogueMap.set(seg.sceneIndex, seg.dialogue);
+        }
+      }
+
+      const clipValues = approvedScenes.map((scene) => {
+        const dialogue = dialogueMap.get(scene.sceneIndex);
+        const motionPrompt = dialogue
+          ? `The character speaks these exact words directly to camera: "${dialogue}"\n\n${scene.motionPrompt}`
+          : scene.motionPrompt;
+        return {
+          videoId: id,
+          userId: user.id,
+          sceneIndex: scene.sceneIndex,
+          visualPrompt: scene.visualPrompt,
+          motionPrompt,
+          status: "queued" as const,
+          queuedAt: new Date(),
+        };
+      });
 
       await db.insert(clipRequests).values(clipValues);
 

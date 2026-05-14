@@ -93,25 +93,13 @@ export function Step2Script({
       () => api.videos.patch(video.id, { script }),
       "Failed to save script"
     );
-    if (video.videoType === VideoType.Talking || video.videoType === VideoType.ActionReel) {
-      // Talking and Action Reel videos skip ElevenLabs — go straight to scene generation
-      const result = await withToast(
-        () => api.videos.generateScenes(video.id),
-        "Failed to start scene generation"
-      );
-      if (result) {
-        onVideoUpdate({ ...video, status: VideoStatus.ScenesPending, scenes: [] });
-        onAdvance();
-      }
-    } else {
-      const result = await withToast(
-        () => api.videos.generateVoice(video.id),
-        "Failed to start voice generation"
-      );
-      if (result?.data) {
-        onVideoUpdate({ ...video, ...result.data, scenes: video.scenes });
-        onAdvance();
-      }
+    const result = await withToast(
+      () => api.videos.generateScenes(video.id),
+      "Failed to start scene generation"
+    );
+    if (result) {
+      onVideoUpdate({ ...video, status: VideoStatus.ScenesPending, scenes: [] });
+      onAdvance();
     }
     setApproving(false);
   }

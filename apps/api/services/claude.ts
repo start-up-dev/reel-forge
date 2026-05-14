@@ -1,7 +1,7 @@
 import Anthropic from "@anthropic-ai/sdk";
 import { jsonrepair } from "jsonrepair";
 import { env } from "../lib/env.js";
-import type { ProjectRow } from "../lib/db/schema.js";
+import type { BrandProfileRow, ProjectRow } from "../lib/db/schema.js";
 import {
   buildIdeasMessages,
   buildScriptMessages,
@@ -9,8 +9,8 @@ import {
   buildTalkingSceneMessages,
   buildActionReelSceneMessages,
   buildUGCCharacterDescriptionPrompt,
-  isBengali,
 } from "../prompts/index.js";
+import { buildWeekPlanMessages } from "../prompts/content-plan.js";
 
 const client = new Anthropic({ apiKey: env.ANTHROPIC_API_KEY });
 
@@ -130,6 +130,128 @@ export async function generateTitle(idea: string): Promise<string> {
   });
   const title = message.content[0]?.type === "text" ? message.content[0].text.trim() : "";
   return title || "Untitled Video";
+}
+
+// ─── Dialogue segment generation ─────────────────────────────────────────────
+
+export interface DialogueSegment {
+  sceneIndex: number;
+  dialogue: string;
+}
+
+export async function generateDialogueSegments(
+  script: string,
+  sceneCount: number,
+): Promise<DialogueSegment[]> {
+  const message = await client.messages.create({
+    model: "claude-sonnet-4-6",
+    max_tokens: 500,
+    system:
+      "You are a script editor. Given a script and a number of scenes, break the narration into exactly N segments, one per scene. Return a JSON array: [{\"sceneIndex\": 0, \"dialogue\": \"...\"}, ...]. Each segment should be 1–3 sentences. The segments in order must together cover the full script.",
+    messages: [
+      {
+        role: "user",
+        content: `Split this script into exactly ${sceneCount} segments.\n\nSCRIPT:\n${script}\n\nReturn only the JSON array, no other text.`,
+      },
+    ],
+  });
+
+  const raw = message.content[0]?.type === "text" ? message.content[0].text.trim() : "[]";
+  try {
+    const parsed = JSON.parse(raw) as unknown;
+    if (Array.isArray(parsed)) {
+      return parsed as DialogueSegment[];
+    }
+  } catch {
+    // return empty if parse fails
+  }
+  return [];
+}
+
+// ─── Week plan generation ─────────────────────────────────────────────────────
+
+export interface TopicEntry {
+  index: number;
+  day: number;
+  slot: number;
+  title: string;
+  hook: string;
+  format: string;
+  angle: string;
+  scriptOutline: string;
+  overridden: boolean;
+}
+
+const VALID_FORMATS = new Set(["ugc", "montage", "tutorial", "story"]);
+
+function isValidTopic(t: unknown): t is TopicEntry {
+  if (!t || typeof t !== "object") return false;
+  const o = t as Record<string, unknown>;
+  return (
+    typeof o.index === "number" &&
+    typeof o.day === "number" &&
+    typeof o.slot === "number" &&
+    typeof o.title === "string" && o.title.length > 0 &&
+    typeof o.hook === "string" && o.hook.length > 0 &&
+    typeof o.format === "string" && VALID_FORMATS.has(o.format) &&
+    typeof o.angle === "string" &&
+    typeof o.scriptOutline === "string"
+  );
+}
+
+export async function generateWeekPlan(
+  brand: BrandProfileRow,
+  postsPerDay: number,
+  weekStartDate: string,
+): Promise<TopicEntry[]> {
+  const { system, messages } = buildWeekPlanMessages(brand, postsPerDay, weekStartDate);
+
+  const message = await client.messages.create({
+    model: "claude-sonnet-4-6",
+    max_tokens: 8000,
+    system,
+    messages,
+  });
+
+  if (message.stop_reason === "max_tokens") {
+    throw new Error("Week plan generation was truncated (max_tokens). Reduce posts per day or try again.");
+  }
+
+  const raw = message.content[0]?.type === "text" ? message.content[0].text.trim() : "[]";
+
+  let parsed: unknown = null;
+  try {
+    parsed = JSON.parse(raw);
+  } catch {
+    try {
+      parsed = JSON.parse(jsonrepair(raw));
+    } catch {
+      throw new Error("Week plan generation returned unparseable JSON.");
+    }
+  }
+
+  if (!Array.isArray(parsed)) throw new Error("Week plan generation did not return a JSON array.");
+
+  const topics = (parsed as unknown[]).map((t, i) => {
+    const entry = t as Record<string, unknown>;
+    return {
+      index: typeof entry.index === "number" ? entry.index : i,
+      day: typeof entry.day === "number" ? entry.day : Math.floor(i / postsPerDay) + 1,
+      slot: typeof entry.slot === "number" ? entry.slot : (i % postsPerDay) + 1,
+      title: typeof entry.title === "string" ? entry.title : `Topic ${i + 1}`,
+      hook: typeof entry.hook === "string" ? entry.hook : "",
+      format: typeof entry.format === "string" ? entry.format : "ugc",
+      angle: typeof entry.angle === "string" ? entry.angle : "",
+      scriptOutline: typeof entry.scriptOutline === "string" ? entry.scriptOutline : "",
+      overridden: false,
+    };
+  });
+
+  if (!topics.every(isValidTopic)) {
+    throw new Error("Week plan generation returned topics with missing required fields.");
+  }
+
+  return topics;
 }
 
 // ─── Scene splitting ──────────────────────────────────────────────────────────

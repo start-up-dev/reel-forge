@@ -1,5 +1,4 @@
 import { SignUp } from "@clerk/nextjs";
-import { Zap } from "lucide-react";
 
 export default function SignUpPage() {
   return (

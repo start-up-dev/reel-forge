@@ -120,6 +120,48 @@
       "when": 1746748800000,
       "tag": "0016_nullable_clip_base_image",
       "breakpoints": true
+    },
+    {
+      "idx": 17,
+      "version": "7",
+      "when": 1747180800000,
+      "tag": "0017_remove_voiceover",
+      "breakpoints": true
+    },
+    {
+      "idx": 18,
+      "version": "7",
+      "when": 1747267200000,
+      "tag": "0018_social_accounts",
+      "breakpoints": true
+    },
+    {
+      "idx": 19,
+      "version": "7",
+      "when": 1747353600000,
+      "tag": "0019_brand_profiles",
+      "breakpoints": true
+    },
+    {
+      "idx": 20,
+      "version": "7",
+      "when": 1747440000000,
+      "tag": "0020_character_sheet_counter",
+      "breakpoints": true
+    },
+    {
+      "idx": 21,
+      "version": "7",
+      "when": 1747526400000,
+      "tag": "0021_content_plans",
+      "breakpoints": true
+    },
+    {
+      "idx": 22,
+      "version": "7",
+      "when": 1747612800000,
+      "tag": "0022_post_schedules",
+      "breakpoints": true
     }
   ]
 }

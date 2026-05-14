@@ -50,14 +50,19 @@ const envSchema = z.object({
   // Claude / Anthropic
   ANTHROPIC_API_KEY: z.string().min(1),
 
+  // OpenAI (GPT-image-2 character sheet generation)
+  OPENAI_API_KEY: z.string().min(1).optional(),
+
   // Claude Skills (from Anthropic Console — PLACEHOLDER_ prefix triggers fallback)
   CLAUDE_SKILL_SCRIPT_BENGALI: z.string().default("skill_01UG5GQFxCxtoBTxUnYHY15r"),
   CLAUDE_SKILL_SCRIPT_ENGLISH: z.string().default("PLACEHOLDER_ENGLISH_SCRIPT_SKILL_ID"),
   CLAUDE_SKILL_GROK_PROMPTS: z.string().default("PLACEHOLDER_GROK_PROMPT_SKILL_ID"),
   CLAUDE_SKILL_IDEAS: z.string().default("PLACEHOLDER_IDEA_GENERATOR_SKILL_ID"),
 
-  // ElevenLabs
-  ELEVENLABS_API_KEY: z.string().min(1),
+  // Facebook OAuth
+  FACEBOOK_APP_ID: z.string().min(1).optional(),
+  FACEBOOK_APP_SECRET: z.string().min(1).optional(),
+  FACEBOOK_REDIRECT_URI: z.string().url().optional(),
 
   // App URLs
   NEXT_PUBLIC_APP_URL: z.string().url().default("http://localhost:3000"),

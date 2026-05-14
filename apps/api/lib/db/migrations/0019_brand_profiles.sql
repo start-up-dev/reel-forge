@@ -1,0 +1,22 @@
+CREATE TABLE "brand_profiles" (
+  "id"                       uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  "user_id"                  text NOT NULL REFERENCES "users"("id") ON DELETE CASCADE,
+  "social_account_id"        uuid REFERENCES "social_accounts"("id") ON DELETE SET NULL,
+  "name"                     text NOT NULL,
+  "niche"                    text NOT NULL,
+  "niche_description"        text,
+  "target_audience_age"      text,
+  "target_audience_vibe"     text,
+  "tone"                     text NOT NULL,
+  "visual_style"             text NOT NULL,
+  "character_type"           text NOT NULL,
+  "character_description"    text,
+  "character_sheet_gcs_path" text,
+  "logo_gcs_path"            text,
+  "primary_color"            text,
+  "secondary_color"          text,
+  "reference_video_url"      text,
+  "onboarding_complete"      boolean NOT NULL DEFAULT false,
+  "created_at"               timestamp NOT NULL DEFAULT now(),
+  "updated_at"               timestamp NOT NULL DEFAULT now()
+);

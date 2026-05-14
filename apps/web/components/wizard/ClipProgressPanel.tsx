@@ -109,7 +109,6 @@ export function ClipProgressPanel({
               {/* Video preview for done clips */}
               {status === "done" && clip?.clipUrl ? (
                 <div className="w-full overflow-hidden rounded" style={{ aspectRatio: "16/9" }}>
-                  {/* eslint-disable-next-line jsx-a11y/media-has-caption */}
                   <video
                     src={clip.clipUrl}
                     autoPlay

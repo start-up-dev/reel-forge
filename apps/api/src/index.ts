@@ -13,9 +13,12 @@ import { requireAuth } from "../lib/auth.js";
 import { adminRoutes } from "../routes/admin.js";
 import { assetsRoutes } from "../routes/assets.js";
 import { billingRoutes } from "../routes/billing.js";
+import { brandsRoutes } from "../routes/brands.js";
+import { contentPlansRoutes } from "../routes/content-plans.js";
 import { jobsRoutes } from "../routes/jobs.js";
 import { operatorRoutes } from "../routes/operator.js";
 import { projectsRoutes } from "../routes/projects.js";
+import { socialRoutes } from "../routes/social.js";
 import { usersRoutes } from "../routes/users.js";
 import { videosRoutes } from "../routes/videos.js";
 
@@ -111,6 +114,9 @@ await app.register(async (authScope) => {
   await authScope.register(projectsRoutes, { prefix: "/api" });
   await authScope.register(videosRoutes, { prefix: "/api" });
   await authScope.register(assetsRoutes, { prefix: "/api" });
+  await authScope.register(socialRoutes, { prefix: "/api" });
+  await authScope.register(brandsRoutes, { prefix: "/api" });
+  await authScope.register(contentPlansRoutes, { prefix: "/api" });
 });
 
 // ─── Start ────────────────────────────────────────────────────────────────────

@@ -1,5 +1,7 @@
 // ─── Enums ───────────────────────────────────────────────────────────────────
 
+export type SocialPlatform = "facebook" | "tiktok";
+
 export enum PlanType {
   None = "none",
   TryOut = "try_out",
@@ -183,7 +185,6 @@ export interface Project {
   targetAudience: string;
   videoStyle: VideoStyle;
   tone: Tone;
-  voiceId: string | null;
   defaultSubtitleStyle: SubtitleStyle | null;
   defaultBgmEnabled: boolean;
   defaultBgmAssetId: string | null;
@@ -201,23 +202,21 @@ export interface Video {
   status: VideoStatus;
   idea: string | null;
   script: string | null;
-  audioUrl: string | null;
-  wordTimestampsUrl: string | null;
   durationSeconds: number | null;
   subtitleStyle: SubtitleStyle;
   bgmEnabled: boolean;
   bgmAssetId: string | null;
-  bgmVolume: number;                // integer 0–100, default 15 (15% BGM mix)
-  targetDurationSeconds: number;    // 15 | 30 | 45 | 60
-  videoType: VideoType;             // "generated" | "talking" | "action_reel"
-  ugcVisualStyle: UGCVisualStyle | null; // only set when videoType === "talking"
-  actionReelStyle: ActionReelStyle | null; // only set when videoType === "action_reel"
-  ugcCharacterDescription: string | null; // pre-generated character description for UGC consistency
-  sceneCount: number;                // total scenes; set when scenes are inserted
-  voiceSpeed: number;               // 0.5–2.0; default 1.0; applied via FFmpeg atempo
-  characterBaseGcsPath: string | null; // GCS path of the base character image
-  renderStyle: RenderStyle | null;  // visual/render style for script + scene prompts
-  voiceId: string | null;           // overrides project voiceId when set
+  bgmVolume: number;
+  targetDurationSeconds: number;
+  videoType: VideoType;
+  ugcVisualStyle: UGCVisualStyle | null;
+  actionReelStyle: ActionReelStyle | null;
+  ugcCharacterDescription: string | null;
+  sceneCount: number;
+  voiceSpeed: number;
+  characterBaseGcsPath: string | null;
+  renderStyle: RenderStyle | null;
+  dialogueSegments: { sceneIndex: number; dialogue: string }[] | null;
   outputUrl: string | null;
   error: string | null;
   deletedAt: Date | null;
@@ -302,6 +301,105 @@ export interface SnapshotClip {
 }
 
 export type ClipStatusMap = Record<number, SnapshotClip>;
+
+// ─── Brand Profiles (Track 18) ────────────────────────────────────────────────
+
+export type TargetAudienceAge = "gen_z" | "millennial" | "gen_x" | "all";
+export type TargetAudienceVibe = "entertainment" | "education" | "inspiration" | "humor";
+export type ContentTone = "energetic" | "calm" | "witty" | "inspirational" | "professional" | "dramatic";
+export type VisualStyle = "realistic" | "anime" | "3d_animation" | "cartoon" | "cinematic" | "minimalist";
+export type CharacterType = "human" | "mascot" | "abstract" | "none";
+
+export interface BrandProfile {
+  id: string;
+  userId: string;
+  socialAccountId: string | null;
+  name: string;
+  niche: string;
+  nicheDescription: string | null;
+  targetAudienceAge: TargetAudienceAge | null;
+  targetAudienceVibe: TargetAudienceVibe | null;
+  tone: ContentTone;
+  visualStyle: VisualStyle;
+  characterType: CharacterType;
+  characterDescription: string | null;
+  characterSheetGcsPath: string | null;
+  logoGcsPath: string | null;
+  primaryColor: string | null;
+  secondaryColor: string | null;
+  referenceVideoUrl: string | null;
+  onboardingComplete: boolean;
+  characterSheetGenerationCount: number;
+  createdAt: Date;
+  updatedAt: Date;
+}
+
+// ─── Content Plans (Track 20) ─────────────────────────────────────────────────
+
+export type ContentPlanStatus = "draft" | "approved" | "generating" | "complete";
+export type ContentFormat = "ugc" | "montage" | "tutorial" | "story";
+
+export interface TopicEntry {
+  index: number;
+  day: number;
+  slot: number;
+  title: string;
+  hook: string;
+  format: ContentFormat;
+  angle: string;
+  scriptOutline: string;
+  overridden: boolean;
+}
+
+export type PostType = "draft" | "scheduled" | "manual";
+export type PostScheduleStatus = "pending" | "posted" | "failed";
+
+export interface PostSchedule {
+  id: string;
+  videoId: string;
+  socialAccountId: string;
+  scheduledAt: Date | null;
+  postType: PostType;
+  platformPostId: string | null;
+  status: PostScheduleStatus;
+  errorMessage: string | null;
+  createdAt: Date;
+  updatedAt: Date;
+}
+
+export interface ContentPlan {
+  id: string;
+  brandProfileId: string;
+  userId: string;
+  weekStartDate: string;
+  postsPerDay: number;
+  status: ContentPlanStatus;
+  topics: TopicEntry[];
+  postType: PostType;
+  createdAt: Date;
+  updatedAt: Date;
+}
+
+// ─── Social Accounts (Track 17) ───────────────────────────────────────────────
+
+export interface SocialAccount {
+  id: string;
+  userId: string;
+  platform: SocialPlatform;
+  pageId: string;
+  pageName: string;
+  pageAvatarUrl: string | null;
+  tokenExpiresAt: Date | null;
+  createdAt: Date;
+  updatedAt: Date;
+}
+
+export interface FacebookPage {
+  id: string;
+  name: string;
+  pictureUrl: string | null;
+  accessToken: string;
+}
 
 export type ClipProgressEvent =
   | { type: "CLIP_PROCESSING"; videoId: string; sceneIndex: number }
