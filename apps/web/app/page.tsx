@@ -50,6 +50,7 @@ import {
   FOOTER,
   SITE,
 } from "@/lib/content";
+import Image from "next/image";
 
 // ─── rgba shorthand for the new orange primary ─────────────────────────────
 const O = (a: number) => `rgba(245,92,42,${a})`;
@@ -1250,15 +1251,13 @@ function FooterSection() {
       <div className="mx-auto max-w-6xl px-6">
         <div className="flex flex-col items-start justify-between gap-12 md:flex-row md:items-center">
           <div className="flex items-center gap-4 group cursor-pointer">
-            <div
-              className="flex h-12 w-12 items-center justify-center rounded-[1rem] shadow-2xl group-hover:rotate-12 transition-transform duration-500"
-              style={{ background: "var(--accent-primary)" }}
-            >
-              <Play className="h-6 w-6 fill-white text-white translate-x-0.5" />
-            </div>
-            <span className="text-[24px] font-black tracking-tighter text-[var(--text-primary)] group-hover:text-[var(--accent-primary)] transition-colors">
-              {SITE.name}
-            </span>
+            <Image
+              src="/logo.png"
+              alt="ReelForge"
+              width={100}
+              height={100}
+              className="transition-transform group-hover:rotate-12"
+            />{" "}
           </div>
           <div className="flex flex-wrap gap-6 sm:gap-10">
             {FOOTER.links.map((link) => (
