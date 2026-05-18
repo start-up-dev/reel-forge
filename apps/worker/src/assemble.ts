@@ -1,6 +1,6 @@
 import { rm } from "node:fs/promises";
 import { eq, and } from "drizzle-orm";
-import { db, videos, scenes, users, projects } from "./db.js";
+import { db, videos, scenes, users } from "./db.js";
 import { downloadAssets } from "./download.js";
 import {
   normalizeAllClips,
@@ -42,10 +42,6 @@ export async function assembleVideo(videoId: string): Promise<void> {
       console.log(`[assemble] Video ${videoId} already claimed by another worker — skipping`);
       return;
     }
-
-    // ── Fetch project (for language and other project-level settings) ─────────
-    const [project] = await db.select().from(projects).where(eq(projects.id, video.projectId));
-    if (!project) throw new Error(`Project not found for video ${videoId}`);
 
     // ── Fetch scenes ──────────────────────────────────────────────────────────
     const sceneRows = await db
@@ -107,7 +103,7 @@ export async function assembleVideo(videoId: string): Promise<void> {
       const talkingAudioPath = await extractAudio(concatenatedPath, assets.dir);
 
       console.log("[assemble] Transcribing with Whisper");
-      const whisperTimestamps = await transcribeAudio(talkingAudioPath, project.language);
+      const whisperTimestamps = await transcribeAudio(talkingAudioPath, "en");
 
       console.log("[assemble] Generating subtitles from Whisper timestamps");
       const subtitlesPath = await generateSubtitles(
@@ -151,7 +147,7 @@ export async function assembleVideo(videoId: string): Promise<void> {
 
       // Step 4: Transcribe with Whisper
       console.log("[assemble] Transcribing with Whisper");
-      const whisperTimestamps = await transcribeAudio(generatedAudioPath, project.language);
+      const whisperTimestamps = await transcribeAudio(generatedAudioPath, "en");
 
       // Step 5: Generate subtitles
       console.log("[assemble] Generating subtitles");

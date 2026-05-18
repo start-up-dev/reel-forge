@@ -1,29 +1,19 @@
-import type { ProjectRow } from "../lib/db/schema.js";
-import { projectContext, isBengali } from "./utils.js";
-import { BENGALI_SCRIPT_SYSTEM } from "./script.js";
+import type { BrandProfileRow } from "../lib/db/schema.js";
+import { brandContext } from "./utils.js";
 import type { PromptPair } from "./script.js";
 
-const BENGALI_IDEAS_SUFFIX = `
-
-## আইডিয়া জেনারেশন
-ঠিক ৩টি আলাদা ভিডিও আইডিয়া দাও। প্রতিটি আইডিয়া punchy, specific, এবং scroll-stopping হতে হবে।
-title: ৫-৮ শব্দে hook — দর্শক আটকে যাবে
-body: ২-৩ বাক্যে ভিডিওর angle এবং key points`;
-
-export function buildIdeasMessages(project: ProjectRow, topic: string, videoType?: string, actionReelStyle?: string | null): PromptPair {
-  if (isBengali(project)) {
-    return {
-      system: `${BENGALI_SCRIPT_SYSTEM}${BENGALI_IDEAS_SUFFIX}`,
-      user: `${projectContext(project)}\n\nটপিক: ${topic}`,
-    };
-  }
-
+export function buildIdeasMessages(
+  brand: BrandProfileRow,
+  topic: string,
+  videoType?: string,
+  actionReelStyle?: string | null,
+): PromptPair {
   if (videoType === "action_reel") {
     const styleHint = actionReelStyle ? ` (${actionReelStyle.replace(/_/g, " ")})` : "";
     return {
       system: `You are an elite action video creative director who specialises in viral silent short-form content — workout, dance, sports, and performance videos for TikTok, Instagram Reels, and YouTube Shorts.
 
-${projectContext(project)}
+${brandContext(brand)}
 
 ## Your job
 Generate exactly 3 distinct, highly specific action reel ideas for a ${styleHint || "physical activity"} video. Each idea must describe a compelling VISUAL concept — what the camera will capture, not what anyone says.
@@ -38,9 +28,7 @@ Generate exactly 3 distinct, highly specific action reel ideas for a ${styleHint
 
 ## For each idea:
 title: 5–8 words — a visual hook, not a voiceover script
-body: 2–3 sentences describing what the CAMERA captures across the clips — what movement, what setting, what energy, what payoff moment
-
-Write all content in ${project.language}.`,
+body: 2–3 sentences describing what the CAMERA captures across the clips — what movement, what setting, what energy, what payoff moment`,
       user: `Activity type: ${actionReelStyle?.replace(/_/g, " ") ?? "physical activity"}\nTopic: ${topic}`,
     };
   }
@@ -48,7 +36,7 @@ Write all content in ${project.language}.`,
   return {
     system: `You are an elite viral short-form video content strategist who specialises in angles that stop the scroll. You know the difference between an obvious take and a genuinely surprising one — and you always pick the surprising one.
 
-${projectContext(project)}
+${brandContext(brand)}
 
 ## Your job
 Generate exactly 3 distinct, highly specific video ideas. Each must have a different angle — never three variations of the same take.
@@ -63,9 +51,7 @@ Generate exactly 3 distinct, highly specific video ideas. Each must have a diffe
 
 ## For each idea:
 title: 5–8 words that function as a scroll-stopping hook — not a description, a hook
-body: 2–3 sentences covering the specific angle, the core tension or reveal, and why this audience will share it
-
-Write all content in ${project.language}.`,
+body: 2–3 sentences covering the specific angle, the core tension or reveal, and why this audience will share it`,
     user: `Topic: ${topic}`,
   };
 }

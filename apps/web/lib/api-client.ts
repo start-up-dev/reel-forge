@@ -13,7 +13,6 @@ import type {
   PaginatedResponse,
   PostSchedule,
   PostType,
-  Project,
   RenderStyle,
   Scene,
   SocialAccount,
@@ -112,59 +111,10 @@ export function createApiClient(getToken: () => Promise<string | null>) {
   }
 
   return {
-    // ── Projects ──────────────────────────────────────────────────────────
-    projects: {
-      list(): Promise<ApiResponse<Project[]>> {
-        return authedRequest("/api/projects");
-      },
-      get(id: string): Promise<ApiResponse<Project>> {
-        return authedRequest(`/api/projects/${id}`);
-      },
-      create(
-        data: Pick<Project, "name" | "platforms" | "niche" | "tone"> & Partial<Pick<Project, "language" | "targetAudience" | "videoStyle">>
-      ): Promise<ApiResponse<Project>> {
-        return authedRequest("/api/projects", {
-          method: "POST",
-          body: JSON.stringify(data),
-        });
-      },
-      update(
-        id: string,
-        data: Partial<Pick<Project, "name" | "platforms" | "niche" | "tone" | "language" | "targetAudience" | "videoStyle">>
-      ): Promise<ApiResponse<Project>> {
-        return authedRequest(`/api/projects/${id}`, {
-          method: "PUT",
-          body: JSON.stringify(data),
-        });
-      },
-      delete(id: string): Promise<ApiResponse<null>> {
-        return authedRequest(`/api/projects/${id}`, { method: "DELETE" });
-      },
-    },
-
     // ── Videos ────────────────────────────────────────────────────────────
     videos: {
-      list(
-        projectId: string,
-        params?: { page?: number; limit?: number }
-      ): Promise<PaginatedResponse<Video>> {
-        const qs = new URLSearchParams();
-        if (params?.page) qs.set("page", String(params.page));
-        if (params?.limit) qs.set("limit", String(params.limit));
-        const query = qs.toString() ? `?${qs}` : "";
-        return authedRequest(`/api/projects/${projectId}/videos${query}`);
-      },
       get(id: string): Promise<ApiResponse<VideoDetail>> {
         return authedRequest(`/api/videos/${id}`);
-      },
-      create(
-        projectId: string,
-        data?: { title?: string; targetDurationSeconds?: number }
-      ): Promise<ApiResponse<Video>> {
-        return authedRequest(`/api/projects/${projectId}/videos`, {
-          method: "POST",
-          body: JSON.stringify(data ?? {}),
-        });
       },
       patch(
         id: string,
@@ -184,7 +134,6 @@ export function createApiClient(getToken: () => Promise<string | null>) {
             | "ugcVisualStyle"
             | "actionReelStyle"
             | "voiceSpeed"
-            | "characterBaseGcsPath"
           >
         > & { renderStyle?: RenderStyle | null; videoType?: VideoType; actionReelStyle?: ActionReelStyle | null }
       ): Promise<ApiResponse<Video>> {
@@ -195,39 +144,6 @@ export function createApiClient(getToken: () => Promise<string | null>) {
       },
       delete(id: string): Promise<ApiResponse<null>> {
         return authedRequest(`/api/videos/${id}`, { method: "DELETE" });
-      },
-      submit(id: string): Promise<ApiResponse<Video>> {
-        return authedRequest(`/api/videos/${id}/submit`, { method: "POST" });
-      },
-      brainstorm(
-        id: string,
-        data: { topic: string }
-      ): Promise<ApiResponse<{ ideas: Array<{ title: string; body: string }> }>> {
-        return authedRequest(`/api/videos/${id}/brainstorm`, {
-          method: "POST",
-          body: JSON.stringify(data),
-        });
-      },
-      generateScript(
-        id: string,
-        data: { idea: string }
-      ): Promise<ApiResponse<Video>> {
-        return authedRequest(`/api/videos/${id}/script`, {
-          method: "POST",
-          body: JSON.stringify(data),
-        });
-      },
-      generateScenes(id: string): Promise<ApiResponse<VideoDetail>> {
-        return authedRequest(`/api/videos/${id}/scenes`, { method: "POST" });
-      },
-      characterImageUploadUrl(
-        id: string,
-        contentType: "image/jpeg" | "image/png" | "image/webp"
-      ): Promise<ApiResponse<{ uploadUrl: string; gcsPath: string }>> {
-        return authedRequest(`/api/videos/${id}/character-image/upload-url`, {
-          method: "POST",
-          body: JSON.stringify({ contentType }),
-        });
       },
       post(
         id: string,
@@ -318,19 +234,17 @@ export function createApiClient(getToken: () => Promise<string | null>) {
       },
     },
 
-    // ── Library (all videos across projects) ──────────────────────────────
+    // ── Library ───────────────────────────────────────────────────────────
     library: {
       list(params?: {
         page?: number;
         limit?: number;
-        projectId?: string;
         status?: string;
         search?: string;
       }): Promise<PaginatedResponse<VideoLibraryItem>> {
         const qs = new URLSearchParams();
         if (params?.page) qs.set("page", String(params.page));
         if (params?.limit) qs.set("limit", String(params.limit));
-        if (params?.projectId) qs.set("projectId", params.projectId);
         if (params?.status) qs.set("status", params.status);
         if (params?.search) qs.set("search", params.search);
         const query = qs.toString() ? `?${qs}` : "";

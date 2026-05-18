@@ -147,41 +147,6 @@ export const users = pgTable("users", {
 });
 
 /**
- * projects — userId is text FK referencing users.id (Clerk ID).
- * Added: language, videoStyle, defaultSubtitleStyle, defaultBgmEnabled,
- *        defaultBgmAssetId, claudeSystemPrompt (all per PRD §7.2 / §9).
- * Fixed: niche, targetAudience required (notNull).
- */
-export const projects = pgTable(
-  "projects",
-  {
-    id: uuid("id").primaryKey().defaultRandom(),
-    userId: text("user_id")
-      .notNull()
-      .references(() => users.id, { onDelete: "cascade" }),
-    name: text("name").notNull(),
-    platforms: text("platforms").array().notNull().default(["tiktok"]),
-    niche: text("niche").notNull(),
-    language: text("language").notNull(),
-    targetAudience: text("target_audience").notNull(),
-    videoStyle: videoStyleEnum("video_style").notNull(),
-    tone: toneEnum("tone").notNull(),
-    defaultSubtitleStyle: subtitleStyleEnum("default_subtitle_style"),
-    defaultBgmEnabled: boolean("default_bgm_enabled").notNull().default(false),
-    defaultBgmAssetId: text("default_bgm_asset_id"),
-    claudeSystemPrompt: text("claude_system_prompt"),
-    deletedAt: timestamp("deleted_at", { withTimezone: true }),
-    createdAt: timestamp("created_at", { withTimezone: true })
-      .notNull()
-      .defaultNow(),
-    updatedAt: timestamp("updated_at", { withTimezone: true })
-      .notNull()
-      .defaultNow(),
-  },
-  (t) => [index("projects_user_id_idx").on(t.userId)],
-);
-
-/**
  * videos — userId is text FK.
  * Fixed: bgmVolume is integer 0–100 (was: real 0.0–1.0, PRD §9 says integer).
  */
@@ -192,8 +157,6 @@ export const videos = pgTable(
     userId: text("user_id")
       .notNull()
       .references(() => users.id, { onDelete: "cascade" }),
-    projectId: uuid("project_id")
-      .references(() => projects.id, { onDelete: "cascade" }),
     title: text("title").notNull(),
     status: videoStatusEnum("status").notNull().default("DRAFT"),
     idea: text("idea"),
@@ -208,10 +171,8 @@ export const videos = pgTable(
     targetDurationSeconds: integer("target_duration_seconds").notNull().default(30),
     videoType: videoTypeEnum("video_type").notNull().default("generated"),
     ugcVisualStyle: text("ugc_visual_style"),
-    ugcCharacterDescription: text("ugc_character_description"),
     actionReelStyle: text("action_reel_style"),
     voiceSpeed: real("voice_speed").notNull().default(1.0),
-    characterBaseGcsPath: text("character_base_gcs_path"),
     sceneCount: integer("scene_count").notNull().default(0),
     renderStyle: renderStyleEnum("render_style"),
     dialogueSegments: jsonb("dialogue_segments"),
@@ -229,7 +190,7 @@ export const videos = pgTable(
   },
   (t) => [
     index("videos_user_id_idx").on(t.userId),
-    index("videos_user_project_status_idx").on(t.userId, t.projectId, t.status),
+    index("videos_user_status_idx").on(t.userId, t.status),
   ],
 );
 
@@ -422,9 +383,6 @@ export const postSchedules = pgTable(
 
 export type UserRow = typeof users.$inferSelect;
 export type NewUser = typeof users.$inferInsert;
-
-export type ProjectRow = typeof projects.$inferSelect;
-export type NewProject = typeof projects.$inferInsert;
 
 export type VideoRow = typeof videos.$inferSelect;
 export type NewVideo = typeof videos.$inferInsert;

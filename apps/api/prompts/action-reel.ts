@@ -1,6 +1,6 @@
-import type { ProjectRow } from "../lib/db/schema.js";
+import type { BrandProfileRow } from "../lib/db/schema.js";
 import type { PromptPair } from "./script.js";
-import { projectContext } from "./utils.js";
+import { brandContext } from "./utils.js";
 
 // ─── Action Reel script system ────────────────────────────────────────────────
 // Action Reel scripts are shot plans, not spoken scripts.
@@ -250,7 +250,7 @@ ATMOSPHERE MOTION: concrete dust from landing / loose fabric from speed / city b
 // ─── Script builder ───────────────────────────────────────────────────────────
 
 export function buildActionReelScriptMessages(
-  project: ProjectRow,
+  brand: BrandProfileRow,
   idea: string,
   targetDurationSeconds: number,
   actionReelStyle?: string | null,
@@ -262,7 +262,7 @@ export function buildActionReelScriptMessages(
 
   return {
     system: ACTION_REEL_SCRIPT_SYSTEM,
-    user: `${projectContext(project)}
+    user: `${brandContext(brand)}
 ${styleHint ? `\n${styleHint}` : ""}
 
 VIDEO IDEA: ${idea}

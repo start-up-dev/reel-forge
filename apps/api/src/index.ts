@@ -17,7 +17,6 @@ import { brandsRoutes } from "../routes/brands.js";
 import { contentPlansRoutes } from "../routes/content-plans.js";
 import { jobsRoutes } from "../routes/jobs.js";
 import { operatorRoutes } from "../routes/operator.js";
-import { projectsRoutes } from "../routes/projects.js";
 import { socialRoutes } from "../routes/social.js";
 import { usersRoutes } from "../routes/users.js";
 import { videosRoutes } from "../routes/videos.js";
@@ -111,7 +110,6 @@ await app.register(async (authScope) => {
   // which causes the "clerkPlugin should be registered before getAuth" error.
   authScope.addHook("preHandler", requireAuth);
 
-  await authScope.register(projectsRoutes, { prefix: "/api" });
   await authScope.register(videosRoutes, { prefix: "/api" });
   await authScope.register(assetsRoutes, { prefix: "/api" });
   await authScope.register(socialRoutes, { prefix: "/api" });

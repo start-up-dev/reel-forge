@@ -28,16 +28,6 @@ export async function downloadAssets(
 
   const downloads: Promise<void>[] = [];
 
-  if (video.characterBaseGcsPath) {
-    characterBasePath = join(dir, "character_base.png");
-    downloads.push(
-      downloadToFile(video.characterBaseGcsPath, characterBasePath).catch((err) => {
-        console.warn(`[download] character_base.png not downloaded: ${(err as Error).message}`);
-        characterBasePath = null;
-      }),
-    );
-  }
-
   await Promise.all(downloads);
 
   const sortedScenes = [...scenes].sort((a, b) => a.sceneIndex - b.sceneIndex);

@@ -3,244 +3,16 @@ import type { FastifyInstance } from "fastify";
 import { z } from "zod";
 import type { SnapshotClip } from "@repo/types";
 import { db } from "../lib/db/index.js";
-import { clipRequests, postSchedules, projects, scenes, users, videos } from "../lib/db/schema.js";
-import { checkQuota } from "../lib/quota.js";
+import { clipRequests, postSchedules, scenes, users, videos } from "../lib/db/schema.js";
 import {
   ASSET_URL_TTL_MINUTES,
   generateSignedReadUrl,
-  generateSignedUploadUrl,
 } from "../lib/storage.js";
 import { subscribeToVideo } from "../lib/clip-events.js";
-import { generateIdeas, generateScript, generateTitle, generateUGCCharacter, splitScenes, generateDialogueSegments } from "../services/claude.js";
-
-const createVideoBody = z.object({
-  title: z.string().min(1).max(200).default("Untitled Video"),
-  targetDurationSeconds: z.number().int()
-    .refine(v => [15, 30, 45, 60].includes(v), "Must be 15, 30, 45, or 60")
-    .default(30),
-});
 
 const PAGE_SIZE = 20;
 
-// ─── Background: scene generation ────────────────────────────────────────────
-
-async function processScenes(
-  videoId: string,
-  script: string,
-  durationSeconds: number,
-  videoType: string,
-  renderStyle?: string | null,
-  ugcVisualStyle?: string | null,
-  actionReelStyle?: string | null,
-): Promise<void> {
-  try {
-    // Step 1 — fetch only what's needed for scene generation
-    const [videoRow] = await db
-      .select({
-        ugcCharacterDescription: videos.ugcCharacterDescription,
-        projectId: videos.projectId,
-      })
-      .from(videos)
-      .where(eq(videos.id, videoId))
-      .limit(1);
-
-    // Phase A — character description (UGC non-ai_clone only, before splitScenes)
-    let effectiveCharacterNote: string | null = null;
-    if (videoType === "talking" && ugcVisualStyle !== "ai_clone") {
-      if (!videoRow?.ugcCharacterDescription) {
-        const [project] = videoRow?.projectId
-          ? await db.select().from(projects).where(eq(projects.id, videoRow.projectId)).limit(1)
-          : [];
-        if (project) {
-          const description = await generateUGCCharacter(project, ugcVisualStyle ?? "realistic");
-          await db
-            .update(videos)
-            .set({ ugcCharacterDescription: description, updatedAt: new Date() })
-            .where(eq(videos.id, videoId));
-          effectiveCharacterNote = description;
-        }
-      } else {
-        effectiveCharacterNote = videoRow.ugcCharacterDescription;
-      }
-    }
-
-    const sceneList = await splitScenes(script, durationSeconds, videoType, renderStyle, ugcVisualStyle, effectiveCharacterNote, actionReelStyle);
-
-    // Replace existing scenes (supports idempotent re-generation)
-    await db.delete(scenes).where(eq(scenes.videoId, videoId));
-
-    const inserted = await db
-      .insert(scenes)
-      .values(
-        sceneList.map((s) => ({
-          videoId,
-          sceneIndex: s.sceneIndex,
-          textExcerpt: s.textExcerpt,
-          visualPrompt: s.visualPrompt,
-          motionPrompt: s.motionPrompt,
-          durationHintSeconds: (videoType === "talking" || videoType === "action_reel") ? 6 : Math.max(1, Math.min(6, Math.round(s.durationHintSeconds))),
-        })),
-      )
-      .returning();
-
-    await db
-      .update(videos)
-      .set({ sceneCount: inserted.length, updatedAt: new Date() })
-      .where(eq(videos.id, videoId));
-
-    // Generate per-scene dialogue segments (best-effort; errors are non-fatal)
-    if (script && inserted.length > 0 && videoType !== "action_reel") {
-      try {
-        const segments = await generateDialogueSegments(script, inserted.length);
-        if (segments.length > 0) {
-          await db
-            .update(videos)
-            .set({ dialogueSegments: segments, updatedAt: new Date() })
-            .where(eq(videos.id, videoId));
-        }
-      } catch (err) {
-        console.warn(`[processScenes] dialogue segment generation failed for video ${videoId}:`, err);
-      }
-    }
-
-    await db
-      .update(videos)
-      .set({ status: "SCENES_READY", updatedAt: new Date() })
-      .where(eq(videos.id, videoId));
-  } catch (err) {
-    console.error(`[processScenes] failed for video ${videoId}:`, err);
-    await db
-      .update(videos)
-      .set({
-        status: "FAILED",
-        error: err instanceof Error ? err.message : "Scene generation failed",
-        updatedAt: new Date(),
-      })
-      .where(eq(videos.id, videoId));
-  }
-}
-
-// ─── Route plugin ─────────────────────────────────────────────────────────────
-
 export async function videosRoutes(fastify: FastifyInstance): Promise<void> {
-  // GET /api/projects/:id/videos — paginated list of non-deleted videos in a project
-  fastify.get<{ Params: { id: string }; Querystring: { page?: string } }>(
-    "/projects/:id/videos",
-    async (request, reply) => {
-      const user = request.currentUser!;
-      const { id: projectId } = request.params;
-      const page = Math.max(1, parseInt(request.query.page ?? "1", 10));
-
-      const [project] = await db
-        .select({ id: projects.id })
-        .from(projects)
-        .where(
-          and(
-            eq(projects.id, projectId),
-            eq(projects.userId, user.id),
-            isNull(projects.deletedAt),
-          ),
-        )
-        .limit(1);
-
-      if (!project) {
-        return reply.status(404).send({
-          error: { code: "NOT_FOUND", message: "Project not found." },
-        });
-      }
-
-      const offset = (page - 1) * PAGE_SIZE;
-
-      const rows = await db
-        .select()
-        .from(videos)
-        .where(
-          and(
-            eq(videos.projectId, projectId),
-            eq(videos.userId, user.id),
-            isNull(videos.deletedAt),
-          ),
-        )
-        .orderBy(desc(videos.updatedAt))
-        .limit(PAGE_SIZE)
-        .offset(offset);
-
-      const countResult = await db
-        .select({ count: sql<number>`count(*)::int` })
-        .from(videos)
-        .where(
-          and(
-            eq(videos.projectId, projectId),
-            eq(videos.userId, user.id),
-            isNull(videos.deletedAt),
-          ),
-        );
-      const total = countResult[0]?.count ?? 0;
-
-      return reply.send({
-        data: rows,
-        total,
-        page,
-        pageSize: PAGE_SIZE,
-        hasMore: offset + rows.length < total,
-      });
-    },
-  );
-
-  // POST /api/projects/:id/videos — create a new video (DRAFT), quota-gated
-  fastify.post<{ Params: { id: string } }>(
-    "/projects/:id/videos",
-    async (request, reply) => {
-      const user = request.currentUser!;
-      const { id: projectId } = request.params;
-
-      const [project] = await db
-        .select({ id: projects.id })
-        .from(projects)
-        .where(
-          and(
-            eq(projects.id, projectId),
-            eq(projects.userId, user.id),
-            isNull(projects.deletedAt),
-          ),
-        )
-        .limit(1);
-
-      if (!project) {
-        return reply.status(404).send({
-          error: { code: "NOT_FOUND", message: "Project not found." },
-        });
-      }
-
-      const quota = checkQuota(user);
-      if (!quota.allowed) {
-        return reply.status(402).send({
-          error: { code: "QUOTA_EXCEEDED", message: quota.reason, redirect: quota.redirect },
-        });
-      }
-
-      const parsed = createVideoBody.safeParse(request.body ?? {});
-      if (!parsed.success) {
-        return reply.status(400).send({
-          error: { code: "VALIDATION_ERROR", message: parsed.error.message },
-        });
-      }
-
-      const [video] = await db
-        .insert(videos)
-        .values({
-          userId: user.id,
-          projectId,
-          title: parsed.data.title,
-          targetDurationSeconds: parsed.data.targetDurationSeconds,
-          status: "DRAFT",
-        })
-        .returning();
-
-      return reply.status(201).send({ data: video });
-    },
-  );
-
   // GET /api/videos/:id — get a single video with its scenes and clip_request statuses
   fastify.get<{ Params: { id: string } }>(
     "/videos/:id",
@@ -314,20 +86,19 @@ export async function videosRoutes(fastify: FastifyInstance): Promise<void> {
 
   // GET /api/videos — all videos for the authenticated user (Library)
   fastify.get<{
-    Querystring: { page?: string; search?: string; status?: string; projectId?: string };
+    Querystring: { page?: string; search?: string; status?: string };
   }>(
     "/videos",
     async (request, reply) => {
       const user = request.currentUser!;
       const page = Math.max(1, parseInt(request.query.page ?? "1", 10));
-      const { search, status, projectId } = request.query;
+      const { search, status } = request.query;
       const offset = (page - 1) * PAGE_SIZE;
 
       const conditions = [eq(videos.userId, user.id), isNull(videos.deletedAt)];
       if (search?.trim()) conditions.push(ilike(videos.title, `%${search.trim()}%`));
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       if (status) conditions.push(eq(videos.status, status as any));
-      if (projectId) conditions.push(eq(videos.projectId, projectId));
 
       const rows = await db
         .select()
@@ -367,7 +138,7 @@ export async function videosRoutes(fastify: FastifyInstance): Promise<void> {
     },
   );
 
-  // PATCH /api/videos/:id — update draft video fields
+  // PATCH /api/videos/:id — update video fields
   fastify.patch<{ Params: { id: string } }>(
     "/videos/:id",
     async (request, reply) => {
@@ -395,7 +166,6 @@ export async function videosRoutes(fastify: FastifyInstance): Promise<void> {
         ugcVisualStyle: z.string().nullable().optional(),
         actionReelStyle: z.string().nullable().optional(),
         voiceSpeed: z.number().min(0.5).max(2.0).optional(),
-        characterBaseGcsPath: z.string().nullable().optional(),
       });
 
       const parsed = patchBody.safeParse(request.body);
@@ -429,208 +199,7 @@ export async function videosRoutes(fastify: FastifyInstance): Promise<void> {
     },
   );
 
-  // POST /api/videos/:id/brainstorm — generate 3 idea cards via Claude
-  fastify.post<{ Params: { id: string } }>(
-    "/videos/:id/brainstorm",
-    async (request, reply) => {
-      const user = request.currentUser!;
-      const { id } = request.params;
-
-      const bodySchema = z.object({ topic: z.string().min(1).max(500) });
-      const parsed = bodySchema.safeParse(request.body);
-      if (!parsed.success) {
-        return reply.status(400).send({
-          error: { code: "VALIDATION_ERROR", message: parsed.error.message },
-        });
-      }
-
-      const [video] = await db
-        .select({ id: videos.id, projectId: videos.projectId, videoType: videos.videoType, actionReelStyle: videos.actionReelStyle })
-        .from(videos)
-        .where(
-          and(eq(videos.id, id), eq(videos.userId, user.id), isNull(videos.deletedAt)),
-        )
-        .limit(1);
-
-      if (!video) {
-        return reply.status(404).send({
-          error: { code: "NOT_FOUND", message: "Video not found." },
-        });
-      }
-
-      const [project] = video.projectId
-        ? await db.select().from(projects).where(eq(projects.id, video.projectId)).limit(1)
-        : [];
-
-      if (!project) {
-        return reply.status(404).send({
-          error: { code: "NOT_FOUND", message: "Project not found." },
-        });
-      }
-
-      await db
-        .update(videos)
-        .set({ status: "BRAINSTORM_PENDING", updatedAt: new Date() })
-        .where(eq(videos.id, id));
-
-      try {
-        const ideas = await generateIdeas(project, parsed.data.topic, video.videoType ?? undefined, video.actionReelStyle ?? undefined);
-        await db
-          .update(videos)
-          .set({ status: "DRAFT", updatedAt: new Date() })
-          .where(eq(videos.id, id));
-        return reply.send({ data: { ideas } });
-      } catch (err) {
-        await db
-          .update(videos)
-          .set({ status: "DRAFT", updatedAt: new Date() })
-          .where(eq(videos.id, id));
-        const message = err instanceof Error ? err.message : "Failed to generate ideas";
-        return reply.status(500).send({ error: { code: "GENERATION_ERROR", message } });
-      }
-    },
-  );
-
-  // POST /api/videos/:id/script — generate script via Claude
-  fastify.post<{ Params: { id: string } }>(
-    "/videos/:id/script",
-    async (request, reply) => {
-      const user = request.currentUser!;
-      const { id } = request.params;
-
-      const bodySchema = z.object({ idea: z.string().min(1).max(2000) });
-      const parsed = bodySchema.safeParse(request.body);
-      if (!parsed.success) {
-        return reply.status(400).send({
-          error: { code: "VALIDATION_ERROR", message: parsed.error.message },
-        });
-      }
-
-      const [video] = await db
-        .select({ id: videos.id, projectId: videos.projectId, targetDurationSeconds: videos.targetDurationSeconds, renderStyle: videos.renderStyle, title: videos.title, videoType: videos.videoType, actionReelStyle: videos.actionReelStyle })
-        .from(videos)
-        .where(
-          and(eq(videos.id, id), eq(videos.userId, user.id), isNull(videos.deletedAt)),
-        )
-        .limit(1);
-
-      if (!video) {
-        return reply.status(404).send({
-          error: { code: "NOT_FOUND", message: "Video not found." },
-        });
-      }
-
-      const [project] = video.projectId
-        ? await db.select().from(projects).where(eq(projects.id, video.projectId)).limit(1)
-        : [];
-
-      if (!project) {
-        return reply.status(404).send({
-          error: { code: "NOT_FOUND", message: "Project not found." },
-        });
-      }
-
-      await db
-        .update(videos)
-        .set({ idea: parsed.data.idea, status: "SCRIPT_PENDING", updatedAt: new Date() })
-        .where(eq(videos.id, id));
-
-      try {
-        const needsTitle = !video.title || video.title === "Untitled Video";
-        const [script, autoTitle] = await Promise.all([
-          generateScript(project, parsed.data.idea, video.targetDurationSeconds ?? 30, video.renderStyle ?? undefined, video.videoType ?? undefined, video.actionReelStyle ?? undefined),
-          needsTitle ? generateTitle(parsed.data.idea) : Promise.resolve(null),
-        ]);
-        const [updated] = await db
-          .update(videos)
-          .set({
-            script,
-            status: "SCRIPT_READY",
-            ...(autoTitle ? { title: autoTitle } : {}),
-            updatedAt: new Date(),
-          })
-          .where(eq(videos.id, id))
-          .returning();
-        return reply.send({ data: updated });
-      } catch (err) {
-        await db
-          .update(videos)
-          .set({ status: "DRAFT", updatedAt: new Date() })
-          .where(eq(videos.id, id));
-        const message = err instanceof Error ? err.message : "Failed to generate script";
-        return reply.status(500).send({ error: { code: "GENERATION_ERROR", message } });
-      }
-    },
-  );
-
-  // POST /api/videos/:id/scenes — split script into scenes and generate base images (async)
-  fastify.post<{ Params: { id: string } }>(
-    "/videos/:id/scenes",
-    async (request, reply) => {
-      const user = request.currentUser!;
-      const { id } = request.params;
-
-      const [video] = await db
-        .select()
-        .from(videos)
-        .where(
-          and(eq(videos.id, id), eq(videos.userId, user.id), isNull(videos.deletedAt)),
-        )
-        .limit(1);
-
-      if (!video) {
-        return reply.status(404).send({
-          error: { code: "NOT_FOUND", message: "Video not found." },
-        });
-      }
-      // All video types proceed from SCRIPT_READY (voice step removed).
-      const scenesAllowedStates = ["SCRIPT_READY", "VOICE_READY", "SCENES_PENDING", "SCENES_READY", "FAILED"];
-      if (!scenesAllowedStates.includes(video.status)) {
-        return reply.status(409).send({
-          error: {
-            code: "INVALID_STATE",
-            message: `Video must be in SCRIPT_READY state to generate scenes (currently: ${video.status}).`,
-          },
-        });
-      }
-      if (!video.script) {
-        return reply.status(409).send({
-          error: { code: "NO_SCRIPT", message: "Video has no script." },
-        });
-      }
-
-      // AI Clone guard — reference image required before scene generation
-      if (video.ugcVisualStyle === "ai_clone" && !video.characterBaseGcsPath) {
-        return reply.status(400).send({
-          error: {
-            message: "AI Clone style requires a character reference image. Upload one before generating scenes.",
-            code: "AI_CLONE_IMAGE_REQUIRED",
-          },
-        });
-      }
-
-      // All video types use targetDurationSeconds (voice step removed; no ElevenLabs duration).
-      const effectiveDuration = video.targetDurationSeconds;
-      if (!effectiveDuration) {
-        return reply.status(409).send({
-          error: { code: "NO_DURATION", message: "Video has no target duration set." },
-        });
-      }
-
-      await db
-        .update(videos)
-        .set({ status: "SCENES_PENDING", updatedAt: new Date() })
-        .where(eq(videos.id, id));
-
-      // Fire and forget — client polls status via SSE
-      void processScenes(id, video.script, effectiveDuration, video.videoType, video.renderStyle, video.ugcVisualStyle, video.actionReelStyle);
-
-      return reply.status(202).send({ data: { videoId: id, status: "SCENES_PENDING" } });
-    },
-  );
-
-
-  // PATCH /api/videos/:id/scenes/:index — confirm base image after user upload, or edit prompt/approval
+  // PATCH /api/videos/:id/scenes/:index — edit scene prompt or approval
   fastify.patch<{ Params: { id: string; index: string } }>(
     "/videos/:id/scenes/:index",
     async (request, reply) => {
@@ -813,133 +382,6 @@ export async function videosRoutes(fastify: FastifyInstance): Promise<void> {
     },
   );
 
-  // POST /api/videos/:id/character-image/upload-url — signed R2 PUT URL for AI Clone face reference
-  fastify.post<{ Params: { id: string } }>(
-    "/videos/:id/character-image/upload-url",
-    async (request, reply) => {
-      const user = request.currentUser!;
-      const { id } = request.params;
-
-      const body = z.object({
-        contentType: z.enum(["image/jpeg", "image/png", "image/webp"]),
-      }).safeParse(request.body);
-      if (!body.success) {
-        return reply.status(400).send({ error: { code: "VALIDATION_ERROR", message: body.error.message } });
-      }
-
-      const [video] = await db
-        .select({ id: videos.id })
-        .from(videos)
-        .where(and(eq(videos.id, id), eq(videos.userId, user.id), isNull(videos.deletedAt)))
-        .limit(1);
-      if (!video) {
-        return reply.status(404).send({ error: { code: "NOT_FOUND", message: "Video not found." } });
-      }
-
-      const extMap: Record<string, string> = { "image/jpeg": "jpg", "image/png": "png", "image/webp": "webp" };
-      const ext = extMap[body.data.contentType] ?? "jpg";
-      const gcsPath = `videos/${id}/character_base.${ext}`;
-      const uploadUrl = await generateSignedUploadUrl(gcsPath, body.data.contentType, 15);
-
-      return reply.send({ data: { uploadUrl, gcsPath } });
-    },
-  );
-
-  // POST /api/videos/:id/submit — submit video for clip processing
-  fastify.post<{ Params: { id: string } }>(
-    "/videos/:id/submit",
-    async (request, reply) => {
-      const user = request.currentUser!;
-      const { id } = request.params;
-
-      const quota = checkQuota(user);
-      if (!quota.allowed) {
-        return reply.status(402).send({
-          error: { code: "QUOTA_EXCEEDED", message: quota.reason, redirect: quota.redirect },
-        });
-      }
-
-      const [video] = await db
-        .select()
-        .from(videos)
-        .where(
-          and(eq(videos.id, id), eq(videos.userId, user.id), isNull(videos.deletedAt)),
-        )
-        .limit(1);
-
-      if (!video) {
-        return reply.status(404).send({
-          error: { code: "NOT_FOUND", message: "Video not found." },
-        });
-      }
-
-      if (video.status !== "SCENES_READY") {
-        return reply.status(409).send({
-          error: {
-            code: "INVALID_STATE",
-            message: `Video must be in SCENES_READY state to submit (currently: ${video.status}).`,
-          },
-        });
-      }
-
-      const approvedScenes = await db
-        .select()
-        .from(scenes)
-        .where(and(eq(scenes.videoId, id), eq(scenes.approved, true)))
-        .orderBy(asc(scenes.sceneIndex));
-
-      if (approvedScenes.length === 0) {
-        return reply.status(409).send({
-          error: { code: "NO_APPROVED_SCENES", message: "Approve at least one scene before submitting." },
-        });
-      }
-
-      // Build dialogue lookup from stored segments
-      const dialogueMap = new Map<number, string>();
-      if (video.dialogueSegments) {
-        const segs = video.dialogueSegments as { sceneIndex: number; dialogue: string }[];
-        for (const seg of segs) {
-          dialogueMap.set(seg.sceneIndex, seg.dialogue);
-        }
-      }
-
-      const clipValues = approvedScenes.map((scene) => {
-        const dialogue = dialogueMap.get(scene.sceneIndex);
-        const motionPrompt = dialogue
-          ? `The character speaks these exact words directly to camera: "${dialogue}"\n\n${scene.motionPrompt}`
-          : scene.motionPrompt;
-        return {
-          videoId: id,
-          userId: user.id,
-          sceneIndex: scene.sceneIndex,
-          visualPrompt: scene.visualPrompt,
-          motionPrompt,
-          status: "queued" as const,
-          queuedAt: new Date(),
-        };
-      });
-
-      await db.insert(clipRequests).values(clipValues);
-
-      await db
-        .update(videos)
-        .set({ status: "CLIPS_QUEUED", updatedAt: new Date() })
-        .where(eq(videos.id, id));
-
-      await db
-        .update(users)
-        .set({
-          videosToday: sql`${users.videosToday} + 1`,
-          videosThisMonth: sql`${users.videosThisMonth} + 1`,
-          trialVideoRemaining: sql`GREATEST(${users.trialVideoRemaining} - 1, 0)`,
-          updatedAt: new Date(),
-        })
-        .where(eq(users.id, user.id));
-
-      return reply.send({ data: { videoId: id, status: "CLIPS_QUEUED" } });
-    },
-  );
-
   // GET /api/videos/:id/progress — SSE stream of live clip generation events
   fastify.get<{ Params: { id: string } }>(
     "/videos/:id/progress",
@@ -959,7 +401,6 @@ export async function videosRoutes(fastify: FastifyInstance): Promise<void> {
         });
       }
 
-      // Build initial snapshot before hijacking the response
       const clipRows = await db
         .select()
         .from(clipRequests)
@@ -983,7 +424,6 @@ export async function videosRoutes(fastify: FastifyInstance): Promise<void> {
         }),
       );
 
-      // Compute queue position — count distinct videos queued ahead of this one
       const queueResult = await db.execute<{ queue_position: number }>(sql`
         SELECT CASE
           WHEN NOT EXISTS (

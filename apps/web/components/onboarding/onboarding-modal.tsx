@@ -4,17 +4,14 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import {
   Sparkles,
-  Mic,
-  Image,
-  Film,
-  Download,
   CheckCircle,
   ArrowRight,
   Loader2,
+  Film,
+  Calendar,
+  Zap,
 } from "lucide-react";
-import { CreateProjectModal } from "@/components/dashboard/create-project-modal";
 import { useApiClient, withToast } from "@/lib/api-client";
-import type { Project } from "@repo/types";
 
 const TOTAL_STEPS = 3;
 
@@ -24,7 +21,6 @@ interface OnboardingModalProps {
 
 export function OnboardingModal({ onComplete }: OnboardingModalProps) {
   const [step, setStep] = useState(1);
-  const [createdProject, setCreatedProject] = useState<Project | null>(null);
   const api = useApiClient();
   const router = useRouter();
 
@@ -34,15 +30,12 @@ export function OnboardingModal({ onComplete }: OnboardingModalProps) {
       "Failed to complete onboarding"
     );
     onComplete();
-    if (createdProject) {
-      router.push(`/projects/${createdProject.id}`);
-    }
+    router.push("/brands");
   }
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-sm p-4">
       <div className="relative w-full max-w-md overflow-hidden rounded-2xl border border-[var(--bg-border)] bg-[var(--bg-surface)] shadow-[var(--shadow-modal)]">
-        {/* Step progress bar */}
         <div className="flex gap-1 p-4 pb-0">
           {Array.from({ length: TOTAL_STEPS }).map((_, i) => (
             <div
@@ -55,29 +48,15 @@ export function OnboardingModal({ onComplete }: OnboardingModalProps) {
         </div>
 
         <div className="p-6">
-          {step === 1 && (
-            <Step1
-              onNext={(project) => {
-                setCreatedProject(project);
-                setStep(2);
-              }}
-            />
-          )}
+          {step === 1 && <Step1 onNext={() => setStep(2)} />}
           {step === 2 && (
-            <Step2
-              onBack={() => setStep(1)}
-              onNext={() => setStep(3)}
-            />
+            <Step2 onBack={() => setStep(1)} onNext={() => setStep(3)} />
           )}
           {step === 3 && (
-            <Step3
-              onDone={handleDone}
-              onBack={() => setStep(2)}
-            />
+            <Step3 onDone={handleDone} onBack={() => setStep(2)} />
           )}
         </div>
 
-        {/* Step indicator */}
         <div className="border-t border-[var(--bg-border)] px-6 py-3 text-center text-xs text-[var(--text-muted)]">
           Step {step} of {TOTAL_STEPS}
         </div>
@@ -86,11 +65,7 @@ export function OnboardingModal({ onComplete }: OnboardingModalProps) {
   );
 }
 
-/* ── Step 1: Create First Project ───────────────────────────────────────── */
-
-function Step1({ onNext }: { onNext: (project: Project) => void }) {
-  const [modalOpen, setModalOpen] = useState(true);
-
+function Step1({ onNext }: { onNext: () => void }) {
   return (
     <div>
       <div className="mb-2 inline-flex items-center gap-1.5 rounded-full bg-[var(--accent-primary)]/10 px-3 py-1 text-xs font-medium text-[var(--accent-primary)]">
@@ -98,54 +73,40 @@ function Step1({ onNext }: { onNext: (project: Project) => void }) {
         Welcome to ReelForge!
       </div>
       <h2 className="mt-2 text-xl font-semibold text-[var(--text-primary)]">
-        Create your first project
+        Your agentic content machine
       </h2>
       <p className="mt-1.5 text-sm text-[var(--text-secondary)]">
-        A project is a channel or content niche. Set it up once — ReelForge will tailor every script, voice, and visual style for it.
+        Set up a brand once — ReelForge plans, scripts, and generates a full week of short-form videos automatically.
       </p>
 
       <button
-        onClick={() => setModalOpen(true)}
+        onClick={onNext}
         className="mt-6 flex w-full items-center justify-center gap-2 rounded-xl bg-[var(--accent-primary)] py-3 text-sm font-semibold text-white transition-opacity hover:opacity-90"
       >
         <Sparkles className="h-4 w-4" />
-        Set Up My First Project
+        Get Started
         <ArrowRight className="h-4 w-4" />
       </button>
-
-      <CreateProjectModal
-        open={modalOpen}
-        onOpenChange={setModalOpen}
-        onSuccess={(project) => {
-          setModalOpen(false);
-          onNext(project);
-        }}
-      />
     </div>
   );
 }
 
-/* ── Step 2: How It Works ───────────────────────────────────────────────── */
-
 const HOW_IT_WORKS = [
-  { icon: Sparkles, title: "Write your idea", desc: "Type a topic or let AI brainstorm 3 ideas for you." },
-  { icon: CheckCircle, title: "Approve the script", desc: "Review and edit before we generate the voiceover." },
-  { icon: Mic, title: "Pick a voice", desc: "Choose from 20+ multilingual AI voices." },
-  { icon: Image, title: "Review scenes", desc: "Approve or swap out AI-generated visuals." },
-  { icon: Download, title: "Download your video", desc: "Get a finished 1080×1920 MP4 ready to post." },
+  { icon: Sparkles, title: "Create a brand", desc: "Set your niche, tone, and visual style once. ReelForge builds a full character sheet." },
+  { icon: Calendar, title: "Generate a content plan", desc: "AI plans a week of topics, hooks, and video formats tailored to your brand." },
+  { icon: Zap, title: "Approve and generate", desc: "One click — ReelForge scripts, scenes, and assembles all videos automatically." },
+  { icon: Film, title: "Review and post", desc: "Download finished 9:16 MP4s or auto-post to Facebook as drafts or scheduled reels." },
+  { icon: CheckCircle, title: "Repeat weekly", desc: "A new content plan every week. Your brand grows on autopilot." },
 ];
 
 function Step2({ onBack, onNext }: { onBack: () => void; onNext: () => void }) {
   const [activeCard, setActiveCard] = useState(0);
 
-  // Auto-advance every 3s
-  // (Optional enhancement — keep simple for MVP)
-
   return (
     <div>
       <h2 className="text-xl font-semibold text-[var(--text-primary)]">How ReelForge works</h2>
       <p className="mt-1 text-sm text-[var(--text-secondary)]">
-        Five steps from idea to finished video.
+        Five steps from brand to published video.
       </p>
 
       <div className="mt-5 space-y-2">
@@ -203,8 +164,6 @@ function Step2({ onBack, onNext }: { onBack: () => void; onNext: () => void }) {
   );
 }
 
-/* ── Step 3: You're all set ─────────────────────────────────────────────── */
-
 function Step3({ onBack, onDone }: { onBack: () => void; onDone: () => Promise<void> }) {
   const [loading, setLoading] = useState(false);
 
@@ -221,10 +180,7 @@ function Step3({ onBack, onDone }: { onBack: () => void; onDone: () => Promise<v
       </div>
       <h2 className="text-xl font-semibold text-[var(--text-primary)]">You&apos;re all set!</h2>
       <p className="mt-2 text-sm text-[var(--text-secondary)]">
-        Your first project is ready. Start creating your first video — it takes under 10 minutes.
-      </p>
-      <p className="mt-3 text-xs text-[var(--text-muted)]">
-        Your first video costs $2 to generate. You&apos;ll be prompted to pay when you hit Submit.
+        Create your first brand to start generating content automatically.
       </p>
 
       <button
@@ -235,9 +191,9 @@ function Step3({ onBack, onDone }: { onBack: () => void; onDone: () => Promise<v
         {loading ? (
           <Loader2 className="h-4 w-4 animate-spin" />
         ) : (
-          <Film className="h-4 w-4" />
+          <Sparkles className="h-4 w-4" />
         )}
-        Go to Dashboard
+        Create My First Brand
       </button>
 
       <button

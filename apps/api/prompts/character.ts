@@ -1,5 +1,5 @@
-import type { ProjectRow } from "../lib/db/schema.js";
-import { projectContext } from "./utils.js";
+import type { BrandProfileRow } from "../lib/db/schema.js";
+import { brandContext } from "./utils.js";
 import type { PromptPair } from "./script.js";
 
 // ─── UGC character description prompt builder ─────────────────────────────────
@@ -25,7 +25,7 @@ const UGC_STYLE_CONTEXT: Record<string, string> = {
 };
 
 export function buildUGCCharacterDescriptionPrompt(
-  project: ProjectRow,
+  brand: BrandProfileRow,
   ugcVisualStyle: string,
 ): PromptPair {
   const styleContext = UGC_STYLE_CONTEXT[ugcVisualStyle] ?? "Natural proportions, real-world clothing and skin tones";
@@ -33,7 +33,7 @@ export function buildUGCCharacterDescriptionPrompt(
   return {
     system: "You are a character designer creating a locked visual identity for a short-form video creator. Your output will be used as the CHARACTER section of an AI image generation prompt and must produce the same person reliably across many different scenes. The character must look like a genuine expert and passionate enthusiast in their niche — someone the target audience would immediately recognise, trust, and want to follow.",
     user: `Project context:
-${projectContext(project)}
+${brandContext(brand)}
 
 Visual style: ${ugcVisualStyle.replace(/_/g, " ")}
 Style context: ${styleContext}
@@ -62,7 +62,7 @@ Output ONLY the seven-line character description. No preamble. No scene context.
 // The returned prompt is passed to generateImage to produce the reference image.
 
 export function buildCharacterSheetPrompt(
-  project: ProjectRow,
+  brand: BrandProfileRow,
   renderStyle: "cartoon" | "mascot",
 ): PromptPair {
   const styleLabel = renderStyle === "mascot" ? "3D mascot character" : "2D cartoon character";
@@ -80,7 +80,7 @@ Your character description must be:
 - Niche-embedded: the character's silhouette, accessories, and props must make the niche immediately obvious — a viewer should know the niche within one second of seeing the character
 - Likable: give the character personality through specific expressive features and one or two charming quirks`,
     user: `Project context:
-${projectContext(project)}
+${brandContext(brand)}
 
 Render style: ${styleLabel}
 Style rules: ${styleRules}

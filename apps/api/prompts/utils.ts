@@ -1,22 +1,18 @@
-import type { ProjectRow } from "../lib/db/schema.js";
+import type { BrandProfileRow } from "../lib/db/schema.js";
 
-export function projectContext(project: ProjectRow): string {
-  const platforms = Array.isArray(project.platforms)
-    ? project.platforms.join(", ")
-    : project.platforms;
+export function brandContext(brand: BrandProfileRow): string {
   return [
-    `Platform: ${platforms}`,
-    `Niche: ${project.niche}`,
-    `Target audience: ${project.targetAudience}`,
-    `Video style: ${project.videoStyle}`,
-    `Tone: ${project.tone}`,
-    `Language: ${project.language}`,
-    project.claudeSystemPrompt ? `Additional instructions: ${project.claudeSystemPrompt}` : "",
+    `Niche: ${brand.niche}`,
+    brand.nicheDescription ? `Niche detail: ${brand.nicheDescription}` : null,
+    `Target audience: ${[brand.targetAudienceAge, brand.targetAudienceVibe].filter(Boolean).join(", ") || "general audience"}`,
+    `Visual style: ${brand.visualStyle}`,
+    `Tone: ${brand.tone}`,
+    brand.characterType && brand.characterType !== "none"
+      ? `Character type: ${brand.characterType}`
+      : null,
+    brand.characterDescription ? `Character: ${brand.characterDescription}` : null,
+    brand.primaryColor ? `Brand colour: ${brand.primaryColor}` : null,
   ]
     .filter(Boolean)
     .join("\n");
-}
-
-export function isBengali(project: ProjectRow): boolean {
-  return project.language?.toLowerCase() === "bengali";
 }

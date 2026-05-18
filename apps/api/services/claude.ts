@@ -1,14 +1,13 @@
 import Anthropic from "@anthropic-ai/sdk";
 import { jsonrepair } from "jsonrepair";
 import { env } from "../lib/env.js";
-import type { BrandProfileRow, ProjectRow } from "../lib/db/schema.js";
+import type { BrandProfileRow } from "../lib/db/schema.js";
 import {
   buildIdeasMessages,
   buildScriptMessages,
   buildScenesMessages,
   buildTalkingSceneMessages,
   buildActionReelSceneMessages,
-  buildUGCCharacterDescriptionPrompt,
 } from "../prompts/index.js";
 import { buildWeekPlanMessages } from "../prompts/content-plan.js";
 
@@ -29,8 +28,8 @@ export interface SceneSplit {
 
 // ─── Idea generation ──────────────────────────────────────────────────────────
 
-export async function generateIdeas(project: ProjectRow, topic: string, videoType?: string, actionReelStyle?: string | null): Promise<IdeaCard[]> {
-  const { system, user } = buildIdeasMessages(project, topic, videoType, actionReelStyle);
+export async function generateIdeas(brand: BrandProfileRow, topic: string, videoType?: string, actionReelStyle?: string | null): Promise<IdeaCard[]> {
+  const { system, user } = buildIdeasMessages(brand, topic, videoType, actionReelStyle);
 
   const message = await client.messages.create({
     model: "claude-sonnet-4-6",
@@ -73,37 +72,17 @@ export async function generateIdeas(project: ProjectRow, topic: string, videoTyp
   return ideas ?? [];
 }
 
-// ─── UGC character description generation ─────────────────────────────────────
-
-export async function generateUGCCharacter(
-  project: ProjectRow,
-  ugcVisualStyle: string,
-): Promise<string> {
-  const { system, user } = buildUGCCharacterDescriptionPrompt(project, ugcVisualStyle);
-
-  const message = await client.messages.create({
-    model: "claude-sonnet-4-6",
-    max_tokens: 200,
-    system,
-    messages: [{ role: "user", content: user }],
-  });
-
-  const text = message.content[0]?.type === "text" ? message.content[0].text.trim() : "";
-  if (!text) throw new Error("UGC character generation returned empty.");
-  return text;
-}
-
 // ─── Script generation ────────────────────────────────────────────────────────
 
 export async function generateScript(
-  project: ProjectRow,
+  brand: BrandProfileRow,
   idea: string,
   targetDurationSeconds = 30,
   renderStyle?: string,
   videoType?: string,
   actionReelStyle?: string | null,
 ): Promise<string> {
-  const { system, user } = buildScriptMessages(project, idea, targetDurationSeconds, renderStyle, videoType, actionReelStyle);
+  const { system, user } = buildScriptMessages(brand, idea, targetDurationSeconds, renderStyle, videoType, actionReelStyle);
 
   const message = await client.messages.create({
     model: "claude-sonnet-4-6",

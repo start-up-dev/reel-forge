@@ -1,46 +1,13 @@
 import { and, asc, eq, inArray, sql } from "drizzle-orm";
 import { db } from "../lib/db/index.js";
-import { brandProfiles, clipRequests, contentPlans, postSchedules, projects, scenes, socialAccounts, users, videos } from "../lib/db/schema.js";
-import type { BrandProfileRow, ProjectRow } from "../lib/db/schema.js";
+import { brandProfiles, clipRequests, contentPlans, postSchedules, scenes, socialAccounts, users, videos } from "../lib/db/schema.js";
+import type { BrandProfileRow } from "../lib/db/schema.js";
 import { emitPlanEvent } from "../lib/plan-event-bus.js";
 import { generateSignedReadUrl } from "../lib/storage.js";
 import { uploadReelToFacebook } from "./facebook.js";
 import { generateDialogueSegments, generateScript, generateTitle, splitScenes } from "./claude.js";
 import { sendBatchCompleteEmail } from "./email.js";
 import type { TopicEntry } from "./claude.js";
-
-// Maps a brand profile to a minimal ProjectRow-shaped object so brand-owned batch
-// videos get brand context (niche, tone, audience, visual identity) injected into
-// every Claude call — identical to what project-owned videos have always had.
-function buildBrandStub(brand: BrandProfileRow, userId: string): ProjectRow {
-  const extras = [
-    brand.nicheDescription ? `Niche context: ${brand.nicheDescription}` : null,
-    brand.characterType ? `Content character type: ${brand.characterType}` : null,
-    brand.characterDescription ? `Brand character: ${brand.characterDescription}` : null,
-    brand.primaryColor ? `Brand primary colour: ${brand.primaryColor}` : null,
-    brand.secondaryColor ? `Brand secondary colour: ${brand.secondaryColor}` : null,
-    brand.visualStyle ? `Visual style: ${brand.visualStyle}` : null,
-  ].filter(Boolean).join("\n");
-
-  return {
-    id: brand.id,
-    userId,
-    name: brand.name,
-    platforms: ["tiktok", "instagram", "facebook"],
-    niche: brand.niche,
-    language: "English",
-    targetAudience: [brand.targetAudienceAge, brand.targetAudienceVibe].filter(Boolean).join(", ") || "general audience",
-    videoStyle: "storytelling" as ProjectRow["videoStyle"],
-    tone: (brand.tone as ProjectRow["tone"]) ?? "casual",
-    defaultSubtitleStyle: null,
-    defaultBgmEnabled: false,
-    defaultBgmAssetId: null,
-    claudeSystemPrompt: extras || null,
-    deletedAt: null,
-    createdAt: new Date(),
-    updatedAt: new Date(),
-  } as unknown as ProjectRow;
-}
 
 // Simple semaphore for capping concurrent video generations
 function makeSemaphore(max: number) {
@@ -97,27 +64,23 @@ async function processVideo(
 
     if (!video) throw new Error("Video not found");
 
-    const [project, brand] = await Promise.all([
-      video.projectId
-        ? db.select().from(projects).where(eq(projects.id, video.projectId)).limit(1).then(r => r[0] ?? null)
-        : Promise.resolve(null),
-      video.brandProfileId
-        ? db.select().from(brandProfiles).where(eq(brandProfiles.id, video.brandProfileId)).limit(1).then(r => r[0] ?? null)
-        : Promise.resolve(null),
-    ]);
+    if (!video.brandProfileId) throw new Error(`Video ${videoId} has no brand profile attached`);
 
-    // Build generation context: project takes precedence; fall back to brand-derived stub.
-    // Batch videos have no project — construct one from brand profile so Claude knows the
-    // niche, tone, audience, and visual identity.
-    const projectOrStub = (project ?? (brand ? buildBrandStub(brand, userId) : { language: "English", claudeSystemPrompt: null })) as NonNullable<typeof project>;
+    const [brand] = await db
+      .select()
+      .from(brandProfiles)
+      .where(eq(brandProfiles.id, video.brandProfileId))
+      .limit(1);
 
-    // For talking videos: use ai_clone when a character sheet exists (visual prompts will
-    // reference "the uploaded reference image"), otherwise pass the brand character
-    // description as a verbatim anchor so Claude uses it across every scene.
-    const hasCharacterSheet = Boolean(brand?.characterSheetGcsPath);
+    if (!brand) throw new Error(`Brand profile not found for video ${videoId}`);
+
+    // For talking videos: use ai_clone when a character sheet image exists (visual prompts
+    // reference "the uploaded reference image"), otherwise use brand.characterDescription
+    // as the verbatim anchor injected into every scene.
+    const hasCharacterSheet = Boolean(brand.characterSheetGcsPath);
     const effectiveUgcVisualStyle = video.ugcVisualStyle
-      ?? (video.videoType === "talking" ? (hasCharacterSheet ? "ai_clone" : brand?.visualStyle ?? null) : null);
-    const characterNote = hasCharacterSheet ? null : (brand?.characterDescription ?? null);
+      ?? (video.videoType === "talking" ? (hasCharacterSheet ? "ai_clone" : brand.visualStyle ?? null) : null);
+    const characterNote = hasCharacterSheet ? null : (brand.characterDescription ?? null);
 
     // 1 — Generate script
     emitPlanEvent(planId, { type: "VIDEO_UPDATE", videoId, title: video.title, status: "SCRIPT_PENDING", message: "Scripting…" });
@@ -127,7 +90,7 @@ async function processVideo(
     const needsTitle = !video.title || video.title === "Untitled Video";
     const idea = video.idea ?? video.title;
     const [script, autoTitle] = await Promise.all([
-      generateScript(projectOrStub, idea, video.targetDurationSeconds, video.renderStyle ?? undefined, video.videoType, video.actionReelStyle ?? undefined),
+      generateScript(brand, idea, video.targetDurationSeconds, video.renderStyle ?? undefined, video.videoType, video.actionReelStyle ?? undefined),
       needsTitle ? generateTitle(idea) : Promise.resolve(null),
     ]);
 
