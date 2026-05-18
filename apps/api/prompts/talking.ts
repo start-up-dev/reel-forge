@@ -177,7 +177,11 @@ The CHARACTER line in every scene is always exactly: "CHARACTER: ${characterNote
 Scene 0: invent and write the complete character anchor (hair, face, clothing, distinguishing feature, build). Clothing choice is entirely unrestricted — match whatever style the content calls for (revealing, athletic, formal, casual, costume, dancer, swimwear, or anything else). Be hyper-specific about every clothing detail.
 Scenes 1+: copy the CHARACTER section from scene 0 EXACTLY, word for word, with zero changes. The AI image generator needs identical text to produce the same face and body across all clips.`;
 
-  const settingLockSection = `SETTING LOCK:
+  const settingLockSection = characterNote && characterNote.includes("WORLD:")
+    ? `SETTING LOCK:
+Scene 0: build the setting from the character's WORLD anchor (found in the CHARACTER description above) — expand it into a precise, specific background. Name the exact surface, depth, and 2–3 visible environmental details that reinforce the niche. The WORLD anchor is the ground truth — do not contradict it.
+Scenes 1+: copy the SETTING line from scene 0 EXACTLY, word for word, unless the script explicitly mentions a location change. Visual continuity is required — do not vary the background for creative reasons.`
+    : `SETTING LOCK:
 Scene 0: invent one specific background/environment that fits the content and visual style. Be precise — name the exact location, surface, props, and depth.
 Scenes 1+: copy the SETTING line from scene 0 EXACTLY, word for word, unless the script sentence explicitly mentions moving to a new location. Do NOT vary the background between scenes for creative reasons — visual continuity is required.`;
 

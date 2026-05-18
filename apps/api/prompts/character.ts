@@ -31,21 +31,28 @@ export function buildUGCCharacterDescriptionPrompt(
   const styleContext = UGC_STYLE_CONTEXT[ugcVisualStyle] ?? "Natural proportions, real-world clothing and skin tones";
 
   return {
-    system: "You are a character designer creating a locked visual identity for a short-form video character. Your output will be used as the CHARACTER section of an AI image generation prompt and must produce the same person or character reliably across many different scenes.",
+    system: "You are a character designer creating a locked visual identity for a short-form video creator. Your output will be used as the CHARACTER section of an AI image generation prompt and must produce the same person reliably across many different scenes. The character must look like a genuine expert and passionate enthusiast in their niche — someone the target audience would immediately recognise, trust, and want to follow.",
     user: `Project context:
 ${projectContext(project)}
 
 Visual style: ${ugcVisualStyle.replace(/_/g, " ")}
 Style context: ${styleContext}
 
-Write a 50–80 word character description using exactly these five labelled lines in this order:
+Write a 80–110 word character description using exactly these seven labelled lines in this order:
 HAIR: [exact colour, length, style, any distinguishing detail]
 FACE: [skin tone with warmth description, eye colour, brow character]
-CLOTHING: [specific garment + exact colour + texture detail]
-FEATURE: [one unique anchoring detail — earring, freckle, beauty mark, tattoo, etc.]
-BUILD: [brief impression — apparent age, physique]
+CLOTHING: [niche-authentic outfit — specific garment + exact colour + texture; must immediately signal the niche to any viewer]
+FEATURE: [one anchoring detail — earring, freckle, tattoo, badge, glasses, scar, etc.]
+BUILD: [brief impression — apparent age, physique, energy that matches the niche]
+PROPS: [1–2 niche-specific items permanently visible — held in hand, worn, or in the immediate foreground; e.g. for gym fitness: chalk-dusted barbell gripped in right hand, worn leather gym belt; for cooking: wooden spatula in right hand, apron strings tied at front]
+WORLD: [5–8 words — the character's home environment that reinforces niche; e.g. "rubber gym floor, iron weight rack behind" or "marble kitchen counter, cast-iron pans hanging"]
 
-Output ONLY the five-line character description. No preamble. No scene context. No explanation.`,
+Critical rules:
+- CLOTHING + PROPS together must make the niche instantly obvious at a glance — no viewer should be unsure what this person does
+- PROPS are permanent anchors — they appear in every single scene
+- WORLD is the default setting — it informs every scene's background even when the camera is tight on the character
+
+Output ONLY the seven-line character description. No preamble. No scene context. No explanation.`,
   };
 }
 
@@ -61,30 +68,33 @@ export function buildCharacterSheetPrompt(
   const styleLabel = renderStyle === "mascot" ? "3D mascot character" : "2D cartoon character";
   const styleRules =
     renderStyle === "mascot"
-      ? "3D render, vibrant saturated colours, smooth surfaces, large expressive eyes, physically embodies the niche subject as a character (e.g. if the niche is fitness, the mascot could be a cartoon dumbbell with arms and a face)"
-      : "2D flat cartoon, thick black outlines, bold primary colours, exaggerated proportions, large head, small body, enormous expressive eyes";
+      ? "3D render, vibrant saturated colours, smooth surfaces, large expressive eyes — the character physically embodies or is visually inseparable from the niche (e.g. fitness: cartoon dumbbell with arms, face, and gym-chalk hands; cooking: cheerful chef's knife character with a toque; finance: coin mascot with a tie and magnifying glass)"
+      : "2D flat cartoon, thick black outlines, bold primary colours, exaggerated proportions: large head, small body, enormous expressive eyes — the character's design must scream the niche at a glance";
 
   return {
-    system: `You are a character designer creating a definitive visual reference for a ${styleLabel}. Your output will be used as an AI image generation prompt that must produce a visually consistent character across many different scenes.
+    system: `You are a character designer creating a definitive visual reference for a ${styleLabel}. Your output will be used as an AI image generation prompt that must produce a visually consistent, instantly lovable character across many different scenes.
 
 Your character description must be:
-- Hyper-specific: every detail (colour, shape, expression range, distinguishing features) must be locked down
-- Repeatable: another AI model reading this description should generate the same character every time
-- On-brand: the character's design must reflect the project niche, target audience, and tone`,
+- Hyper-specific: every detail (colour, shape, expression range, distinguishing features) locked down
+- Repeatable: another AI model reading this description generates the same character every time
+- Niche-embedded: the character's silhouette, accessories, and props must make the niche immediately obvious — a viewer should know the niche within one second of seeing the character
+- Likable: give the character personality through specific expressive features and one or two charming quirks`,
     user: `Project context:
 ${projectContext(project)}
 
 Render style: ${styleLabel}
 Style rules: ${styleRules}
 
-Write a character sheet prompt (150–200 words) that describes this character so precisely that an AI image generator will produce the same character reliably across different scenes. Include:
-- Species/type and overall silhouette
-- Exact colour palette (name specific colours for each body part/region)
-- Distinguishing features (hat, accessory, marking, texture, etc.)
-- Default expression and personality energy
-- Pose style (how they typically stand or float)
-- Any visual motifs that should appear in every scene (e.g. always has a glowing aura, always wears a cape)
+Write a character sheet prompt (180–240 words) that describes this character so precisely that an AI image generator will produce the same character reliably. Include ALL of these:
 
-End with: "9:16 vertical frame, no text, no background elements — character on simple gradient background for reference sheet"`,
+SILHOUETTE & TYPE: species/type, overall shape, size impression
+COLOUR PALETTE: exact named colours for every body region (skin/surface, hair/top, clothing, eyes, outline)
+NICHE PROPS (required — 2–3 items): specific objects permanently attached to or held by the character that instantly signal the niche — they appear in every single scene (e.g. for gym fitness: always gripping a miniature barbell, always wearing a tiny lifting belt, chalk dust on hands; for cooking: always holding a wooden spoon, always wearing a striped apron; for finance: always holding a gold coin, always wearing a tiny tie)
+DISTINGUISHING FEATURES: hat, marking, texture, accessory, facial detail that makes this character unique
+EXPRESSION & PERSONALITY: default face expression + one quirk that makes it charming (e.g. one eyebrow always slightly raised, perpetual tiny sweat drop, permanent wide grin)
+POSE ENERGY: how the character typically stands or floats — their default body language
+ENVIRONMENT MOTIFS: 2–3 background/scene elements that appear whenever the character is shown (e.g. for fitness: rubber gym floor tiles, iron weight rack, chalk cloud; for cooking: wooden cutting board surface, steam wisps, herb sprigs)
+
+End with: "9:16 vertical frame, no text — character centred on a simple gradient background matching the niche colour palette for reference sheet"`,
   };
 }
