@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import Link from "next/link";
 import { Play, Menu, X } from "lucide-react";
 import { NAV_LINKS, NAV_CTA, SITE } from "@/lib/content";
+import Image from "next/image";
 
 export function StickyNav() {
   const [scrolled, setScrolled] = useState(false);
@@ -64,12 +65,13 @@ export function StickyNav() {
         <div className="mx-auto flex max-w-6xl items-center justify-between px-6">
           {/* Logo */}
           <Link href="/" className="group flex items-center gap-3">
-            <div className="flex h-9 w-9 md:h-10 md:w-10 items-center justify-center rounded-lg md:rounded-xl bg-[var(--accent-primary)] shadow-[0_0_20px_rgba(245,92,42,0.3)] transition-transform group-hover:rotate-12">
-              <Play className="h-4 w-4 md:h-5 md:w-5 fill-white text-white translate-x-0.5" />
-            </div>
-            <span className="text-[18px] md:text-[20px] font-black tracking-tighter text-[var(--text-primary)]">
-              {SITE.name}
-            </span>
+            <Image
+              src="/logo.png"
+              alt="ReelForge"
+              width={100}
+              height={100}
+              className="transition-transform group-hover:rotate-12"
+            />
           </Link>
 
           {/* Center links — desktop only */}
@@ -107,7 +109,11 @@ export function StickyNav() {
               className="flex h-9 w-9 items-center justify-center rounded-lg bg-white/[0.03] border border-white/10 text-[var(--text-primary)] md:hidden"
               aria-label={mobileMenuOpen ? "Close menu" : "Open menu"}
             >
-              {mobileMenuOpen ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
+              {mobileMenuOpen ? (
+                <X className="h-5 w-5" />
+              ) : (
+                <Menu className="h-5 w-5" />
+              )}
             </button>
           </div>
         </div>
