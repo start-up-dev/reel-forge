@@ -456,6 +456,9 @@ export function createApiClient(getToken: () => Promise<string | null>) {
           body: JSON.stringify(data ?? {}),
         });
       },
+      retryGeneration(id: string): Promise<ApiResponse<{ ok: boolean }>> {
+        return authedRequest(`/api/content-plans/${id}/retry-generation`, { method: "POST" });
+      },
       delete(id: string): Promise<ApiResponse<{ ok: boolean }>> {
         return authedRequest(`/api/content-plans/${id}`, { method: "DELETE" });
       },

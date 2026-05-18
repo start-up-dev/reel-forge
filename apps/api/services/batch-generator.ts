@@ -300,15 +300,53 @@ async function autoPostCompletedVideos(
   }
 }
 
+function mapFormatToVideoType(format: string): "generated" | "talking" | "action_reel" {
+  if (format === "tutorial") return "generated";
+  if (format === "ugc") return "talking";
+  return "generated";
+}
+
 export async function startBatchGeneration(planId: string, userId: string): Promise<void> {
   try {
-    const planVideos = await db
+    let planVideos = await db
       .select({ id: videos.id })
       .from(videos)
       .where(eq(videos.contentPlanId, planId))
       .orderBy(asc(videos.createdAt));
 
-    if (planVideos.length === 0) return;
+    // Self-heal: if the approve transaction succeeded but the video insert failed
+    // (partial state), recreate the video rows now so generation can proceed.
+    if (planVideos.length === 0) {
+      const [plan] = await db
+        .select()
+        .from(contentPlans)
+        .where(eq(contentPlans.id, planId))
+        .limit(1);
+
+      const topics = Array.isArray(plan?.topics) ? (plan.topics as TopicEntry[]) : [];
+      if (!plan || topics.length === 0) {
+        console.error("[startBatchGeneration] no plan or topics found for", planId);
+        return;
+      }
+
+      console.warn("[startBatchGeneration] no videos found for approved plan, recreating from topics:", planId);
+      const inserted = await db
+        .insert(videos)
+        .values(
+          topics.map((topic) => ({
+            userId,
+            contentPlanId: plan.id,
+            brandProfileId: plan.brandProfileId,
+            title: topic.title,
+            videoType: mapFormatToVideoType(topic.format),
+            status: "DRAFT" as const,
+            idea: `${topic.hook}\n\n${topic.scriptOutline}`,
+          })),
+        )
+        .returning({ id: videos.id });
+
+      planVideos = inserted;
+    }
 
     await db.update(contentPlans).set({ status: "generating", updatedAt: new Date() }).where(eq(contentPlans.id, planId));
 

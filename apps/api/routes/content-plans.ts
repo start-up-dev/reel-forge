@@ -258,43 +258,47 @@ export async function contentPlansRoutes(fastify: FastifyInstance) {
         return reply.status(400).send({ error: { message: "Plan has no topics to approve." } });
       }
 
-      // Flip status draft→approved. The conditional WHERE prevents double-approval.
+      // Approve + create videos atomically so we never leave the plan as "approved"
+      // with zero videos (which permanently blocks re-approval and stalls generation).
       let videoIds: string[];
       try {
-        const [updated] = await db
-          .update(contentPlans)
-          .set({ status: "approved", postType, updatedAt: new Date() })
-          .where(
-            and(
-              eq(contentPlans.id, id),
-              eq(contentPlans.userId, user.id),
-              eq(contentPlans.status, "draft"),
-            ),
-          )
-          .returning({ id: contentPlans.id });
+        videoIds = await db.transaction(async (tx) => {
+          const [updated] = await tx
+            .update(contentPlans)
+            .set({ status: "approved", postType, updatedAt: new Date() })
+            .where(
+              and(
+                eq(contentPlans.id, id),
+                eq(contentPlans.userId, user.id),
+                eq(contentPlans.status, "draft"),
+              ),
+            )
+            .returning({ id: contentPlans.id });
 
-        if (!updated) {
-          throw new Error("Plan was already approved.");
-        }
+          if (!updated) {
+            throw new Error("Plan was already approved.");
+          }
 
-        const inserted = await db
-          .insert(videos)
-          .values(
-            topics.map((topic) => ({
-              userId: user.id,
-              contentPlanId: plan.id,
-              brandProfileId: plan.brandProfileId,
-              title: topic.title,
-              videoType: mapFormatToVideoType(topic.format) as "generated" | "talking" | "action_reel",
-              status: "DRAFT" as const,
-              idea: `${topic.hook}\n\n${topic.scriptOutline}`,
-            })),
-          )
-          .returning({ id: videos.id });
+          const inserted = await tx
+            .insert(videos)
+            .values(
+              topics.map((topic) => ({
+                userId: user.id,
+                contentPlanId: plan.id,
+                brandProfileId: plan.brandProfileId,
+                title: topic.title,
+                videoType: mapFormatToVideoType(topic.format) as "generated" | "talking" | "action_reel",
+                status: "DRAFT" as const,
+                idea: `${topic.hook}\n\n${topic.scriptOutline}`,
+              })),
+            )
+            .returning({ id: videos.id });
 
-        videoIds = inserted.map((v) => v.id);
+          return inserted.map((v) => v.id);
+        });
       } catch (err) {
         const msg = err instanceof Error ? err.message : "Failed to approve plan.";
+        console.error("[approve] failed:", msg, err);
         if (msg === "Plan was already approved.") {
           return reply.status(409).send({ error: { message: msg } });
         }
@@ -305,6 +309,32 @@ export async function contentPlansRoutes(fastify: FastifyInstance) {
       void startBatchGeneration(id, user.id);
 
       return reply.send({ data: { ok: true, videoIds } });
+    },
+  );
+
+  // POST /api/content-plans/:id/retry-generation — re-trigger for stuck approved plans
+  fastify.post<{ Params: { id: string } }>(
+    "/content-plans/:id/retry-generation",
+    async (request, reply) => {
+      const user = request.currentUser!;
+      const { id } = request.params;
+
+      const [plan] = await db
+        .select()
+        .from(contentPlans)
+        .where(and(eq(contentPlans.id, id), eq(contentPlans.userId, user.id)))
+        .limit(1);
+
+      if (!plan) {
+        return reply.status(404).send({ error: { message: "Content plan not found." } });
+      }
+
+      if (plan.status === "draft") {
+        return reply.status(400).send({ error: { message: "Plan must be approved before retrying." } });
+      }
+
+      void startBatchGeneration(id, user.id);
+      return reply.send({ data: { ok: true } });
     },
   );
 

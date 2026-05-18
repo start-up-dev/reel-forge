@@ -251,8 +251,24 @@ function AgentActivityPanel({
   brandId: string;
 }) {
   const router = useRouter();
+  const api = useApiClient();
   const progress = usePlanProgress(planId, totalVideos);
   const pct = totalVideos > 0 ? Math.round((progress.completedCount / totalVideos) * 100) : 0;
+  const [retrying, setRetrying] = useState(false);
+  // Show retry after 15s with no activity
+  const [showRetry, setShowRetry] = useState(false);
+  useEffect(() => {
+    if (progress.videoStatuses.size > 0 || progress.isBatchComplete) return;
+    const t = setTimeout(() => setShowRetry(true), 15_000);
+    return () => clearTimeout(t);
+  }, [progress.videoStatuses.size, progress.isBatchComplete]);
+
+  async function handleRetry() {
+    setRetrying(true);
+    setShowRetry(false);
+    await withToast(() => api.contentPlans.retryGeneration(planId), "Retry failed");
+    setRetrying(false);
+  }
 
   const sortedEntries = [...progress.videoStatuses.entries()].sort(
     ([, a], [, b]) => getVideoStatusCfg(a.status).order - getVideoStatusCfg(b.status).order
@@ -321,6 +337,21 @@ function AgentActivityPanel({
             <p className="mt-2 text-xs text-[var(--text-muted)]">
               You can close this tab — we&apos;ll email you when everything&apos;s ready
             </p>
+            {showRetry && (
+              <div className="mt-3 flex items-center gap-2 rounded-lg border border-[var(--accent-warning)]/30 bg-[var(--accent-warning)]/10 px-3 py-2">
+                <span className="flex-1 text-xs text-[var(--accent-warning)]">
+                  Generation seems stuck. Try restarting?
+                </span>
+                <Button
+                  variant="secondary"
+                  onClick={handleRetry}
+                  disabled={retrying}
+                  className="h-7 px-3 text-xs"
+                >
+                  {retrying ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : "Retry"}
+                </Button>
+              </div>
+            )}
           </>
         )}
       </div>
