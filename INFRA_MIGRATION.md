@@ -1,5 +1,7 @@
 # ReelForge Infrastructure Migration Taskboard
+
 ### GCP → Hetzner + Cloudflare R2
+
 **Goal:** Cut hosting from ~$250/mo → ~$10/mo
 
 ---
@@ -9,14 +11,14 @@
 - [x] Create Hetzner account at hetzner.com/cloud
 - [x] Generate SSH key on Mac: `ssh-keygen -t ed25519 -C "your@email.com"`
 - [x] Copy public key to clipboard: `pbcopy < ~/.ssh/id_ed25519.pub`
-- [ ] Create new Project in Hetzner Console
-- [ ] Add Server:
+- [x] Create new Project in Hetzner Console
+- [x] Add Server:
   - Type: **Regular Performance → CX22** ($8.49/mo)
   - OS: **Ubuntu 24.04**
   - Location: Ashburn (US) or Nuremberg (EU)
   - Paste SSH key
   - Create Firewall: allow ports **22, 80, 443**
-- [ ] Note down the server IP address
+- [x] Note down the server IP address
 
 ---
 
@@ -138,11 +140,15 @@ pnpm --filter @repo/api add @aws-sdk/client-s3 @aws-sdk/s3-request-presigner
 
 ```ts
 // apps/api/lib/storage.ts
-import { S3Client, PutObjectCommand, GetObjectCommand } from '@aws-sdk/client-s3';
-import { getSignedUrl } from '@aws-sdk/s3-request-presigner';
+import {
+  S3Client,
+  PutObjectCommand,
+  GetObjectCommand,
+} from "@aws-sdk/client-s3";
+import { getSignedUrl } from "@aws-sdk/s3-request-presigner";
 
 const r2 = new S3Client({
-  region: 'auto',
+  region: "auto",
   endpoint: `https://${process.env.R2_ACCOUNT_ID}.r2.cloudflarestorage.com`,
   credentials: {
     accessKeyId: process.env.R2_ACCESS_KEY_ID!,
@@ -150,20 +156,30 @@ const r2 = new S3Client({
   },
 });
 
-export async function uploadFile(key: string, body: Buffer, contentType: string) {
-  await r2.send(new PutObjectCommand({
-    Bucket: process.env.R2_BUCKET_NAME,
-    Key: key,
-    Body: body,
-    ContentType: contentType,
-  }));
+export async function uploadFile(
+  key: string,
+  body: Buffer,
+  contentType: string,
+) {
+  await r2.send(
+    new PutObjectCommand({
+      Bucket: process.env.R2_BUCKET_NAME,
+      Key: key,
+      Body: body,
+      ContentType: contentType,
+    }),
+  );
 }
 
 export async function getSignedDownloadUrl(key: string, expiresIn = 3600) {
-  return getSignedUrl(r2, new GetObjectCommand({
-    Bucket: process.env.R2_BUCKET_NAME,
-    Key: key,
-  }), { expiresIn });
+  return getSignedUrl(
+    r2,
+    new GetObjectCommand({
+      Bucket: process.env.R2_BUCKET_NAME,
+      Key: key,
+    }),
+    { expiresIn },
+  );
 }
 ```
 
@@ -184,15 +200,15 @@ export async function getSignedDownloadUrl(key: string, expiresIn = 3600) {
 
 ## Final Cost Check
 
-| Service | Provider | Cost |
-|---------|----------|------|
-| VPS CX22 | Hetzner | $8.49/mo |
-| Object Storage | Cloudflare R2 | $0 |
-| PostgreSQL | Neon free tier | $0 |
-| Auth | Clerk free tier | $0 |
-| Email | Resend free tier | $0 |
-| DNS | Cloudflare free | $0 |
-| **Total** | | **~$8.49/mo** |
+| Service        | Provider         | Cost          |
+| -------------- | ---------------- | ------------- |
+| VPS CX22       | Hetzner          | $8.49/mo      |
+| Object Storage | Cloudflare R2    | $0            |
+| PostgreSQL     | Neon free tier   | $0            |
+| Auth           | Clerk free tier  | $0            |
+| Email          | Resend free tier | $0            |
+| DNS            | Cloudflare free  | $0            |
+| **Total**      |                  | **~$8.49/mo** |
 
 ---
 

@@ -258,44 +258,41 @@ export async function contentPlansRoutes(fastify: FastifyInstance) {
         return reply.status(400).send({ error: { message: "Plan has no topics to approve." } });
       }
 
-      // Atomic: flip status draft→approved and insert videos in one transaction.
-      // The conditional WHERE prevents double-approval from concurrent requests.
+      // Flip status draft→approved. The conditional WHERE prevents double-approval.
       let videoIds: string[];
       try {
-        videoIds = await db.transaction(async (tx) => {
-          const [updated] = await tx
-            .update(contentPlans)
-            .set({ status: "approved", postType, updatedAt: new Date() })
-            .where(
-              and(
-                eq(contentPlans.id, id),
-                eq(contentPlans.userId, user.id),
-                eq(contentPlans.status, "draft"),
-              ),
-            )
-            .returning({ id: contentPlans.id });
+        const [updated] = await db
+          .update(contentPlans)
+          .set({ status: "approved", postType, updatedAt: new Date() })
+          .where(
+            and(
+              eq(contentPlans.id, id),
+              eq(contentPlans.userId, user.id),
+              eq(contentPlans.status, "draft"),
+            ),
+          )
+          .returning({ id: contentPlans.id });
 
-          if (!updated) {
-            throw new Error("Plan was already approved.");
-          }
+        if (!updated) {
+          throw new Error("Plan was already approved.");
+        }
 
-          const inserted = await tx
-            .insert(videos)
-            .values(
-              topics.map((topic) => ({
-                userId: user.id,
-                contentPlanId: plan.id,
-                brandProfileId: plan.brandProfileId,
-                title: topic.title,
-                videoType: mapFormatToVideoType(topic.format) as "generated" | "talking" | "action_reel",
-                status: "DRAFT" as const,
-                idea: `${topic.hook}\n\n${topic.scriptOutline}`,
-              })),
-            )
-            .returning({ id: videos.id });
+        const inserted = await db
+          .insert(videos)
+          .values(
+            topics.map((topic) => ({
+              userId: user.id,
+              contentPlanId: plan.id,
+              brandProfileId: plan.brandProfileId,
+              title: topic.title,
+              videoType: mapFormatToVideoType(topic.format) as "generated" | "talking" | "action_reel",
+              status: "DRAFT" as const,
+              idea: `${topic.hook}\n\n${topic.scriptOutline}`,
+            })),
+          )
+          .returning({ id: videos.id });
 
-          return inserted.map((v) => v.id);
-        });
+        videoIds = inserted.map((v) => v.id);
       } catch (err) {
         const msg = err instanceof Error ? err.message : "Failed to approve plan.";
         if (msg === "Plan was already approved.") {
