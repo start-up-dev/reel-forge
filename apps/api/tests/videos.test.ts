@@ -1,5 +1,5 @@
 /**
- * Integration tests for Video CRUD routes.
+ * Integration tests for Video routes.
  *
  * The DB module is mocked — no live database required.
  */
@@ -26,16 +26,9 @@ vi.mock("../lib/db/index.js", () => ({
 
 // ─── Sample data ──────────────────────────────────────────────────────────────
 
-const SAMPLE_PROJECT = {
-  id: "proj-uuid-001",
-  userId: MOCK_USER.id,
-  deletedAt: null,
-};
-
 const SAMPLE_VIDEO = {
   id: "video-uuid-001",
   userId: MOCK_USER.id,
-  projectId: SAMPLE_PROJECT.id,
   title: "My First Video",
   status: "DRAFT",
   idea: null,
@@ -44,7 +37,7 @@ const SAMPLE_VIDEO = {
   subtitleStyle: "bold_pop",
   bgmEnabled: false,
   bgmAssetId: null,
-  bgmVolume: 0.3,
+  bgmVolume: 15,
   outputUrl: null,
   error: null,
   deletedAt: null,
@@ -83,126 +76,14 @@ describe("Video routes", () => {
     vi.clearAllMocks();
   });
 
-  // ── GET /api/projects/:id/videos ─────────────────────────────────────────
-
-  describe("GET /api/projects/:id/videos", () => {
-    it("returns paginated video list for a valid project", async () => {
-      mockSelect
-        .mockReturnValueOnce(drizzleChain([SAMPLE_PROJECT]))  // project ownership check
-        .mockReturnValueOnce(drizzleChain([SAMPLE_VIDEO]))    // video rows
-        .mockReturnValueOnce(drizzleChain([{ count: 1 }]));   // total count
-
-      const res = await app.inject({
-        method: "GET",
-        url: `/api/projects/${SAMPLE_PROJECT.id}/videos`,
-      });
-
-      expect(res.statusCode).toBe(200);
-      const body = res.json<{
-        data: typeof SAMPLE_VIDEO[];
-        total: number;
-        hasMore: boolean;
-      }>();
-      expect(body.data).toHaveLength(1);
-      expect(body.total).toBe(1);
-      expect(body.hasMore).toBe(false);
-    });
-
-    it("returns 404 when the project is not found or not owned", async () => {
-      mockSelect.mockReturnValue(drizzleChain([]));
-
-      const res = await app.inject({
-        method: "GET",
-        url: "/api/projects/nonexistent/videos",
-      });
-
-      expect(res.statusCode).toBe(404);
-    });
-  });
-
-  // ── POST /api/projects/:id/videos ────────────────────────────────────────
-
-  describe("POST /api/projects/:id/videos", () => {
-    it("returns 402 when the user has not paid the trial fee", async () => {
-      // MOCK_USER has trialPaid: false and plan: "none" → quota check fails
-      mockSelect.mockReturnValue(drizzleChain([SAMPLE_PROJECT]));
-
-      const res = await app.inject({
-        method: "POST",
-        url: `/api/projects/${SAMPLE_PROJECT.id}/videos`,
-        payload: { title: "My Video" },
-      });
-
-      expect(res.statusCode).toBe(402);
-      const body = res.json<{ error: { redirect: string } }>();
-      expect(body.error.redirect).toBe("trial_checkout");
-    });
-
-    it("creates a video when the user has a paid trial", async () => {
-      // Override user to have trialPaid: true, trialVideoRemaining: 1
-      await app.close();
-      app = await buildTestApp({ trialPaid: true, trialVideoRemaining: 1 });
-      await app.register(videosRoutes, { prefix: "/api" });
-      await app.ready();
-
-      mockSelect.mockReturnValue(drizzleChain([SAMPLE_PROJECT]));
-      mockInsert.mockReturnValue(drizzleChain([SAMPLE_VIDEO]));
-
-      const res = await app.inject({
-        method: "POST",
-        url: `/api/projects/${SAMPLE_PROJECT.id}/videos`,
-        payload: { title: "My First Video" },
-      });
-
-      expect(res.statusCode).toBe(201);
-      expect(res.json<{ data: typeof SAMPLE_VIDEO }>().data.title).toBe("My First Video");
-    });
-
-    it("returns 402 when trial video has been used up", async () => {
-      await app.close();
-      app = await buildTestApp({ trialPaid: true, trialVideoRemaining: 0 });
-      await app.register(videosRoutes, { prefix: "/api" });
-      await app.ready();
-
-      mockSelect.mockReturnValue(drizzleChain([SAMPLE_PROJECT]));
-
-      const res = await app.inject({
-        method: "POST",
-        url: `/api/projects/${SAMPLE_PROJECT.id}/videos`,
-        payload: { title: "Another Video" },
-      });
-
-      expect(res.statusCode).toBe(402);
-      const body = res.json<{ error: { redirect: string } }>();
-      expect(body.error.redirect).toBe("billing");
-    });
-
-    it("returns 400 when title is missing", async () => {
-      await app.close();
-      app = await buildTestApp({ trialPaid: true, trialVideoRemaining: 1 });
-      await app.register(videosRoutes, { prefix: "/api" });
-      await app.ready();
-
-      mockSelect.mockReturnValue(drizzleChain([SAMPLE_PROJECT]));
-
-      const res = await app.inject({
-        method: "POST",
-        url: `/api/projects/${SAMPLE_PROJECT.id}/videos`,
-        payload: { title: "" },
-      });
-
-      expect(res.statusCode).toBe(400);
-    });
-  });
-
   // ── GET /api/videos/:id ──────────────────────────────────────────────────
 
   describe("GET /api/videos/:id", () => {
     it("returns the video with its scenes and clip requests", async () => {
       mockSelect
-        .mockReturnValueOnce(drizzleChain([SAMPLE_VIDEO])) // video
-        .mockReturnValueOnce(drizzleChain([]))              // scenes
-        .mockReturnValueOnce(drizzleChain([]));             // clipRequests
+        .mockReturnValueOnce(drizzleChain([SAMPLE_VIDEO]))
+        .mockReturnValueOnce(drizzleChain([]))
+        .mockReturnValueOnce(drizzleChain([]));
 
       const res = await app.inject({
         method: "GET",
@@ -257,10 +138,11 @@ describe("Video routes", () => {
   // ── GET /api/videos (library) ────────────────────────────────────────────
 
   describe("GET /api/videos", () => {
-    it("returns all videos for the user across projects", async () => {
+    it("returns paginated video list for the user", async () => {
       mockSelect
         .mockReturnValueOnce(drizzleChain([SAMPLE_VIDEO]))
-        .mockReturnValueOnce(drizzleChain([{ count: 1 }]));
+        .mockReturnValueOnce(drizzleChain([{ count: 1 }]))
+        .mockReturnValueOnce(drizzleChain([])); // post schedules
 
       const res = await app.inject({ method: "GET", url: "/api/videos" });
 

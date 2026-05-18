@@ -15,9 +15,7 @@ const pageTitles: Record<string, string> = {
 
 function getTitle(pathname: string) {
   if (pathname in pageTitles) return pageTitles[pathname];
-  if (pathname.startsWith("/projects/")) return "Project";
   if (pathname.startsWith("/videos/")) return "Video";
-  if (pathname.startsWith("/projects")) return "Projects";
   return "ReelForge";
 }
 
