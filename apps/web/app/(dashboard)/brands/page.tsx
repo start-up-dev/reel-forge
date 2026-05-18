@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from "react";
 import Link from "next/link";
-import { Loader2, Plus, UserSquare2, Pencil, Trash2, CalendarDays } from "lucide-react";
+import { Loader2, Plus, UserSquare2, Pencil, Trash2, ChevronRight } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@repo/ui/button";
 import { ConfirmDialog } from "@repo/ui/confirm-dialog";
@@ -102,60 +102,56 @@ export default function BrandsPage() {
       ) : (
         <ul className="space-y-3">
           {brands.map((brand) => (
-            <li
-              key={brand.id}
-              className="flex items-center gap-4 rounded-xl border border-[var(--bg-border)] bg-[var(--bg-elevated)] px-5 py-4"
-            >
-              <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-[var(--bg-surface)]">
-                <UserSquare2 className="h-5 w-5 text-[var(--accent-primary)]" />
-              </div>
-
-              <div className="flex-1 min-w-0">
-                <p className="truncate text-sm font-semibold text-[var(--text-primary)]">
-                  {brand.name}
-                </p>
-                <p className="mt-0.5 truncate text-xs text-[var(--text-muted)]">
-                  {brand.niche} · {TONE_LABEL[brand.tone] ?? brand.tone} ·{" "}
-                  {VISUAL_STYLE_LABEL[brand.visualStyle] ?? brand.visualStyle} ·{" "}
-                  {CHARACTER_TYPE_LABEL[brand.characterType] ?? brand.characterType}
-                </p>
-              </div>
-
-              <span
-                className={`inline-flex shrink-0 items-center rounded-full px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide ${
-                  brand.onboardingComplete
-                    ? "bg-[var(--accent-success)]/15 text-[var(--accent-success)]"
-                    : "bg-[var(--accent-warning)]/15 text-[var(--accent-warning)]"
-                }`}
+            <li key={brand.id} className="group relative">
+              <Link
+                href={`/brands/${brand.id}`}
+                className="flex items-center gap-4 rounded-xl border border-[var(--bg-border)] bg-[var(--bg-elevated)] px-5 py-4 transition-colors hover:border-[var(--accent-primary)]/40 hover:bg-[var(--bg-surface)]"
               >
-                {brand.onboardingComplete ? "Complete" : "Setup"}
-              </span>
+                <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-[var(--bg-surface)]">
+                  <UserSquare2 className="h-5 w-5 text-[var(--accent-primary)]" />
+                </div>
 
-              <div className="flex items-center gap-1 shrink-0">
-                {brand.onboardingComplete && (
-                  <Link
-                    href={`/brands/${brand.id}/plan/new`}
-                    className="flex items-center gap-1.5 rounded-lg px-2 py-1.5 text-xs font-medium text-[var(--accent-primary)] transition-colors hover:bg-[var(--accent-primary)]/10"
-                    aria-label="Create content plan"
-                  >
-                    <CalendarDays className="h-3.5 w-3.5" />
-                    Plan
-                  </Link>
-                )}
+                <div className="flex-1 min-w-0">
+                  <p className="truncate text-sm font-semibold text-[var(--text-primary)]">
+                    {brand.name}
+                  </p>
+                  <p className="mt-0.5 truncate text-xs text-[var(--text-muted)]">
+                    {brand.niche} · {TONE_LABEL[brand.tone] ?? brand.tone} ·{" "}
+                    {VISUAL_STYLE_LABEL[brand.visualStyle] ?? brand.visualStyle} ·{" "}
+                    {CHARACTER_TYPE_LABEL[brand.characterType] ?? brand.characterType}
+                  </p>
+                </div>
+
+                <span
+                  className={`inline-flex shrink-0 items-center rounded-full px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide ${
+                    brand.onboardingComplete
+                      ? "bg-[var(--accent-success)]/15 text-[var(--accent-success)]"
+                      : "bg-[var(--accent-warning)]/15 text-[var(--accent-warning)]"
+                  }`}
+                >
+                  {brand.onboardingComplete ? "Ready" : "Setup"}
+                </span>
+
+                <ChevronRight className="h-4 w-4 shrink-0 text-[var(--text-muted)]" />
+              </Link>
+
+              {/* Edit / Delete actions — sit on top of the link */}
+              <div className="absolute right-12 top-1/2 flex -translate-y-1/2 items-center gap-0.5 opacity-0 transition-opacity group-hover:opacity-100">
                 <Link
                   href={`/brands/${brand.id}/edit`}
+                  onClick={(e) => e.stopPropagation()}
                   className="rounded-lg p-2 text-[var(--text-muted)] transition-colors hover:bg-[var(--bg-border)] hover:text-[var(--text-primary)]"
                   aria-label="Edit"
                 >
-                  <Pencil className="h-4 w-4" />
+                  <Pencil className="h-3.5 w-3.5" />
                 </Link>
                 <button
                   type="button"
-                  onClick={() => setDeleteId(brand.id)}
+                  onClick={(e) => { e.preventDefault(); e.stopPropagation(); setDeleteId(brand.id); }}
                   className="rounded-lg p-2 text-[var(--text-muted)] transition-colors hover:bg-[var(--bg-border)] hover:text-[var(--accent-danger)]"
                   aria-label="Delete"
                 >
-                  <Trash2 className="h-4 w-4" />
+                  <Trash2 className="h-3.5 w-3.5" />
                 </button>
               </div>
             </li>
