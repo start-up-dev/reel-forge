@@ -176,6 +176,13 @@
       "when": 1747785600000,
       "tag": "0024_action_reel_style",
       "breakpoints": true
+    },
+    {
+      "idx": 25,
+      "version": "7",
+      "when": 1747872000000,
+      "tag": "0025_dialogue_segments",
+      "breakpoints": true
     }
   ]
 }
