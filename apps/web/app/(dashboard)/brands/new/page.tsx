@@ -1,7 +1,8 @@
 "use client";
 
-import { useState } from "react";
-import { useRouter } from "next/navigation";
+import { Suspense, useState } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
+import { X } from "lucide-react";
 import {
   ArrowLeft,
   ArrowRight,
@@ -555,10 +556,21 @@ function ProgressBar({ step }: { step: number }) {
 // ─── Main wizard page ─────────────────────────────────────────────────────────
 
 export default function NewBrandPage() {
+  return (
+    <Suspense>
+      <NewBrandPageInner />
+    </Suspense>
+  );
+}
+
+function NewBrandPageInner() {
   const router = useRouter();
+  const searchParams = useSearchParams();
+  const isOnboarding = searchParams.get("onboarding") === "true";
   const api = useApiClient();
 
   const [step, setStep] = useState(1);
+  const [bannerDismissed, setBannerDismissed] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [brandId, setBrandId] = useState<string | null>(null);
 
@@ -653,11 +665,37 @@ export default function NewBrandPage() {
     }
 
     toast.success("Brand profile created!");
-    router.push(finalId ? `/brands/${finalId}/edit` : "/brands");
+    if (finalId) {
+      if (data.characterType === "none") {
+        router.push(`/brands/${finalId}/plan/new`);
+      } else {
+        router.push(`/brands/${finalId}/character-sheet`);
+      }
+    } else {
+      router.push("/brands");
+    }
   }
 
   return (
     <div className="mx-auto max-w-xl px-4 py-10">
+      {isOnboarding && !bannerDismissed && (
+        <div className="mb-6 flex items-start justify-between gap-3 rounded-xl border-l-4 border-[var(--accent-warning)] bg-[var(--accent-warning)]/10 px-4 py-3">
+          <div>
+            <p className="text-sm font-semibold text-[var(--text-primary)]">✦ Welcome!</p>
+            <p className="mt-0.5 text-xs text-[var(--text-secondary)]">
+              Set up your brand — takes about 5 minutes. Your character and content plan are created here.
+            </p>
+          </div>
+          <button
+            type="button"
+            onClick={() => setBannerDismissed(true)}
+            className="shrink-0 text-[var(--text-muted)] hover:text-[var(--text-primary)]"
+          >
+            <X className="h-4 w-4" />
+          </button>
+        </div>
+      )}
+
       <div className="mb-6 flex items-center gap-3">
         <button
           type="button"

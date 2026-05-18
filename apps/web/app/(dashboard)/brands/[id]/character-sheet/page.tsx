@@ -53,7 +53,7 @@ export default function CharacterSheetPage() {
           "Failed to complete onboarding"
         );
         if (res) {
-          router.push("/brands");
+          router.push(`/brands/${params.id}/plan/new`);
         }
         setInitializing(false);
         return;
@@ -88,7 +88,7 @@ export default function CharacterSheetPage() {
     setCompleting(false);
     if (res) {
       toast.success("Brand profile complete!");
-      router.push("/brands");
+      router.push(`/brands/${params.id}/plan/new`);
     }
   }
 

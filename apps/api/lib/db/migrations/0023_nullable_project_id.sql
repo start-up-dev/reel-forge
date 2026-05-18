@@ -1,0 +1,1 @@
+ALTER TABLE "videos" ALTER COLUMN "project_id" DROP NOT NULL;

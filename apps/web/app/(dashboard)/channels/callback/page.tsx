@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { Suspense, useEffect, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { Loader2, Globe } from "lucide-react";
 import { toast } from "sonner";
@@ -9,6 +9,14 @@ import type { FacebookPage } from "@repo/types";
 import { useApiClient, withToast } from "@/lib/api-client";
 
 export default function ChannelsCallbackPage() {
+  return (
+    <Suspense>
+      <ChannelsCallbackPageInner />
+    </Suspense>
+  );
+}
+
+function ChannelsCallbackPageInner() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const api = useApiClient();

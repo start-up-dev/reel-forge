@@ -63,13 +63,12 @@ async function processVideo(
 
     if (!video) throw new Error("Video not found");
 
-    const [project] = await db
-      .select()
-      .from(projects)
-      .where(eq(projects.id, video.projectId))
-      .limit(1);
+    const project = video.projectId
+      ? await db.select().from(projects).where(eq(projects.id, video.projectId)).limit(1).then(r => r[0])
+      : null;
 
-    if (!project) throw new Error("Project not found");
+    // Batch videos (v7) have no project — use a minimal stub for script generation
+    const projectOrStub = (project ?? { language: "English", claudeSystemPrompt: null }) as NonNullable<typeof project>;
 
     // 1 — Generate script
     emitPlanEvent(planId, { type: "VIDEO_UPDATE", videoId, title: video.title, status: "SCRIPT_PENDING", message: "Scripting…" });
@@ -79,7 +78,7 @@ async function processVideo(
     const needsTitle = !video.title || video.title === "Untitled Video";
     const idea = video.idea ?? video.title;
     const [script, autoTitle] = await Promise.all([
-      generateScript(project, idea, video.targetDurationSeconds, video.renderStyle ?? undefined, video.videoType, video.actionReelStyle ?? undefined),
+      generateScript(projectOrStub, idea, video.targetDurationSeconds, video.renderStyle ?? undefined, video.videoType, video.actionReelStyle ?? undefined),
       needsTitle ? generateTitle(idea) : Promise.resolve(null),
     ]);
 

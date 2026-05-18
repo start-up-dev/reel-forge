@@ -162,6 +162,13 @@
       "when": 1747612800000,
       "tag": "0022_post_schedules",
       "breakpoints": true
+    },
+    {
+      "idx": 23,
+      "version": "7",
+      "when": 1747699200000,
+      "tag": "0023_nullable_project_id",
+      "breakpoints": true
     }
   ]
 }

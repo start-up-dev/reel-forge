@@ -193,7 +193,6 @@ export const videos = pgTable(
       .notNull()
       .references(() => users.id, { onDelete: "cascade" }),
     projectId: uuid("project_id")
-      .notNull()
       .references(() => projects.id, { onDelete: "cascade" }),
     title: text("title").notNull(),
     status: videoStatusEnum("status").notNull().default("DRAFT"),

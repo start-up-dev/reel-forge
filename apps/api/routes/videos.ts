@@ -48,11 +48,9 @@ async function processScenes(
     let effectiveCharacterNote: string | null = null;
     if (videoType === "talking" && ugcVisualStyle !== "ai_clone") {
       if (!videoRow?.ugcCharacterDescription) {
-        const [project] = await db
-          .select()
-          .from(projects)
-          .where(eq(projects.id, videoRow!.projectId))
-          .limit(1);
+        const [project] = videoRow?.projectId
+          ? await db.select().from(projects).where(eq(projects.id, videoRow.projectId)).limit(1)
+          : [];
         if (project) {
           const description = await generateUGCCharacter(project, ugcVisualStyle ?? "realistic");
           await db
@@ -460,11 +458,9 @@ export async function videosRoutes(fastify: FastifyInstance): Promise<void> {
         });
       }
 
-      const [project] = await db
-        .select()
-        .from(projects)
-        .where(eq(projects.id, video.projectId))
-        .limit(1);
+      const [project] = video.projectId
+        ? await db.select().from(projects).where(eq(projects.id, video.projectId)).limit(1)
+        : [];
 
       if (!project) {
         return reply.status(404).send({
@@ -524,11 +520,9 @@ export async function videosRoutes(fastify: FastifyInstance): Promise<void> {
         });
       }
 
-      const [project] = await db
-        .select()
-        .from(projects)
-        .where(eq(projects.id, video.projectId))
-        .limit(1);
+      const [project] = video.projectId
+        ? await db.select().from(projects).where(eq(projects.id, video.projectId)).limit(1)
+        : [];
 
       if (!project) {
         return reply.status(404).send({

@@ -1,8 +1,8 @@
-import { and, asc, desc, eq, isNull } from "drizzle-orm";
+import { and, desc, eq } from "drizzle-orm";
 import type { FastifyInstance } from "fastify";
 import { z } from "zod";
 import { db } from "../lib/db/index.js";
-import { brandProfiles, contentPlans, projects, videos } from "../lib/db/schema.js";
+import { brandProfiles, contentPlans, videos } from "../lib/db/schema.js";
 import { subscribeToPlan } from "../lib/plan-event-bus.js";
 import { startBatchGeneration } from "../services/batch-generator.js";
 import { generateWeekPlan } from "../services/claude.js";
@@ -258,20 +258,6 @@ export async function contentPlansRoutes(fastify: FastifyInstance) {
         return reply.status(400).send({ error: { message: "Plan has no topics to approve." } });
       }
 
-      // Find a non-deleted project to attach the videos to
-      const [firstProject] = await db
-        .select({ id: projects.id })
-        .from(projects)
-        .where(and(eq(projects.userId, user.id), isNull(projects.deletedAt)))
-        .orderBy(asc(projects.createdAt))
-        .limit(1);
-
-      if (!firstProject) {
-        return reply.status(400).send({
-          error: { message: "You need at least one project before approving a content plan." },
-        });
-      }
-
       // Atomic: flip status draft→approved and insert videos in one transaction.
       // The conditional WHERE prevents double-approval from concurrent requests.
       let videoIds: string[];
@@ -298,7 +284,6 @@ export async function contentPlansRoutes(fastify: FastifyInstance) {
             .values(
               topics.map((topic) => ({
                 userId: user.id,
-                projectId: firstProject.id,
                 contentPlanId: plan.id,
                 brandProfileId: plan.brandProfileId,
                 title: topic.title,
