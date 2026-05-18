@@ -309,10 +309,14 @@ function AgentActivityPanel({
               </span>
             </div>
             <div className="mt-3 h-1.5 w-full overflow-hidden rounded-full bg-[var(--bg-elevated)]">
-              <div
-                className="h-full rounded-full bg-[var(--accent-primary)] transition-all duration-700"
-                style={{ width: `${pct}%` }}
-              />
+              {pct === 0 ? (
+                <div className="h-full w-1/3 animate-pulse rounded-full bg-[var(--accent-primary)]/40" />
+              ) : (
+                <div
+                  className="h-full rounded-full bg-[var(--accent-primary)] transition-all duration-700"
+                  style={{ width: `${pct}%` }}
+                />
+              )}
             </div>
             <p className="mt-2 text-xs text-[var(--text-muted)]">
               You can close this tab — we&apos;ll email you when everything&apos;s ready
@@ -330,8 +334,17 @@ function AgentActivityPanel({
             </span>
           </div>
           {sortedEntries.length === 0 ? (
-            <div className="py-8 text-center text-sm text-[var(--text-muted)]">
-              Waiting for generation to start&hellip;
+            <div className="divide-y divide-[var(--bg-border)]">
+              {Array.from({ length: Math.min(totalVideos, 5) }, (_, i) => (
+                <div key={i} className="flex items-center gap-3 px-4 py-3">
+                  <div className="h-4 w-4 shrink-0 animate-pulse rounded-full bg-[var(--bg-elevated)]" />
+                  <div
+                    className="h-2.5 animate-pulse rounded-full bg-[var(--bg-elevated)]"
+                    style={{ width: `${45 + (i * 11) % 35}%` }}
+                  />
+                  <div className="ml-auto h-2.5 w-14 animate-pulse rounded-full bg-[var(--bg-elevated)]" />
+                </div>
+              ))}
             </div>
           ) : (
             <div className="divide-y divide-[var(--bg-border)]">

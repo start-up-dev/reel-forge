@@ -391,7 +391,8 @@ export async function contentPlansRoutes(fastify: FastifyInstance) {
         if (active) res.write("event: ping\ndata: {}\n\n");
       }, 15_000);
 
-      // Send initial snapshot of current plan status
+      // Send initial snapshot: plan status + all current video statuses
+      // so clients that connect mid-generation (or on reload) immediately see state.
       const [currentPlan] = await db
         .select({ status: contentPlans.status })
         .from(contentPlans)
@@ -399,7 +400,17 @@ export async function contentPlansRoutes(fastify: FastifyInstance) {
         .limit(1);
 
       if (currentPlan) {
-        emit({ type: "SNAPSHOT", planStatus: currentPlan.status });
+        const currentVideos = await db
+          .select({ id: videos.id, title: videos.title, status: videos.status })
+          .from(videos)
+          .where(eq(videos.contentPlanId, id));
+
+        emit({
+          type: "SNAPSHOT",
+          planStatus: currentPlan.status,
+          videos: currentVideos,
+        } as Record<string, unknown>);
+
         if (currentPlan.status === "complete" || currentPlan.status === "draft") {
           setTimeout(end, 200);
         }

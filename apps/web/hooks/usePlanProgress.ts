@@ -84,7 +84,24 @@ export function usePlanProgress(planId: string, totalVideos: number): PlanProgre
       if (!active) return;
 
       if (event.type === "SNAPSHOT") {
-        setState((prev) => ({ ...prev, planStatus: event.planStatus as string }));
+        const planStatus = event.planStatus as string;
+        const snapshotVideos = event.videos as { id: string; title: string; status: string }[] | undefined;
+
+        setState((prev) => {
+          const next = new Map(prev.videoStatuses);
+          if (snapshotVideos) {
+            for (const v of snapshotVideos) {
+              // Only set if not already tracked by a live event (live events take priority)
+              if (!next.has(v.id)) {
+                next.set(v.id, { title: v.title, status: v.status, message: "" });
+              }
+            }
+          }
+          const completedCount = [...next.values()].filter((v) => v.status === "COMPLETE").length;
+          const failedCount = [...next.values()].filter((v) => v.status === "FAILED").length;
+          const isBatchComplete = planStatus === "complete";
+          return { ...prev, videoStatuses: next, completedCount, failedCount, planStatus, isBatchComplete };
+        });
         return;
       }
 
