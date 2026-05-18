@@ -813,7 +813,7 @@ export async function videosRoutes(fastify: FastifyInstance): Promise<void> {
     },
   );
 
-  // POST /api/videos/:id/character-image/upload-url — signed GCS PUT URL for AI Clone face reference
+  // POST /api/videos/:id/character-image/upload-url — signed R2 PUT URL for AI Clone face reference
   fastify.post<{ Params: { id: string } }>(
     "/videos/:id/character-image/upload-url",
     async (request, reply) => {

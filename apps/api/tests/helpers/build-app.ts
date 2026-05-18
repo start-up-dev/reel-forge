@@ -1,6 +1,6 @@
 /**
  * Test helper: builds a minimal Fastify instance with mocked Clerk auth and
- * a mocked database so tests can run without a live Neon/GCP/Stripe connection.
+ * a mocked database so tests can run without a live Neon/R2/Stripe connection.
  *
  * Usage:
  *   const { app, mockUser } = await buildTestApp()

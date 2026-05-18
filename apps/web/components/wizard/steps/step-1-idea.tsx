@@ -114,7 +114,7 @@ export function Step1Idea({
 
   // AI Clone upload state
   const [cloneImageUploading, setCloneImageUploading] = useState(false);
-  // Track the persisted GCS path (restored from video on mount)
+  // Track the persisted storage path (restored from video on mount)
   const [cloneGcsPath, setCloneGcsPath] = useState<string | null>(
     video.ugcVisualStyle === UGCVisualStyle.AIClone ? (video.characterBaseGcsPath ?? null) : null
   );

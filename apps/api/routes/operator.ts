@@ -131,7 +131,7 @@ export async function operatorRoutes(fastify: FastifyInstance): Promise<void> {
   );
 
   // ── POST /api/operator/clips/:id/upload-url ────────────────────────────────
-  // Returns a 30-minute signed GCS PUT URL for the generated clip video.
+  // Returns a 30-minute signed R2 PUT URL for the generated clip video.
   fastify.post(
     "/operator/clips/:id/upload-url",
     { preHandler: validateSecret },

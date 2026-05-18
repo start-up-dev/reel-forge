@@ -20,10 +20,11 @@ const envSchema = z.object({
 
   DATABASE_URL: z.string().min(1),
 
-  GCP_PROJECT_ID: z.string().min(1),
-  GCS_BUCKET_NAME: z.string().min(1),
-  GOOGLE_APPLICATION_CREDENTIALS: z.string().optional(),
-  GCS_SERVICE_ACCOUNT_EMAIL: z.string().optional(),
+  // Cloudflare R2
+  R2_ACCOUNT_ID: z.string().min(1),
+  R2_BUCKET_NAME: z.string().min(1),
+  R2_ACCESS_KEY_ID: z.string().min(1),
+  R2_SECRET_ACCESS_KEY: z.string().min(1),
 
   OPERATOR_SECRET: z.string().min(1),
 

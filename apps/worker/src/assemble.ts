@@ -1,7 +1,7 @@
 import { rm } from "node:fs/promises";
 import { eq, and } from "drizzle-orm";
 import { db, videos, scenes, users, projects } from "./db.js";
-import { downloadAssetsFromGCS } from "./download.js";
+import { downloadAssets } from "./download.js";
 import {
   normalizeAllClips,
   concatenateWithTransitions,
@@ -16,7 +16,7 @@ import { uploadFile, generateSignedReadUrl, deleteObject, listObjects } from "./
 import { sendVideoReadyEmail, sendVideoFailedEmail } from "./notify.js";
 import { env } from "./env.js";
 
-const OUTPUT_URL_TTL_MINUTES = 60 * 24 * 7; // 7 days (GCS v4 signed URL maximum)
+const OUTPUT_URL_TTL_MINUTES = 60 * 24 * 7; // 7 days
 
 export async function assembleVideo(videoId: string): Promise<void> {
   let workDir: string | null = null;
@@ -55,9 +55,9 @@ export async function assembleVideo(videoId: string): Promise<void> {
 
     if (sceneRows.length === 0) throw new Error(`No scenes found for video ${videoId}`);
 
-    // ── Download assets from GCS ──────────────────────────────────────────────
+    // ── Download assets from R2 ───────────────────────────────────────────────
     console.log(`[assemble] Downloading assets for video ${videoId} (type: ${video.videoType})`);
-    const assets = await downloadAssetsFromGCS(video, sceneRows);
+    const assets = await downloadAssets(video, sceneRows);
     workDir = assets.dir;
 
     let finalPath: string;
@@ -195,9 +195,9 @@ export async function assembleVideo(videoId: string): Promise<void> {
       );
     }
 
-    // ── Cleanup intermediate GCS assets ──────────────────────────────────────
+    // ── Cleanup intermediate R2 assets ───────────────────────────────────────
     await cleanupIntermediateAssets(videoId).catch((err) =>
-      console.error("[assemble] GCS cleanup failed (non-fatal):", err),
+      console.error("[assemble] R2 cleanup failed (non-fatal):", err),
     );
 
     console.log(`[assemble] Video ${videoId} assembly complete`);

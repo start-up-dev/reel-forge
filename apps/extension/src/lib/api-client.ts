@@ -115,7 +115,7 @@ export async function retryClip(
 
 // ── Upload helper with retry ──────────────────────────────────────────────────
 
-export async function uploadToGcs(
+export async function uploadToR2(
   signedUrl: string,
   blob: Blob,
   maxRetries = 3,
@@ -131,7 +131,7 @@ export async function uploadToGcs(
         headers: { "Content-Type": "video/mp4" },
       });
       if (!response.ok) {
-        throw new Error(`GCS upload failed: ${response.status}`);
+        throw new Error(`R2 upload failed: ${response.status}`);
       }
       return;
     } catch (err) {
@@ -143,7 +143,7 @@ export async function uploadToGcs(
     }
   }
 
-  throw lastError ?? new Error("GCS upload failed after retries");
+  throw lastError ?? new Error("R2 upload failed after retries");
 }
 
 // ── Health check ─────────────────────────────────────────────────────────────

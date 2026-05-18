@@ -114,8 +114,8 @@ export default function PrivacyPage() {
                 generation.
               </li>
               <li>
-                <strong className="text-text-primary">Google Cloud Platform (GCP):</strong> For
-                storing media assets and running our assembly worker.
+                <strong className="text-text-primary">Cloudflare R2:</strong> For
+                storing media assets.
               </li>
               <li>
                 <strong className="text-text-primary">Stripe:</strong> For secure

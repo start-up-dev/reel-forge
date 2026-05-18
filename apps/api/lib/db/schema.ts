@@ -236,7 +236,7 @@ export const videos = pgTable(
 /**
  * scenes — added textExcerpt (PRD §9 + spec Step 4 scene card).
  * Renamed: index → sceneIndex to match PRD §7.6 JSON shape.
- * Kept: baseImagePath, clipPath for GCS asset management (not in PRD schema
+ * Kept: baseImagePath, clipPath for R2 asset management (not in PRD schema
  * but needed for signed URL generation and async deletion).
  */
 export const scenes = pgTable(

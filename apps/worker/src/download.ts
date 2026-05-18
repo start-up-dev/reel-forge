@@ -13,7 +13,7 @@ export interface DownloadedAssets {
   clipPaths: { sceneIndex: number; path: string; durationHint: number | null; textExcerpt: string | null }[];
 }
 
-export async function downloadAssetsFromGCS(
+export async function downloadAssets(
   video: VideoRow,
   scenes: SceneRow[],
 ): Promise<DownloadedAssets> {

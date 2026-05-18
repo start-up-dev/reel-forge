@@ -4,7 +4,7 @@ import { db } from "../lib/db/index.js";
 import { users } from "../lib/db/schema.js";
 import { env } from "../lib/env.js";
 
-// Job endpoints are called by GCP Cloud Scheduler — secured with the same
+// Job endpoints are called by a cron scheduler — secured with the same
 // operator secret to avoid a second env var.
 function validateSecret(
   request: FastifyRequest,

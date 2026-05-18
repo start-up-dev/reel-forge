@@ -34,11 +34,11 @@ const envSchema = z.object({
   STRIPE_PRO_PRICE_ID: z.string().min(1),
   STRIPE_TRIAL_PRICE_ID: z.string().min(1),
 
-  // GCP / GCS
-  GCP_PROJECT_ID: z.string().min(1),
-  GCS_BUCKET_NAME: z.string().min(1),
-  GOOGLE_APPLICATION_CREDENTIALS: z.string().optional(),
-  GCS_SERVICE_ACCOUNT_EMAIL: z.string().optional(),
+  // Cloudflare R2
+  R2_ACCOUNT_ID: z.string().min(1),
+  R2_BUCKET_NAME: z.string().min(1),
+  R2_ACCESS_KEY_ID: z.string().min(1),
+  R2_SECRET_ACCESS_KEY: z.string().min(1),
 
   // Operator
   OPERATOR_SECRET: z.string().min(1),
@@ -68,7 +68,7 @@ const envSchema = z.object({
   NEXT_PUBLIC_APP_URL: z.string().url().default("http://localhost:3000"),
   API_URL: z.string().url().default("http://localhost:4000"),
 
-  // FFmpeg worker (Cloud Run) — optional until Phase 9 deployment
+  // FFmpeg worker — optional until Phase 9 deployment
   WORKER_URL: z.string().url().optional(),
 });
 

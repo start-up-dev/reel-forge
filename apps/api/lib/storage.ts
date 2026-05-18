@@ -1,27 +1,29 @@
-import { Storage, type GetSignedUrlConfig } from "@google-cloud/storage";
+import {
+  S3Client,
+  PutObjectCommand,
+  GetObjectCommand,
+  DeleteObjectCommand,
+  ListObjectsV2Command,
+} from "@aws-sdk/client-s3";
+import { getSignedUrl } from "@aws-sdk/s3-request-presigner";
 import { env } from "./env.js";
 
 export const ASSET_URL_TTL_MINUTES = 60 * 24 * 7; // 7 days
 
-let _storage: Storage | null = null;
+let _client: S3Client | null = null;
 
-function getStorage(): Storage {
-  if (!_storage) {
-    _storage = new Storage({
-      projectId: env.GCP_PROJECT_ID,
-      ...(env.GOOGLE_APPLICATION_CREDENTIALS
-        ? { keyFilename: env.GOOGLE_APPLICATION_CREDENTIALS }
-        : {}),
-      ...(env.GCS_SERVICE_ACCOUNT_EMAIL
-        ? { serviceAccountEmail: env.GCS_SERVICE_ACCOUNT_EMAIL }
-        : {}),
+function getClient(): S3Client {
+  if (!_client) {
+    _client = new S3Client({
+      region: "auto",
+      endpoint: `https://${env.R2_ACCOUNT_ID}.r2.cloudflarestorage.com`,
+      credentials: {
+        accessKeyId: env.R2_ACCESS_KEY_ID,
+        secretAccessKey: env.R2_SECRET_ACCESS_KEY,
+      },
     });
   }
-  return _storage;
-}
-
-function getBucket() {
-  return getStorage().bucket(env.GCS_BUCKET_NAME);
+  return _client;
 }
 
 export async function generateSignedUploadUrl(
@@ -29,35 +31,35 @@ export async function generateSignedUploadUrl(
   contentType: string,
   expiresInMinutes = 15,
 ): Promise<string> {
-  const config: GetSignedUrlConfig = {
-    version: "v4",
-    action: "write",
-    expires: Date.now() + expiresInMinutes * 60 * 1000,
-    contentType,
-  };
-  const [url] = await getBucket().file(path).getSignedUrl(config);
-  return url;
+  const command = new PutObjectCommand({
+    Bucket: env.R2_BUCKET_NAME,
+    Key: path,
+    ContentType: contentType,
+  });
+  return getSignedUrl(getClient(), command, { expiresIn: expiresInMinutes * 60 });
 }
 
 export async function generateSignedReadUrl(
   path: string,
   expiresInMinutes = 60,
 ): Promise<string> {
-  const config: GetSignedUrlConfig = {
-    version: "v4",
-    action: "read",
-    expires: Date.now() + expiresInMinutes * 60 * 1000,
-  };
-  const [url] = await getBucket().file(path).getSignedUrl(config);
-  return url;
+  const command = new GetObjectCommand({
+    Bucket: env.R2_BUCKET_NAME,
+    Key: path,
+  });
+  return getSignedUrl(getClient(), command, { expiresIn: expiresInMinutes * 60 });
 }
 
 export async function deleteObject(path: string): Promise<void> {
   try {
-    await getBucket().file(path).delete();
+    await getClient().send(
+      new DeleteObjectCommand({ Bucket: env.R2_BUCKET_NAME, Key: path }),
+    );
   } catch (err: unknown) {
-    const code = (err as { code?: number }).code;
-    if (code !== 404) throw err;
+    const code = (err as { Code?: string }).Code;
+    const status = (err as { $metadata?: { httpStatusCode?: number } }).$metadata
+      ?.httpStatusCode;
+    if (code !== "NoSuchKey" && status !== 404) throw err;
   }
 }
 
@@ -66,10 +68,19 @@ export async function uploadBuffer(
   buffer: Buffer,
   contentType: string,
 ): Promise<void> {
-  await getBucket().file(path).save(buffer, { contentType });
+  await getClient().send(
+    new PutObjectCommand({
+      Bucket: env.R2_BUCKET_NAME,
+      Key: path,
+      Body: buffer,
+      ContentType: contentType,
+    }),
+  );
 }
 
 export async function listObjects(prefix: string): Promise<string[]> {
-  const [files] = await getBucket().getFiles({ prefix });
-  return files.map((f) => f.name);
+  const response = await getClient().send(
+    new ListObjectsV2Command({ Bucket: env.R2_BUCKET_NAME, Prefix: prefix }),
+  );
+  return (response.Contents ?? []).map((obj) => obj.Key ?? "").filter(Boolean);
 }

@@ -1,6 +1,6 @@
 // Background service worker — Chrome MV3.
 // State machine: idle ↔ running.
-// The content script handles the full clip automation + GCS upload and only
+// The content script handles the full clip automation + R2 upload and only
 // reports final success/failure here. The SW manages tab lifecycle and state.
 
 import {
@@ -605,7 +605,7 @@ chrome.runtime.onMessage.addListener(
 
       // Content script found the generated video URL and hands off to SW.
       // Download happens in MAIN world (needs Origin: grok.com + session cookies).
-      // GCS PUT happens in the SW — extension host_permissions for storage.googleapis.com
+      // R2 PUT happens in the SW — extension host_permissions for r2.cloudflarestorage.com
       // bypass CORS entirely, avoiding the preflight failure seen from the page origin.
       case "UPLOAD_VIDEO": {
         const { clipId, videoUrl, backendUrl, operatorSecret } = message;
@@ -623,7 +623,7 @@ chrome.runtime.onMessage.addListener(
               );
             }
 
-            // 1. Get the signed GCS upload URL from our backend (SW has no CORS issues).
+            // 1. Get the signed R2 upload URL from our backend (SW has no CORS issues).
             const urlRes = await fetch(
               `${backendUrl}/api/operator/clips/${clipId}/upload-url`,
               {
@@ -780,8 +780,8 @@ chrome.runtime.onMessage.addListener(
             if (!videoBytes || videoBytes.byteLength === 0)
               throw new Error("Video download returned empty bytes after retries");
 
-            // 3. PUT to GCS from the SW. Extension host_permissions for
-            //    storage.googleapis.com bypass the CORS preflight check.
+            // 3. PUT to R2 from the SW. Extension host_permissions for
+            //    r2.cloudflarestorage.com bypass the CORS preflight check.
             const blob = new Blob([videoBytes.buffer as ArrayBuffer], { type: "video/mp4" });
             let lastErr = "";
             for (let i = 0; i < 3; i++) {
@@ -791,7 +791,7 @@ chrome.runtime.onMessage.addListener(
                   body: blob,
                   headers: { "Content-Type": "video/mp4" },
                 });
-                if (!up.ok) throw new Error(`GCS PUT: ${up.status}`);
+                if (!up.ok) throw new Error(`R2 PUT: ${up.status}`);
                 lastErr = "";
                 break;
               } catch (e) {

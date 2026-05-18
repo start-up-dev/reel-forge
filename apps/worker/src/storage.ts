@@ -1,70 +1,84 @@
-import { Storage, type GetSignedUrlConfig } from "@google-cloud/storage";
+import {
+  S3Client,
+  PutObjectCommand,
+  GetObjectCommand,
+  DeleteObjectCommand,
+  ListObjectsV2Command,
+} from "@aws-sdk/client-s3";
+import { getSignedUrl } from "@aws-sdk/s3-request-presigner";
 import { createWriteStream } from "node:fs";
 import { pipeline } from "node:stream/promises";
+import type { Readable } from "node:stream";
 import { env } from "./env.js";
 
-let _storage: Storage | null = null;
+let _client: S3Client | null = null;
 
-function getStorage(): Storage {
-  if (!_storage) {
-    _storage = new Storage({
-      projectId: env.GCP_PROJECT_ID,
-      ...(env.GOOGLE_APPLICATION_CREDENTIALS
-        ? { keyFilename: env.GOOGLE_APPLICATION_CREDENTIALS }
-        : {}),
-      ...(env.GCS_SERVICE_ACCOUNT_EMAIL
-        ? { serviceAccountEmail: env.GCS_SERVICE_ACCOUNT_EMAIL }
-        : {}),
+function getClient(): S3Client {
+  if (!_client) {
+    _client = new S3Client({
+      region: "auto",
+      endpoint: `https://${env.R2_ACCOUNT_ID}.r2.cloudflarestorage.com`,
+      credentials: {
+        accessKeyId: env.R2_ACCESS_KEY_ID,
+        secretAccessKey: env.R2_SECRET_ACCESS_KEY,
+      },
     });
   }
-  return _storage;
+  return _client;
 }
 
-function getBucket() {
-  return getStorage().bucket(env.GCS_BUCKET_NAME);
-}
-
-export async function downloadToFile(gcsPath: string, localPath: string): Promise<void> {
-  const file = getBucket().file(gcsPath);
-  const readStream = file.createReadStream();
+export async function downloadToFile(storagePath: string, localPath: string): Promise<void> {
+  const response = await getClient().send(
+    new GetObjectCommand({ Bucket: env.R2_BUCKET_NAME, Key: storagePath }),
+  );
+  if (!response.Body) throw new Error(`No body in R2 response for ${storagePath}`);
   const writeStream = createWriteStream(localPath);
-  await pipeline(readStream, writeStream);
+  await pipeline(response.Body as Readable, writeStream);
 }
 
 export async function uploadFile(
-  gcsPath: string,
+  storagePath: string,
   localPath: string,
   contentType: string,
 ): Promise<void> {
-  await getBucket().file(gcsPath).save(
-    await import("node:fs/promises").then((fs) => fs.readFile(localPath)),
-    { contentType },
+  const buffer = await import("node:fs/promises").then((fs) => fs.readFile(localPath));
+  await getClient().send(
+    new PutObjectCommand({
+      Bucket: env.R2_BUCKET_NAME,
+      Key: storagePath,
+      Body: buffer,
+      ContentType: contentType,
+    }),
   );
 }
 
 export async function generateSignedReadUrl(
-  gcsPath: string,
+  storagePath: string,
   expiresInMinutes = 60,
 ): Promise<string> {
-  const config: GetSignedUrlConfig = {
-    version: "v4",
-    action: "read",
-    expires: Date.now() + expiresInMinutes * 60 * 1000,
-  };
-  const [url] = await getBucket().file(gcsPath).getSignedUrl(config);
-  return url;
+  const command = new GetObjectCommand({
+    Bucket: env.R2_BUCKET_NAME,
+    Key: storagePath,
+  });
+  return getSignedUrl(getClient(), command, { expiresIn: expiresInMinutes * 60 });
 }
 
-export async function deleteObject(gcsPath: string): Promise<void> {
+export async function deleteObject(storagePath: string): Promise<void> {
   try {
-    await getBucket().file(gcsPath).delete();
+    await getClient().send(
+      new DeleteObjectCommand({ Bucket: env.R2_BUCKET_NAME, Key: storagePath }),
+    );
   } catch (err: unknown) {
-    const code = (err as { code?: number }).code;
-    if (code !== 404) throw err;
+    const code = (err as { Code?: string }).Code;
+    const status = (err as { $metadata?: { httpStatusCode?: number } }).$metadata
+      ?.httpStatusCode;
+    if (code !== "NoSuchKey" && status !== 404) throw err;
   }
 }
 
 export async function listObjects(prefix: string): Promise<string[]> {
-  const [files] = await getBucket().getFiles({ prefix });
-  return files.map((f) => f.name);
+  const response = await getClient().send(
+    new ListObjectsV2Command({ Bucket: env.R2_BUCKET_NAME, Prefix: prefix }),
+  );
+  return (response.Contents ?? []).map((obj) => obj.Key ?? "").filter(Boolean);
 }

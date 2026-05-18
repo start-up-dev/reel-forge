@@ -31,10 +31,10 @@ export function estimateScriptDuration(wordCount: number): number {
 }
 
 /**
- * Extracts the filename from a GCS path.
+ * Extracts the filename from a storage path.
  * e.g. "videos/abc123/audio.mp3" → "audio.mp3"
  */
-export function gcsPathToFileName(path: string): string {
+export function storagePathToFileName(path: string): string {
   return path.split("/").pop() ?? path;
 }
 
