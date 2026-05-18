@@ -50,7 +50,7 @@ Subdomains you'll use:
   ```
 - [x] Open Coolify at `http://<hetzner-ip>:8000`
 - [x] Create admin account
-- [ ] Click **localhost** server → click **Validate Server** (fix the red warning)
+- [x] Click **localhost** server → click **Validate Server** (fix the red warning)
 - [ ] Go to **Settings → Instance → Domain** → set `coolify.yourdomain.com`
 - [ ] Confirm Coolify moves to HTTPS on your domain
 
@@ -58,9 +58,9 @@ Subdomains you'll use:
 
 ## Phase 4 — Connect GitHub to Coolify
 
-- [ ] Left sidebar → **Sources** → **Add** → **GitHub App**
-- [ ] Authorize Coolify on your GitHub account
-- [ ] Install the GitHub App on the `reel-forge` repo
+- [x] Left sidebar → **Sources** → **Add** → **GitHub App**
+- [x] Authorize Coolify on your GitHub account
+- [x] Install the GitHub App on the `reel-forge` repo
 
 ---
 
