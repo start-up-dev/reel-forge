@@ -2,13 +2,37 @@
 
 import { useState, useEffect, useCallback } from "react";
 import { useRouter, useParams } from "next/navigation";
-import { Loader2, Pencil, RefreshCw, CheckCircle2, X } from "lucide-react";
+import {
+  Loader2,
+  Pencil,
+  RefreshCw,
+  CheckCircle2,
+  X,
+  XCircle,
+  Circle,
+  Sparkles,
+} from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@repo/ui/button";
 import type { ContentPlan, ContentFormat, PostType, TopicEntry } from "@repo/types";
 import { useApiClient, withToast } from "@/lib/api-client";
+import { usePlanProgress } from "@/hooks/usePlanProgress";
 
-const DAYS = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
+const SLOT_TIMES: Record<number, string[]> = {
+  1: ["9:00 AM"],
+  2: ["9:00 AM", "6:00 PM"],
+  3: ["9:00 AM", "12:00 PM", "6:00 PM"],
+  5: ["7:00 AM", "9:00 AM", "12:00 PM", "3:00 PM", "6:00 PM"],
+};
+
+function getWeekDates(weekStartDate: string): Date[] {
+  const parts = weekStartDate.split("-").map(Number);
+  const y = parts[0] ?? 2026;
+  const m = parts[1] ?? 1;
+  const d = parts[2] ?? 1;
+  const start = new Date(Date.UTC(y, m - 1, d));
+  return Array.from({ length: 7 }, (_, i) => new Date(start.getTime() + i * 86400000));
+}
 
 const FORMAT_BADGE: Record<ContentFormat, { label: string; className: string }> = {
   ugc: { label: "UGC", className: "bg-blue-500/15 text-blue-400" },
@@ -19,48 +43,105 @@ const FORMAT_BADGE: Record<ContentFormat, { label: string; className: string }> 
 
 const FORMAT_OPTIONS: ContentFormat[] = ["ugc", "montage", "tutorial", "story"];
 
+const VIDEO_STATUS_CONFIG: Record<
+  string,
+  { label: string; icon: React.ReactNode; color: string; order: number }
+> = {
+  COMPLETE: {
+    label: "Ready",
+    icon: <CheckCircle2 className="h-4 w-4" />,
+    color: "text-[var(--accent-success)]",
+    order: 0,
+  },
+  SCRIPT_PENDING: {
+    label: "Scripting…",
+    icon: <Loader2 className="h-4 w-4 animate-spin" />,
+    color: "text-amber-400",
+    order: 2,
+  },
+  SCENES_PENDING: {
+    label: "Planning scenes…",
+    icon: <Loader2 className="h-4 w-4 animate-spin" />,
+    color: "text-amber-400",
+    order: 2,
+  },
+  CLIPS_QUEUED: {
+    label: "In Grok queue…",
+    icon: <Loader2 className="h-4 w-4 animate-spin" />,
+    color: "text-blue-400",
+    order: 2,
+  },
+  CLIPS_PROCESSING: {
+    label: "Generating clips…",
+    icon: <Loader2 className="h-4 w-4 animate-spin" />,
+    color: "text-blue-400",
+    order: 2,
+  },
+  ASSEMBLY_PENDING: {
+    label: "Assembling video…",
+    icon: <Loader2 className="h-4 w-4 animate-spin" />,
+    color: "text-purple-400",
+    order: 2,
+  },
+  ASSEMBLY_PROCESSING: {
+    label: "Assembling video…",
+    icon: <Loader2 className="h-4 w-4 animate-spin" />,
+    color: "text-purple-400",
+    order: 2,
+  },
+  FAILED: {
+    label: "Failed",
+    icon: <XCircle className="h-4 w-4" />,
+    color: "text-[var(--accent-danger)]",
+    order: 3,
+  },
+};
+
+function getVideoStatusCfg(status: string) {
+  return (
+    VIDEO_STATUS_CONFIG[status] ?? {
+      label: "Waiting",
+      icon: <Circle className="h-4 w-4" />,
+      color: "text-[var(--text-muted)]",
+      order: 4,
+    }
+  );
+}
+
 interface OverridePanel {
   topic: TopicEntry;
   topicIndex: number;
 }
 
-function TopicCard({
-  topic,
-  onEdit,
-}: {
-  topic: TopicEntry;
-  onEdit: () => void;
-}) {
+function TopicCard({ topic, onEdit }: { topic: TopicEntry; onEdit: () => void }) {
   const badge = FORMAT_BADGE[topic.format as ContentFormat] ?? FORMAT_BADGE.ugc;
 
   return (
-    <div className="relative rounded-lg border border-[var(--bg-border)] bg-[var(--bg-surface)] p-3">
+    <div className="relative min-h-[110px] rounded-lg border border-[var(--bg-border)] bg-[var(--bg-elevated)] p-3">
       {topic.overridden && (
         <span className="absolute right-2 top-2 rounded-full bg-[var(--accent-primary)]/15 px-1.5 py-0.5 text-[9px] font-semibold uppercase tracking-wide text-[var(--accent-primary)]">
           edited
         </span>
       )}
-      <p className="mb-1 pr-12 text-xs font-semibold leading-snug text-[var(--text-primary)]">
-        {topic.title}
-      </p>
-      <p className="mb-2 line-clamp-2 text-[11px] italic text-[var(--text-muted)]">
-        {topic.hook}
-      </p>
-      <div className="flex items-center justify-between">
+      <div className="mb-1.5 flex items-start gap-1.5">
         <span
-          className={`rounded-full px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide ${badge.className}`}
+          className={`shrink-0 rounded-full px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide ${badge.className}`}
         >
           {badge.label}
         </span>
-        <button
-          type="button"
-          onClick={onEdit}
-          className="rounded p-1 text-[var(--text-muted)] transition-colors hover:text-[var(--text-primary)]"
-          aria-label="Edit topic"
-        >
-          <Pencil className="h-3.5 w-3.5" />
-        </button>
       </div>
+      <p className="mb-1 pr-6 text-xs font-semibold leading-snug text-[var(--text-primary)] line-clamp-2">
+        {topic.title}
+      </p>
+      <p className="line-clamp-2 text-[11px] italic text-[var(--text-muted)]">{topic.hook}</p>
+      <button
+        type="button"
+        onClick={onEdit}
+        className="absolute bottom-2 right-2 rounded p-1 text-[var(--text-muted)] transition-colors hover:text-[var(--text-primary)]"
+        aria-label="Edit topic"
+      >
+        <Pencil className="h-3.5 w-3.5" />
+      </button>
     </div>
   );
 }
@@ -83,9 +164,9 @@ function OverridePanelDrawer({
   const [scriptOutline, setScriptOutline] = useState(panel.topic.scriptOutline);
 
   return (
-    <div className="fixed inset-y-0 right-0 z-50 flex w-full max-w-md flex-col border-l border-[var(--bg-border)] bg-[var(--bg-surface)] shadow-2xl">
+    <div className="fixed inset-y-0 right-0 z-50 flex w-full max-w-[360px] flex-col border-l border-[var(--bg-border)] bg-[var(--bg-surface)] shadow-2xl">
       <div className="flex items-center justify-between border-b border-[var(--bg-border)] px-5 py-4">
-        <h2 className="text-sm font-semibold text-[var(--text-primary)]">Edit Topic</h2>
+        <h2 className="text-sm font-semibold text-[var(--text-primary)]">Edit Video Idea</h2>
         <button
           type="button"
           onClick={onClose}
@@ -94,7 +175,7 @@ function OverridePanelDrawer({
           <X className="h-4 w-4" />
         </button>
       </div>
-      <div className="flex-1 overflow-y-auto px-5 py-4 space-y-4">
+      <div className="flex-1 space-y-4 overflow-y-auto px-5 py-4">
         <label className="block">
           <span className="text-xs font-medium text-[var(--text-muted)]">Title</span>
           <input
@@ -104,7 +185,7 @@ function OverridePanelDrawer({
           />
         </label>
         <label className="block">
-          <span className="text-xs font-medium text-[var(--text-muted)]">Hook</span>
+          <span className="text-xs font-medium text-[var(--text-muted)]">Hook (opening line)</span>
           <textarea
             value={hook}
             onChange={(e) => setHook(e.target.value)}
@@ -139,18 +220,19 @@ function OverridePanelDrawer({
           <textarea
             value={scriptOutline}
             onChange={(e) => setScriptOutline(e.target.value)}
-            rows={5}
+            rows={4}
             className="mt-1 w-full rounded-lg border border-[var(--bg-border)] bg-[var(--bg-elevated)] px-3 py-2 text-sm text-[var(--text-primary)] focus:outline-none focus:ring-1 focus:ring-[var(--accent-primary)]"
           />
         </label>
       </div>
-      <div className="border-t border-[var(--bg-border)] px-5 py-4">
+      <div className="flex gap-2 border-t border-[var(--bg-border)] px-5 py-4">
+        <Button variant="secondary" onClick={onClose} className="flex-1">
+          Cancel
+        </Button>
         <Button
-          onClick={() =>
-            onSave(panel.topicIndex, { title, hook, format, angle, scriptOutline })
-          }
+          onClick={() => onSave(panel.topicIndex, { title, hook, format, angle, scriptOutline })}
           disabled={saving}
-          className="w-full"
+          className="flex-1 gap-2"
         >
           {saving ? <Loader2 className="h-4 w-4 animate-spin" /> : "Save Override"}
         </Button>
@@ -159,9 +241,122 @@ function OverridePanelDrawer({
   );
 }
 
+function AgentActivityPanel({
+  planId,
+  totalVideos,
+  brandId,
+}: {
+  planId: string;
+  totalVideos: number;
+  brandId: string;
+}) {
+  const router = useRouter();
+  const progress = usePlanProgress(planId, totalVideos);
+  const pct = totalVideos > 0 ? Math.round((progress.completedCount / totalVideos) * 100) : 0;
+
+  const sortedEntries = [...progress.videoStatuses.entries()].sort(
+    ([, a], [, b]) => getVideoStatusCfg(a.status).order - getVideoStatusCfg(b.status).order
+  );
+
+  return (
+    <div className="mt-8 space-y-3">
+      {/* Status banner */}
+      <div
+        className="rounded-xl border border-[var(--bg-border)] bg-[var(--bg-surface)] px-5 py-4"
+        style={{ borderLeftWidth: "4px", borderLeftColor: "var(--accent-primary)" }}
+      >
+        {progress.isBatchComplete ? (
+          <div className="text-center">
+            <div className="mb-2 flex justify-center">
+              <Sparkles className="h-6 w-6 text-[var(--accent-primary)]" />
+            </div>
+            <p className="font-semibold text-[var(--text-primary)]">
+              All done!{" "}
+              {progress.completedCount} video{progress.completedCount !== 1 ? "s" : ""} ready
+            </p>
+            {progress.failedCount > 0 && (
+              <p className="mt-0.5 text-sm text-[var(--accent-danger)]">
+                {progress.failedCount} failed
+              </p>
+            )}
+            <p className="mt-1 text-xs text-[var(--text-muted)]">Check your email for a summary.</p>
+            <div className="mt-4 flex justify-center gap-2">
+              <Button onClick={() => router.push(`/library?plan=${planId}`)} className="gap-2">
+                Review Videos →
+              </Button>
+              <Button
+                variant="secondary"
+                onClick={() => router.push(`/brands/${brandId}`)}
+              >
+                View Brand
+              </Button>
+            </div>
+          </div>
+        ) : (
+          <>
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <span className="relative flex h-2.5 w-2.5">
+                  <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-[var(--accent-primary)] opacity-75" />
+                  <span className="relative inline-flex h-2.5 w-2.5 rounded-full bg-[var(--accent-primary)]" />
+                </span>
+                <span className="text-sm font-semibold text-[var(--text-primary)]">
+                  Generating your Week 1 content
+                </span>
+              </div>
+              <span className="text-xs text-[var(--text-muted)]">
+                {progress.completedCount} / {totalVideos} &middot; {pct}%
+              </span>
+            </div>
+            <div className="mt-3 h-1.5 w-full overflow-hidden rounded-full bg-[var(--bg-elevated)]">
+              <div
+                className="h-full rounded-full bg-[var(--accent-primary)] transition-all duration-700"
+                style={{ width: `${pct}%` }}
+              />
+            </div>
+            <p className="mt-2 text-xs text-[var(--text-muted)]">
+              You can close this tab — we&apos;ll email you when everything&apos;s ready
+            </p>
+          </>
+        )}
+      </div>
+
+      {/* Activity feed */}
+      {(sortedEntries.length > 0 || !progress.isBatchComplete) && (
+        <div className="overflow-hidden rounded-xl border border-[var(--bg-border)] bg-[var(--bg-surface)]">
+          <div className="border-b border-[var(--bg-border)] px-4 py-2.5">
+            <span className="text-[10px] font-semibold uppercase tracking-widest text-[var(--text-muted)]">
+              Activity
+            </span>
+          </div>
+          {sortedEntries.length === 0 ? (
+            <div className="py-8 text-center text-sm text-[var(--text-muted)]">
+              Waiting for generation to start&hellip;
+            </div>
+          ) : (
+            <div className="divide-y divide-[var(--bg-border)]">
+              {sortedEntries.map(([videoId, entry]) => {
+                const cfg = getVideoStatusCfg(entry.status);
+                return (
+                  <div key={videoId} className="flex items-center gap-3 px-4 py-3">
+                    <span className={`shrink-0 ${cfg.color}`}>{cfg.icon}</span>
+                    <p className="flex-1 truncate text-sm text-[var(--text-primary)]">
+                      {entry.title || "Untitled video"}
+                    </p>
+                    <span className={`shrink-0 text-xs ${cfg.color}`}>{cfg.label}</span>
+                  </div>
+                );
+              })}
+            </div>
+          )}
+        </div>
+      )}
+    </div>
+  );
+}
+
 export default function ContentPlanPage() {
   const { id: brandId, planId } = useParams<{ id: string; planId: string }>();
-  const router = useRouter();
   const api = useApiClient();
   const [plan, setPlan] = useState<ContentPlan | null>(null);
   const [loading, setLoading] = useState(true);
@@ -197,7 +392,12 @@ export default function ContentPlanPage() {
   async function handleSaveOverride(index: number, data: Partial<TopicEntry>) {
     setSavingOverride(true);
     const result = await withToast(
-      () => api.contentPlans.overrideTopic(planId, index, data as Parameters<typeof api.contentPlans.overrideTopic>[2]),
+      () =>
+        api.contentPlans.overrideTopic(
+          planId,
+          index,
+          data as Parameters<typeof api.contentPlans.overrideTopic>[2]
+        ),
       "Failed to save override"
     );
     if (result?.data) {
@@ -216,7 +416,7 @@ export default function ContentPlanPage() {
     );
     if (result?.data?.ok) {
       toast.success("Plan approved — generation starting");
-      router.push(`/brands/${brandId}/plan/${planId}/progress`);
+      setPlan((prev) => (prev ? { ...prev, status: "approved" } : prev));
     }
     setApproving(false);
   }
@@ -239,6 +439,9 @@ export default function ContentPlanPage() {
 
   const topics = Array.isArray(plan.topics) ? (plan.topics as TopicEntry[]) : [];
   const postsPerDay = plan.postsPerDay;
+  const totalVideos = postsPerDay * 7;
+  const weekDates = getWeekDates(plan.weekStartDate);
+  const slotTimes = SLOT_TIMES[postsPerDay] ?? SLOT_TIMES[1] ?? ["9:00 AM"];
 
   return (
     <div className="mx-auto max-w-7xl px-4 py-8">
@@ -255,78 +458,97 @@ export default function ContentPlanPage() {
         <div>
           <h1 className="text-xl font-bold text-[var(--text-primary)]">Week Plan</h1>
           <p className="mt-0.5 text-sm text-[var(--text-muted)]">
-            Week of {plan.weekStartDate} &middot; {postsPerDay} post{postsPerDay > 1 ? "s" : ""}/day &middot; {topics.length} videos
+            Week of {plan.weekStartDate} &middot; {postsPerDay} post
+            {postsPerDay > 1 ? "s" : ""}/day &middot; {topics.length} videos
           </p>
         </div>
-        <Button
-          onClick={handleRegenerate}
-          disabled={regenerating || plan.status !== "draft"}
-          className="gap-2"
-          variant="secondary"
-        >
-          {regenerating ? (
-            <Loader2 className="h-4 w-4 animate-spin" />
-          ) : (
-            <RefreshCw className="h-4 w-4" />
-          )}
-          Regenerate Plan
-        </Button>
+        {plan.status === "draft" && (
+          <Button
+            onClick={handleRegenerate}
+            disabled={regenerating}
+            className="gap-2"
+            variant="secondary"
+          >
+            {regenerating ? (
+              <Loader2 className="h-4 w-4 animate-spin" />
+            ) : (
+              <RefreshCw className="h-4 w-4" />
+            )}
+            Regenerate Plan
+          </Button>
+        )}
       </div>
 
       {/* Calendar grid */}
       <div className="overflow-x-auto">
-        <div className="min-w-[700px]">
-          {/* Header row */}
-          <div className="mb-2 grid gap-2" style={{ gridTemplateColumns: `repeat(7, 1fr)` }}>
-            {DAYS.map((day) => (
+        <div className="min-w-[800px]">
+          {/* Header row: time spacer + 7 day columns */}
+          <div
+            className="mb-2 grid gap-2"
+            style={{ gridTemplateColumns: "52px repeat(7, 1fr)" }}
+          >
+            <div /> {/* spacer for time label column */}
+            {weekDates.map((date, i) => (
               <div
-                key={day}
-                className="rounded-lg bg-[var(--bg-elevated)] px-3 py-2 text-center text-xs font-semibold uppercase tracking-wide text-[var(--text-muted)]"
+                key={i}
+                className="rounded-lg bg-[var(--bg-elevated)] px-3 py-2 text-center"
               >
-                {day}
+                <p className="text-[10px] font-semibold uppercase tracking-[0.08em] text-[var(--text-muted)]">
+                  {date.toLocaleDateString("en-US", { weekday: "short", timeZone: "UTC" })}
+                </p>
+                <p className="text-sm font-medium text-[var(--text-secondary)]">
+                  {date.toLocaleDateString("en-US", { day: "numeric", timeZone: "UTC" })}
+                </p>
               </div>
             ))}
           </div>
 
           {/* Slot rows */}
-          {Array.from({ length: postsPerDay }, (_, slotIdx) => (
-            <div
-              key={slotIdx}
-              className="mb-2 grid gap-2"
-              style={{ gridTemplateColumns: `repeat(7, 1fr)` }}
-            >
-              {DAYS.map((_, dayIdx) => {
-                const dayNumber = dayIdx + 1;
-                const topic = topics.find(
-                  (t) => t.day === dayNumber && t.slot === slotIdx + 1
-                );
-                if (!topic) {
+          {Array.from({ length: postsPerDay }, (_, slotIdx) => {
+            const slotTime = slotTimes[slotIdx] ?? "";
+            return (
+              <div
+                key={slotIdx}
+                className="mb-2 grid gap-2"
+                style={{ gridTemplateColumns: "52px repeat(7, 1fr)" }}
+              >
+                {/* Time label */}
+                <div className="flex items-center justify-end pr-1">
+                  <span className="text-[10px] font-medium leading-tight text-[var(--text-muted)]">
+                    {slotTime}
+                  </span>
+                </div>
+
+                {weekDates.map((_, dayIdx) => {
+                  const dayNumber = dayIdx + 1;
+                  const topic = topics.find(
+                    (t) => t.day === dayNumber && t.slot === slotIdx + 1
+                  );
+                  if (!topic) {
+                    return (
+                      <div
+                        key={dayIdx}
+                        className="min-h-[110px] rounded-lg border border-dashed border-[var(--bg-border)] bg-[var(--bg-elevated)]/50"
+                      />
+                    );
+                  }
                   return (
-                    <div
+                    <TopicCard
                       key={dayIdx}
-                      className="rounded-lg border border-dashed border-[var(--bg-border)] bg-[var(--bg-elevated)]/50 p-3 min-h-[100px]"
+                      topic={topic}
+                      onEdit={() => setOverridePanel({ topic, topicIndex: topic.index })}
                     />
                   );
-                }
-                return (
-                  <TopicCard
-                    key={dayIdx}
-                    topic={topic}
-                    onEdit={() =>
-                      setOverridePanel({ topic, topicIndex: topic.index })
-                    }
-                  />
-                );
-              })}
-            </div>
-          ))}
+                })}
+              </div>
+            );
+          })}
         </div>
       </div>
 
-      {/* Approve CTA */}
+      {/* Approve CTA (draft state) */}
       {plan.status === "draft" && (
         <div className="mt-8 space-y-4">
-          {/* Posting preference */}
           <div className="rounded-xl border border-[var(--bg-border)] bg-[var(--bg-elevated)] p-4">
             <p className="mb-3 text-xs font-semibold uppercase tracking-wide text-[var(--text-muted)]">
               Facebook posting
@@ -334,9 +556,21 @@ export default function ContentPlanPage() {
             <div className="grid grid-cols-1 gap-2 sm:grid-cols-3">
               {(
                 [
-                  { value: "draft", label: "Save as Drafts", description: "Posts created as Facebook drafts — publish manually" },
-                  { value: "scheduled", label: "Schedule Automatically", description: "Posts scheduled at optimal time slots" },
-                  { value: "manual", label: "Download Only", description: "No Facebook posting — download videos yourself" },
+                  {
+                    value: "draft",
+                    label: "Save as Drafts",
+                    description: "Posts created as Facebook drafts — publish manually",
+                  },
+                  {
+                    value: "scheduled",
+                    label: "Schedule Automatically",
+                    description: "Posts scheduled at optimal time slots",
+                  },
+                  {
+                    value: "manual",
+                    label: "Download Only",
+                    description: "No Facebook posting — download videos yourself",
+                  },
                 ] as { value: PostType; label: string; description: string }[]
               ).map((opt) => (
                 <button
@@ -349,7 +583,13 @@ export default function ContentPlanPage() {
                       : "border-[var(--bg-border)] hover:border-[var(--accent-primary)]/50"
                   }`}
                 >
-                  <p className={`text-xs font-semibold ${postType === opt.value ? "text-[var(--accent-primary)]" : "text-[var(--text-primary)]"}`}>
+                  <p
+                    className={`text-xs font-semibold ${
+                      postType === opt.value
+                        ? "text-[var(--accent-primary)]"
+                        : "text-[var(--text-primary)]"
+                    }`}
+                  >
                     {opt.label}
                   </p>
                   <p className="mt-0.5 text-[10px] text-[var(--text-muted)]">{opt.description}</p>
@@ -373,10 +613,9 @@ export default function ContentPlanPage() {
         </div>
       )}
 
+      {/* Agentic progress panel (post-approval) */}
       {plan.status !== "draft" && (
-        <div className="mt-8 rounded-xl border border-[var(--accent-success)]/30 bg-[var(--accent-success)]/10 px-5 py-4 text-center text-sm font-medium text-[var(--accent-success)]">
-          Plan approved &mdash; videos are being generated.
-        </div>
+        <AgentActivityPanel planId={planId} totalVideos={totalVideos} brandId={brandId} />
       )}
     </div>
   );
