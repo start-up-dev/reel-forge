@@ -169,6 +169,13 @@
       "when": 1747699200000,
       "tag": "0023_nullable_project_id",
       "breakpoints": true
+    },
+    {
+      "idx": 24,
+      "version": "7",
+      "when": 1747785600000,
+      "tag": "0024_action_reel_style",
+      "breakpoints": true
     }
   ]
 }
