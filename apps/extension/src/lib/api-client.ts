@@ -13,6 +13,7 @@ export interface ClaimedClip {
   textExcerpt: string | null;
   videoType: string | null;
   videoTitle: string;
+  characterSheetUrl: string | null;
 }
 
 async function loadSettings(): Promise<Pick<ExtensionSettings, "backendUrl" | "operatorSecret">> {

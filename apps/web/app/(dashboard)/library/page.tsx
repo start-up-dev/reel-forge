@@ -18,9 +18,9 @@ import {
 import { toast } from "sonner";
 import { Skeleton } from "@repo/ui/skeleton";
 import { ConfirmDialog } from "@repo/ui/confirm-dialog";
-import type { Video } from "@repo/types";
+import type { PostSchedule } from "@repo/types";
 import { VideoStatus } from "@repo/types";
-import { useApiClient, withToast } from "@/lib/api-client";
+import { useApiClient, withToast, type VideoLibraryItem } from "@/lib/api-client";
 import { formatRelativeDate } from "@repo/utils";
 
 function statusBadgeStyles(status: VideoStatus) {
@@ -38,11 +38,32 @@ function statusBadgeStyles(status: VideoStatus) {
   }
 }
 
+function postScheduleBadge(schedule: PostSchedule | null): { label: string; className: string } | null {
+  if (!schedule) return null;
+  if (schedule.status === "posted") {
+    return { label: "Posted", className: "bg-[var(--accent-success)]/15 text-[var(--accent-success)]" };
+  }
+  if (schedule.status === "failed") {
+    return { label: "Failed", className: "bg-[var(--accent-danger)]/15 text-[var(--accent-danger)]" };
+  }
+  if (schedule.postType === "draft") {
+    return { label: "Draft", className: "bg-[var(--bg-border)] text-[var(--text-muted)]" };
+  }
+  if (schedule.postType === "scheduled" && schedule.scheduledAt) {
+    const d = new Date(schedule.scheduledAt);
+    return {
+      label: `Scheduled ${d.toLocaleDateString(undefined, { month: "short", day: "numeric" })}`,
+      className: "bg-blue-500/15 text-blue-400",
+    };
+  }
+  return null;
+}
+
 type ViewMode = "grid" | "list";
 
 export default function LibraryPage() {
   const api = useApiClient();
-  const [videos, setVideos] = useState<Video[]>([]);
+  const [videos, setVideos] = useState<VideoLibraryItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [page, setPage] = useState(1);
   const [hasMore, setHasMore] = useState(false);
@@ -50,9 +71,9 @@ export default function LibraryPage() {
   const [viewMode, setViewMode] = useState<ViewMode>("grid");
   const [search, setSearch] = useState("");
   const [debouncedSearch, setDebouncedSearch] = useState("");
-  const [deleteVideo, setDeleteVideo] = useState<Video | null>(null);
+  const [deleteVideo, setDeleteVideo] = useState<VideoLibraryItem | null>(null);
   const [deleting, setDeleting] = useState(false);
-  const [previewVideo, setPreviewVideo] = useState<Video | null>(null);
+  const [previewVideo, setPreviewVideo] = useState<VideoLibraryItem | null>(null);
 
   // Debounce search
   useEffect(() => {
@@ -294,12 +315,13 @@ function LibraryGridCard({
   onPreview,
   onDelete,
 }: {
-  video: Video;
+  video: VideoLibraryItem;
   onPreview: () => void;
   onDelete: () => void;
 }) {
   const s = statusBadgeStyles(video.status);
   const canDownload = video.status === VideoStatus.Complete && video.outputUrl;
+  const postBadge = postScheduleBadge(video.postSchedule);
 
   return (
     <div className="group relative overflow-hidden rounded-xl border border-[var(--bg-border)] bg-[var(--bg-surface)]">
@@ -314,10 +336,15 @@ function LibraryGridCard({
         <div className="absolute inset-0 flex items-center justify-center">
           <Film className="h-8 w-8 text-[var(--bg-border)]" />
         </div>
-        <div className="absolute right-2 top-2">
+        <div className="absolute right-2 top-2 flex flex-col items-end gap-1">
           <span className={`rounded-full px-2 py-0.5 text-[10px] font-semibold ${s.bg} ${s.text}`}>
             {s.label}
           </span>
+          {postBadge && (
+            <span className={`rounded-full px-2 py-0.5 text-[10px] font-semibold ${postBadge.className}`}>
+              {postBadge.label}
+            </span>
+          )}
         </div>
         {/* Hover overlay */}
         <div className="absolute inset-0 flex items-end justify-between bg-gradient-to-t from-black/60 to-transparent p-2 opacity-0 transition-opacity group-hover:opacity-100">
@@ -384,12 +411,13 @@ function LibraryListRow({
   onPreview,
   onDelete,
 }: {
-  video: Video;
+  video: VideoLibraryItem;
   onPreview: () => void;
   onDelete: () => void;
 }) {
   const s = statusBadgeStyles(video.status);
   const canDownload = video.status === VideoStatus.Complete && video.outputUrl;
+  const postBadge = postScheduleBadge(video.postSchedule);
 
   return (
     <tr className="group bg-[var(--bg-surface)] transition-colors hover:bg-[var(--bg-elevated)]">
@@ -409,9 +437,16 @@ function LibraryListRow({
       </td>
       {/* Status */}
       <td className="py-3 px-3 hidden sm:table-cell">
-        <span className={`rounded-full px-2 py-0.5 text-[10px] font-semibold ${s.bg} ${s.text}`}>
-          {s.label}
-        </span>
+        <div className="flex items-center gap-1.5">
+          <span className={`rounded-full px-2 py-0.5 text-[10px] font-semibold ${s.bg} ${s.text}`}>
+            {s.label}
+          </span>
+          {postBadge && (
+            <span className={`rounded-full px-2 py-0.5 text-[10px] font-semibold ${postBadge.className}`}>
+              {postBadge.label}
+            </span>
+          )}
+        </div>
       </td>
       {/* Duration */}
       <td className="py-3 px-3 text-sm text-[var(--text-muted)] hidden md:table-cell">
@@ -469,7 +504,7 @@ function VideoPreviewModal({
   onClose,
   onDelete,
 }: {
-  video: Video;
+  video: VideoLibraryItem;
   onClose: () => void;
   onDelete: () => void;
 }) {

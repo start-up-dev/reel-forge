@@ -3,8 +3,10 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import {
-  FolderOpen,
+  Home,
   Library,
+  Layers,
+  Plug,
   Settings,
   CreditCard,
   Zap,
@@ -13,11 +15,28 @@ import {
 import { useUser } from "@/lib/hooks/use-user";
 import { cn } from "@repo/ui/utils";
 
-const navItems = [
-  { href: "/dashboard", label: "Projects", icon: FolderOpen },
-  { href: "/library", label: "My Videos", icon: Library },
-  { href: "/settings", label: "Settings", icon: Settings },
-  { href: "/billing", label: "Billing", icon: CreditCard },
+const navSections = [
+  {
+    label: "Overview",
+    items: [
+      { href: "/dashboard", label: "Home", icon: Home },
+      { href: "/library", label: "Library", icon: Library },
+    ],
+  },
+  {
+    label: "Content",
+    items: [
+      { href: "/brands", label: "Brands", icon: Layers },
+      { href: "/channels", label: "Channels", icon: Plug },
+    ],
+  },
+  {
+    label: "Account",
+    items: [
+      { href: "/settings", label: "Settings", icon: Settings },
+      { href: "/billing", label: "Billing", icon: CreditCard },
+    ],
+  },
 ];
 
 const PLAN_LABEL: Record<string, string> = {
@@ -71,29 +90,35 @@ export function AppSidebar({ isOpen, onClose }: AppSidebarProps) {
 
       {/* Nav */}
       <nav className="flex-1 overflow-y-auto p-3">
-        <ul className="space-y-1">
-          {navItems.map(({ href, label, icon: Icon }) => {
-            const isActive =
-              href === "/dashboard"
-                ? pathname === "/dashboard" || pathname.startsWith("/projects")
-                : pathname.startsWith(href);
-            return (
-              <li key={href}>
-                <Link
-                  href={href}
-                  className={`flex items-center gap-3 rounded-lg px-3 py-2 text-sm transition-colors ${
-                    isActive
-                      ? "bg-[var(--accent-primary)]/15 text-[var(--accent-primary)] font-medium"
-                      : "text-[var(--text-secondary)] hover:bg-[var(--bg-elevated)] hover:text-[var(--text-primary)]"
-                  }`}
-                >
-                  <Icon className="h-4 w-4 shrink-0" />
-                  {label}
-                </Link>
-              </li>
-            );
-          })}
-        </ul>
+        <div className="space-y-4">
+          {navSections.map((section) => (
+            <div key={section.label}>
+              <p className="mb-1 px-3 text-[10px] font-semibold uppercase tracking-[0.08em] text-[var(--text-muted)]">
+                {section.label}
+              </p>
+              <ul className="space-y-0.5">
+                {section.items.map(({ href, label, icon: Icon }) => {
+                  const isActive = pathname.startsWith(href) && (href !== "/dashboard" || pathname === "/dashboard");
+                  return (
+                    <li key={href}>
+                      <Link
+                        href={href}
+                        className={`flex items-center gap-3 rounded-lg px-3 py-2 text-sm transition-colors ${
+                          isActive
+                            ? "bg-[var(--accent-primary)]/15 text-[var(--accent-primary)] font-medium"
+                            : "text-[var(--text-secondary)] hover:bg-[var(--bg-elevated)] hover:text-[var(--text-primary)]"
+                        }`}
+                      >
+                        <Icon className="h-4 w-4 shrink-0" />
+                        {label}
+                      </Link>
+                    </li>
+                  );
+                })}
+              </ul>
+            </div>
+          ))}
+        </div>
       </nav>
 
       {/* Usage meter (paid plans) */}

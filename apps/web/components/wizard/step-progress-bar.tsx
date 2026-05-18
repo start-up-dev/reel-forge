@@ -7,7 +7,6 @@ import {
   Images,
   Lightbulb,
   Loader2,
-  Mic,
   Sparkles,
   Trophy,
 } from "lucide-react";
@@ -16,7 +15,6 @@ import { cn } from "@repo/ui/utils";
 export const WIZARD_STEPS = [
   { label: "Idea", icon: Lightbulb },
   { label: "Script", icon: FileText },
-  { label: "Voice", icon: Mic },
   { label: "Scenes", icon: Images },
   { label: "Style", icon: Sparkles },
   { label: "Processing", icon: Loader2 },
@@ -41,8 +39,8 @@ export function StepProgressBar({
         const isCompleted = stepNum < currentStep;
         const isActive = stepNum === currentStep;
         const isPending = stepNum > currentStep;
-        // Step 6 is processing — lock all backward navigation once clips start generating
-        const isClickable = isCompleted && stepNum <= maxAllowedStep && currentStep !== 6;
+        // Step 5 is processing — lock all backward navigation once clips start generating
+        const isClickable = isCompleted && stepNum <= maxAllowedStep && currentStep !== 5;
         const isLast = index === WIZARD_STEPS.length - 1;
         const Icon = isCompleted ? CheckCircle2 : step.icon;
 
@@ -78,7 +76,7 @@ export function StepProgressBar({
                     isActive && "text-[var(--accent-primary)]",
                     isCompleted && "text-white",
                     isPending && "text-[var(--text-muted)]",
-                    isActive && stepNum === 6 && "animate-spin",
+                    isActive && stepNum === 5 && "animate-spin",
                   )}
                 />
               </div>

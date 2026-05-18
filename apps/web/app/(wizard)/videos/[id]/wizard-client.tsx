@@ -11,7 +11,6 @@ import { useProject } from "@/lib/hooks/use-projects";
 import { WizardHeader } from "@/components/wizard/wizard-header";
 import { Step1Idea } from "@/components/wizard/steps/step-1-idea";
 import { Step2Script } from "@/components/wizard/steps/step-2-script";
-import { Step3Voice } from "@/components/wizard/steps/step-3-voice";
 import { Step4Scenes } from "@/components/wizard/steps/step-4-scenes";
 import { Step5Style } from "@/components/wizard/steps/step-5-style";
 import { Step6Processing } from "@/components/wizard/steps/step-6-processing";
@@ -19,6 +18,7 @@ import { Step7Done } from "@/components/wizard/steps/step-7-done";
 import { TrialPaymentModal } from "@/components/billing/trial-payment-modal";
 import { SubscriptionPromptModal } from "@/components/billing/subscription-prompt-modal";
 
+// Steps: 1=Idea, 2=Script, 3=Scenes, 4=Style, 5=Processing, 6=Done
 function statusToDefaultStep(status: VideoStatus): number {
   switch (status) {
     case VideoStatus.Draft:
@@ -26,22 +26,21 @@ function statusToDefaultStep(status: VideoStatus): number {
       return 1;
     case VideoStatus.ScriptPending:
     case VideoStatus.ScriptReady:
-      return 2;
     case VideoStatus.VoicePending:
     case VideoStatus.VoiceReady:
-      return 3;
+      return 2;
     case VideoStatus.ScenesPending:
     case VideoStatus.ScenesReady:
-      return 4;
+      return 3;
     case VideoStatus.ClipsQueued:
     case VideoStatus.ClipsProcessing:
     case VideoStatus.ClipsNeedsReview:
     case VideoStatus.AssemblyPending:
     case VideoStatus.AssemblyProcessing:
     case VideoStatus.Failed:
-      return 6;
+      return 5;
     case VideoStatus.Complete:
-      return 7;
+      return 6;
     default:
       return 1;
   }
@@ -54,23 +53,22 @@ function statusToMaxAllowedStep(status: VideoStatus): number {
       return 1;
     case VideoStatus.ScriptPending:
     case VideoStatus.ScriptReady:
-      return 2;
     case VideoStatus.VoicePending:
     case VideoStatus.VoiceReady:
-      return 3;
+      return 2;
     case VideoStatus.ScenesPending:
-      return 4;
+      return 3;
     case VideoStatus.ScenesReady:
-      return 5; // Can view step 4 or advance to step 5 (style picker)
+      return 4; // Can view step 3 or advance to step 4 (style picker)
     case VideoStatus.ClipsQueued:
     case VideoStatus.ClipsProcessing:
     case VideoStatus.ClipsNeedsReview:
     case VideoStatus.AssemblyPending:
     case VideoStatus.AssemblyProcessing:
     case VideoStatus.Failed:
-      return 6;
+      return 5;
     case VideoStatus.Complete:
-      return 7;
+      return 6;
     default:
       return 1;
   }
@@ -293,7 +291,7 @@ export function WizardClient({ videoId }: { videoId: string }) {
           />
         )}
         {currentStep === 3 && (
-          <Step3Voice
+          <Step4Scenes
             video={video}
             onVideoUpdate={setVideo}
             onBack={() => goToStep(2)}
@@ -301,32 +299,24 @@ export function WizardClient({ videoId }: { videoId: string }) {
           />
         )}
         {currentStep === 4 && (
-          <Step4Scenes
-            video={video}
-            onVideoUpdate={setVideo}
-            onBack={() => goToStep(3)}
-            onAdvance={() => goToStep(5)}
-          />
-        )}
-        {currentStep === 5 && (
           <Step5Style
             video={video}
             trialPaid={currentUser?.trialPaid ?? true}
             onVideoUpdate={setVideo}
             onScheduleSave={scheduleSave}
-            onBack={() => goToStep(4)}
-            onAdvance={() => goToStep(6)}
+            onBack={() => goToStep(3)}
+            onAdvance={() => goToStep(5)}
             onRequestPayment={() => setShowTrialModal(true)}
           />
         )}
-        {currentStep === 6 && (
+        {currentStep === 5 && (
           <Step6Processing
             video={video}
             onVideoUpdate={setVideo}
-            onAdvance={() => goToStep(7)}
+            onAdvance={() => goToStep(6)}
           />
         )}
-        {currentStep === 7 && (
+        {currentStep === 6 && (
           <Step7Done
             video={video}
             projectId={video.projectId}

@@ -17,7 +17,6 @@ const createProjectBody = z.object({
   targetAudience: z.string().min(1).max(300),
   videoStyle: z.enum(VIDEO_STYLES),
   tone: z.enum(TONES),
-  voiceId: z.string().optional(),
   defaultSubtitleStyle: z.enum(SUBTITLE_STYLES).optional(),
   defaultBgmEnabled: z.boolean().optional(),
   defaultBgmAssetId: z.string().nullable().optional(),

@@ -40,7 +40,6 @@ const SAMPLE_PROJECT = {
   niche: "fitness",
   targetAudience: "18-24",
   tone: "energetic",
-  voiceId: null,
   deletedAt: null,
   createdAt: new Date("2026-01-01"),
   updatedAt: new Date("2026-01-01"),

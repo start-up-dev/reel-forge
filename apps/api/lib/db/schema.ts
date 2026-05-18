@@ -1,7 +1,9 @@
 import {
   boolean,
+  date,
   index,
   integer,
+  jsonb,
   pgEnum,
   pgTable,
   real,
@@ -148,7 +150,7 @@ export const users = pgTable("users", {
  * projects — userId is text FK referencing users.id (Clerk ID).
  * Added: language, videoStyle, defaultSubtitleStyle, defaultBgmEnabled,
  *        defaultBgmAssetId, claudeSystemPrompt (all per PRD §7.2 / §9).
- * Fixed: niche, targetAudience required (notNull); voiceId nullable (chosen per-video in wizard).
+ * Fixed: niche, targetAudience required (notNull).
  */
 export const projects = pgTable(
   "projects",
@@ -164,7 +166,6 @@ export const projects = pgTable(
     targetAudience: text("target_audience").notNull(),
     videoStyle: videoStyleEnum("video_style").notNull(),
     tone: toneEnum("tone").notNull(),
-    voiceId: text("voice_id"),
     defaultSubtitleStyle: subtitleStyleEnum("default_subtitle_style"),
     defaultBgmEnabled: boolean("default_bgm_enabled").notNull().default(false),
     defaultBgmAssetId: text("default_bgm_asset_id"),
@@ -192,14 +193,11 @@ export const videos = pgTable(
       .notNull()
       .references(() => users.id, { onDelete: "cascade" }),
     projectId: uuid("project_id")
-      .notNull()
       .references(() => projects.id, { onDelete: "cascade" }),
     title: text("title").notNull(),
     status: videoStatusEnum("status").notNull().default("DRAFT"),
     idea: text("idea"),
     script: text("script"),
-    audioUrl: text("audio_url"),
-    wordTimestampsUrl: text("word_timestamps_url"),
     durationSeconds: integer("duration_seconds"),
     subtitleStyle: subtitleStyleEnum("subtitle_style")
       .notNull()
@@ -212,11 +210,13 @@ export const videos = pgTable(
     ugcVisualStyle: text("ugc_visual_style"),
     ugcCharacterDescription: text("ugc_character_description"),
     actionReelStyle: text("action_reel_style"),
-    voiceSpeed: real("voice_speed").notNull().default(1.0),  // 0.5–2.0; applied via FFmpeg atempo at render
-    characterBaseGcsPath: text("character_base_gcs_path"),   // GCS path of the character reference image
+    voiceSpeed: real("voice_speed").notNull().default(1.0),
+    characterBaseGcsPath: text("character_base_gcs_path"),
     sceneCount: integer("scene_count").notNull().default(0),
     renderStyle: renderStyleEnum("render_style"),
-    voiceId: text("voice_id"),
+    dialogueSegments: jsonb("dialogue_segments"),
+    contentPlanId: uuid("content_plan_id").references(() => contentPlans.id, { onDelete: "set null" }),
+    brandProfileId: uuid("brand_profile_id").references(() => brandProfiles.id, { onDelete: "set null" }),
     outputUrl: text("output_url"),
     error: text("error"),
     deletedAt: timestamp("deleted_at", { withTimezone: true }),
@@ -301,6 +301,123 @@ export const clipRequests = pgTable(
   ],
 );
 
+export const socialAccounts = pgTable(
+  "social_accounts",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    userId: text("user_id")
+      .notNull()
+      .references(() => users.id, { onDelete: "cascade" }),
+    platform: text("platform").notNull(),
+    pageId: text("page_id").notNull(),
+    pageName: text("page_name").notNull(),
+    pageAvatarUrl: text("page_avatar_url"),
+    accessToken: text("access_token").notNull(),
+    tokenExpiresAt: timestamp("token_expires_at", { withTimezone: true }),
+    createdAt: timestamp("created_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+    updatedAt: timestamp("updated_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+  },
+  (t) => [index("social_accounts_user_id_idx").on(t.userId)],
+);
+
+export const brandProfiles = pgTable(
+  "brand_profiles",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    userId: text("user_id")
+      .notNull()
+      .references(() => users.id, { onDelete: "cascade" }),
+    socialAccountId: uuid("social_account_id").references(() => socialAccounts.id, {
+      onDelete: "set null",
+    }),
+    name: text("name").notNull(),
+    niche: text("niche").notNull(),
+    nicheDescription: text("niche_description"),
+    targetAudienceAge: text("target_audience_age"),
+    targetAudienceVibe: text("target_audience_vibe"),
+    tone: text("tone").notNull(),
+    visualStyle: text("visual_style").notNull(),
+    characterType: text("character_type").notNull(),
+    characterDescription: text("character_description"),
+    characterSheetGcsPath: text("character_sheet_gcs_path"),
+    logoGcsPath: text("logo_gcs_path"),
+    primaryColor: text("primary_color"),
+    secondaryColor: text("secondary_color"),
+    referenceVideoUrl: text("reference_video_url"),
+    onboardingComplete: boolean("onboarding_complete").notNull().default(false),
+    characterSheetGenerationCount: integer("character_sheet_generation_count")
+      .notNull()
+      .default(0),
+    createdAt: timestamp("created_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+    updatedAt: timestamp("updated_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+  },
+  (t) => [index("brand_profiles_user_id_idx").on(t.userId)],
+);
+
+export const contentPlans = pgTable(
+  "content_plans",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    brandProfileId: uuid("brand_profile_id")
+      .notNull()
+      .references(() => brandProfiles.id, { onDelete: "cascade" }),
+    userId: text("user_id")
+      .notNull()
+      .references(() => users.id, { onDelete: "cascade" }),
+    weekStartDate: date("week_start_date").notNull(),
+    postsPerDay: integer("posts_per_day").notNull().default(1),
+    status: text("status").notNull().default("draft"),
+    topics: jsonb("topics").notNull().default([]),
+    postType: text("post_type").notNull().default("draft"),
+    createdAt: timestamp("created_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+    updatedAt: timestamp("updated_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+  },
+  (t) => [
+    index("content_plans_brand_profile_id_idx").on(t.brandProfileId),
+    index("content_plans_user_id_idx").on(t.userId),
+  ],
+);
+
+export const postSchedules = pgTable(
+  "post_schedules",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    videoId: uuid("video_id")
+      .notNull()
+      .references(() => videos.id, { onDelete: "cascade" }),
+    socialAccountId: uuid("social_account_id")
+      .notNull()
+      .references(() => socialAccounts.id, { onDelete: "cascade" }),
+    scheduledAt: timestamp("scheduled_at"),
+    postType: text("post_type").notNull().default("draft"),
+    platformPostId: text("platform_post_id"),
+    status: text("status").notNull().default("pending"),
+    errorMessage: text("error_message"),
+    createdAt: timestamp("created_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+    updatedAt: timestamp("updated_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+  },
+  (t) => [
+    index("post_schedules_video_id_idx").on(t.videoId),
+    index("post_schedules_social_account_id_idx").on(t.socialAccountId),
+  ],
+);
+
 // ─── Inferred types ───────────────────────────────────────────────────────────
 
 export type UserRow = typeof users.$inferSelect;
@@ -317,3 +434,15 @@ export type NewScene = typeof scenes.$inferInsert;
 
 export type ClipRequestRow = typeof clipRequests.$inferSelect;
 export type NewClipRequest = typeof clipRequests.$inferInsert;
+
+export type SocialAccountRow = typeof socialAccounts.$inferSelect;
+export type NewSocialAccount = typeof socialAccounts.$inferInsert;
+
+export type BrandProfileRow = typeof brandProfiles.$inferSelect;
+export type NewBrandProfile = typeof brandProfiles.$inferInsert;
+
+export type ContentPlanRow = typeof contentPlans.$inferSelect;
+export type NewContentPlan = typeof contentPlans.$inferInsert;
+
+export type PostScheduleRow = typeof postSchedules.$inferSelect;
+export type NewPostSchedule = typeof postSchedules.$inferInsert;

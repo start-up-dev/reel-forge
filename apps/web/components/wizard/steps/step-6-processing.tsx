@@ -37,14 +37,6 @@ function buildTimeline(video: VideoDetail, queuePosition: number): TimelineItem[
     VideoStatus.Complete,
   ].includes(s);
 
-  const voiceDone = [
-    VideoStatus.ScenesPending, VideoStatus.ScenesReady,
-    VideoStatus.ClipsQueued, VideoStatus.ClipsProcessing,
-    VideoStatus.ClipsNeedsReview,
-    VideoStatus.AssemblyPending, VideoStatus.AssemblyProcessing,
-    VideoStatus.Complete,
-  ].includes(s);
-
   const scenesDone = [
     VideoStatus.ClipsQueued, VideoStatus.ClipsProcessing,
     VideoStatus.ClipsNeedsReview,
@@ -68,8 +60,7 @@ function buildTimeline(video: VideoDetail, queuePosition: number): TimelineItem[
 
   return [
     { label: "Script approved", status: scriptDone ? "done" : "active" },
-    { label: "Voiceover ready", status: voiceDone ? "done" : scriptDone ? "active" : "pending" },
-    { label: "Scenes ready", status: scenesDone ? "done" : voiceDone ? "active" : "pending" },
+    { label: "Scenes ready", status: scenesDone ? "done" : scriptDone ? "active" : "pending" },
     {
       label: "Clips generating",
       status: clipsDone ? "done" : clipsActive ? "active" : "pending",
@@ -131,7 +122,7 @@ export function Step6Processing({
     }, 4000);
 
     return () => clearInterval(interval);
-  }, [isFailed, isComplete, api, video.id, onVideoUpdate, onAdvance]);
+  }, [isFailed, isComplete, isUnderReview, api, video.id, onVideoUpdate, onAdvance]);
 
   const estimatedWait =
     queuePosition > 0 ? `~${Math.round(queuePosition * 0.5)} min` : null;

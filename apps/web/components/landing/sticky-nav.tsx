@@ -2,8 +2,8 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
-import { Play, Menu, X } from "lucide-react";
-import { NAV_LINKS, NAV_CTA, SITE } from "@/lib/content";
+import { Menu, X } from "lucide-react";
+import { NAV_LINKS, NAV_CTA } from "@/lib/content";
 import Image from "next/image";
 
 export function StickyNav() {

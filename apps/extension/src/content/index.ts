@@ -12,6 +12,8 @@ interface ProcessClipMsg {
   operatorSecret: string;
   textExcerpt: string | null;
   videoType: string | null;
+  characterSheetBytes: number[] | null;
+  characterSheetType: string;
 }
 
 // ── Entry point ───────────────────────────────────────────────────────────────
@@ -30,8 +32,50 @@ chrome.runtime.onMessage.addListener(
   },
 );
 
+function attachImageViaMainWorld(
+  clipId: string,
+  imageBytes: Uint8Array,
+  imageType: string,
+): Promise<void> {
+  return new Promise((resolve, reject) => {
+    chrome.runtime.sendMessage(
+      {
+        type: "ATTACH_IMAGE",
+        clipId,
+        imageBytes: Array.from(imageBytes),
+        imageType,
+      },
+      (response: { ok: boolean; reason?: string } | undefined) => {
+        if (chrome.runtime.lastError) {
+          reject(new Error(chrome.runtime.lastError.message));
+          return;
+        }
+        if (response?.ok) {
+          resolve();
+        } else {
+          reject(new Error(response?.reason ?? "ATTACH_IMAGE failed"));
+        }
+      },
+    );
+  });
+}
+
 async function processClip(msg: ProcessClipMsg): Promise<void> {
-  const { clip, visualPrompt, backendUrl, operatorSecret } = msg;
+  const { clip, visualPrompt, backendUrl, operatorSecret, characterSheetBytes, characterSheetType } = msg;
+
+  // ── Phase 0: attach character sheet (if present) ──────────────────────────
+  if (characterSheetBytes && characterSheetBytes.length > 0) {
+    try {
+      const bytes = new Uint8Array(characterSheetBytes);
+      await attachImageViaMainWorld(clip.id, bytes, characterSheetType);
+      // Wait for Grok's UI to process the file upload
+      await sleep(800);
+    } catch (err) {
+      console.warn("[RF] Character sheet attachment failed:", err);
+      // Non-fatal — continue without character sheet
+    }
+  }
+
   const preExistingVideoSrcs = snapshotVideoSrcs();
   const videoSrc = await showOverlay(clip, visualPrompt, preExistingVideoSrcs);
   chrome.runtime.sendMessage({

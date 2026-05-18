@@ -69,13 +69,15 @@ export async function operatorRoutes(fastify: FastifyInstance): Promise<void> {
           u.motion_prompt   AS "motionPrompt",
           s.text_excerpt    AS "textExcerpt",
           v.video_type      AS "videoType",
-          v.title           AS "videoTitle"
+          v.title           AS "videoTitle",
+          bp.character_sheet_gcs_path AS "characterSheetGcsPath"
         FROM updated u
         LEFT JOIN scenes s ON s.video_id = u.video_id AND s.scene_index = u.scene_index
         LEFT JOIN videos v ON v.id = u.video_id
+        LEFT JOIN brand_profiles bp ON bp.id = v.brand_profile_id
       `);
 
-      const claimed = result.rows as {
+      const rawClaimed = result.rows as {
         id: string;
         videoId: string;
         sceneIndex: number;
@@ -84,7 +86,26 @@ export async function operatorRoutes(fastify: FastifyInstance): Promise<void> {
         textExcerpt: string | null;
         videoType: string | null;
         videoTitle: string | null;
+        characterSheetGcsPath: string | null;
       }[];
+
+      // Generate signed URLs for character sheets (7-day TTL)
+      const claimed = await Promise.all(
+        rawClaimed.map(async (row) => {
+          let characterSheetUrl: string | null = null;
+          if (row.characterSheetGcsPath) {
+            try {
+              characterSheetUrl = await generateSignedReadUrl(
+                row.characterSheetGcsPath,
+                7 * 24 * 60,
+              );
+            } catch {
+              // Non-fatal — extension proceeds without character sheet
+            }
+          }
+          return { ...row, characterSheetUrl };
+        }),
+      );
 
       // Transition videos from CLIPS_QUEUED → CLIPS_PROCESSING on first claim.
       if (claimed.length > 0) {

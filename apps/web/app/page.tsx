@@ -48,7 +48,6 @@ import {
   FAQ,
   FINAL_CTA,
   FOOTER,
-  SITE,
 } from "@/lib/content";
 import Image from "next/image";
 

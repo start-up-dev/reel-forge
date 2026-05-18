@@ -3,6 +3,7 @@ import { neon } from "@neondatabase/serverless";
 import {
   boolean,
   integer,
+  jsonb,
   pgEnum,
   pgTable,
   real,
@@ -82,6 +83,7 @@ export const videos = pgTable("videos", {
   renderStyle: renderStyleEnum("render_style"),
   voiceSpeed: real("voice_speed").notNull().default(1.0),
   characterBaseGcsPath: text("character_base_gcs_path"),
+  dialogueSegments: jsonb("dialogue_segments"),
   outputUrl: text("output_url"),
   durationSeconds: integer("duration_seconds"),
   error: text("error"),

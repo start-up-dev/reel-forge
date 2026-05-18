@@ -1,20 +1,20 @@
 "use client";
 
-import { useState, useEffect, useRef } from "react";
-import { ChevronDown, ChevronUp, Check, Loader2, Play, Square, Upload, X } from "lucide-react";
+import { useState, useRef } from "react";
+import { ChevronDown, ChevronUp, Check, Loader2, Upload, X } from "lucide-react";
 import { toast } from "sonner";
 import { ActionReelStyle, RenderStyle, UGCVisualStyle, VideoStatus, VideoType } from "@repo/types";
 import type { Project } from "@repo/types";
 import { Button } from "@repo/ui/button";
 import { useApiClient, withToast } from "@/lib/api-client";
-import type { VideoDetail, VoiceInfo } from "@/lib/api-client";
+import type { VideoDetail } from "@/lib/api-client";
 import { cn } from "@repo/ui/utils";
 
 interface Step1IdeaProps {
   video: VideoDetail;
   project: Project | null;
   onVideoUpdate: (v: VideoDetail) => void;
-  onScheduleSave: (data: { idea?: string; voiceId?: string | null; targetDurationSeconds?: number; renderStyle?: RenderStyle | null; videoType?: VideoType; ugcVisualStyle?: UGCVisualStyle | null; actionReelStyle?: ActionReelStyle | null; characterBaseGcsPath?: string | null }) => void;
+  onScheduleSave: (data: { idea?: string; targetDurationSeconds?: number; renderStyle?: RenderStyle | null; videoType?: VideoType; ugcVisualStyle?: UGCVisualStyle | null; actionReelStyle?: ActionReelStyle | null; characterBaseGcsPath?: string | null }) => void;
   onAdvance: () => void;
 }
 
@@ -85,7 +85,6 @@ const TIPS = [
 
 export function Step1Idea({
   video,
-  project,
   onVideoUpdate,
   onScheduleSave,
   onAdvance,
@@ -124,68 +123,6 @@ export function Step1Idea({
   const isUgc = videoType === VideoType.Talking;
   const isActionReel = videoType === VideoType.ActionReel;
   const isAiClone = ugcVisualStyle === UGCVisualStyle.AIClone;
-
-  // Voice selection (Stories only)
-  const [voices, setVoices] = useState<VoiceInfo[]>([]);
-  const [voicesLoading, setVoicesLoading] = useState(true);
-  const [selectedVoiceId, setSelectedVoiceId] = useState<string | null>(video.voiceId ?? null);
-  const [playingPreview, setPlayingPreview] = useState<string | null>(null);
-  const [loadingPreview, setLoadingPreview] = useState<string | null>(null);
-  const audioRef = useRef<HTMLAudioElement | null>(null);
-  const blobUrlRef = useRef<string | null>(null);
-
-  useEffect(() => {
-    // Action Reel and UGC videos don't use ElevenLabs voices
-    if (project === null || isUgc || isActionReel) return;
-    async function loadVoices() {
-      setVoicesLoading(true);
-      const result = await withToast(
-        () => api.assets.voices(project?.language),
-        "Failed to load voices"
-      );
-      if (result?.data) setVoices(result.data);
-      setVoicesLoading(false);
-    }
-    void loadVoices();
-  }, [api, project, isUgc, isActionReel]);
-
-  useEffect(() => {
-    return () => {
-      audioRef.current?.pause();
-      if (blobUrlRef.current) URL.revokeObjectURL(blobUrlRef.current);
-    };
-  }, []);
-
-  function selectVoice(id: string) {
-    setSelectedVoiceId(id);
-    onScheduleSave({ voiceId: id });
-  }
-
-  async function togglePreview(voiceId: string) {
-    if (playingPreview === voiceId) {
-      audioRef.current?.pause();
-      setPlayingPreview(null);
-      return;
-    }
-    audioRef.current?.pause();
-    if (blobUrlRef.current) {
-      URL.revokeObjectURL(blobUrlRef.current);
-      blobUrlRef.current = null;
-    }
-    setLoadingPreview(voiceId);
-    try {
-      const blobUrl = await api.assets.voicePreviewBlobUrl(voiceId, project?.language);
-      blobUrlRef.current = blobUrl;
-      audioRef.current = new Audio(blobUrl);
-      void audioRef.current.play();
-      audioRef.current.onended = () => setPlayingPreview(null);
-      setPlayingPreview(voiceId);
-    } catch {
-      toast.error("Failed to load preview");
-    } finally {
-      setLoadingPreview(null);
-    }
-  }
 
   async function handleCloneImageUpload(file: File) {
     if (!ACCEPTED_IMAGE_TYPES.includes(file.type as AcceptedImageType)) {
@@ -252,7 +189,7 @@ export function Step1Idea({
       return true;
     }
     if (isActionReel) return !!actionReelStyle;
-    return !!renderStyle && !!selectedVoiceId;
+    return !!renderStyle;
   }
 
   async function handleUseIdea(idea: IdeaCard) {
@@ -260,8 +197,7 @@ export function Step1Idea({
       if (isUgc && !ugcVisualStyle) toast.error("Select a UGC visual style before continuing");
       else if (isUgc && isAiClone && !cloneGcsPath) toast.error("Upload your character image before continuing");
       else if (isActionReel && !actionReelStyle) toast.error("Select an activity type before continuing");
-      else if (!renderStyle) toast.error("Select a video style before continuing");
-      else toast.error("Select a voice before continuing");
+      else toast.error("Select a video style before continuing");
       return;
     }
     setSelectedIdea(idea);
@@ -296,8 +232,7 @@ export function Step1Idea({
       if (isUgc && !ugcVisualStyle) toast.error("Select a UGC visual style before continuing");
       else if (isUgc && isAiClone && !cloneGcsPath) toast.error("Upload your character image before continuing");
       else if (isActionReel && !actionReelStyle) toast.error("Select an activity type before continuing");
-      else if (!renderStyle) toast.error("Select a video style before continuing");
-      else toast.error("Select a voice before continuing");
+      else toast.error("Select a video style before continuing");
       return;
     }
     setSubmitting(true);
@@ -376,7 +311,7 @@ export function Step1Idea({
               value: VideoType.Generated,
               label: "Stories",
               emoji: "🎬",
-              hint: "Voiceover-driven cinematic B-roll.",
+              hint: "Dialogue-driven cinematic B-roll.",
             },
             {
               value: VideoType.ActionReel,
@@ -725,103 +660,13 @@ export function Step1Idea({
         </div>
       )}
 
-      {/* Voice notice (UGC Video) */}
-      {isUgc && (
-        <div className="mt-8 rounded-xl border border-[var(--bg-border)] bg-[var(--bg-elevated)] p-4">
-          <p className="text-sm font-medium text-[var(--text-primary)]">🎙️ Voice via Grok Imagine</p>
-          <p className="mt-1 text-sm text-[var(--text-secondary)]">
-            Your character&apos;s voice is generated directly by Grok Imagine with accurate lipsync during clip generation — no separate voice selection needed.
-          </p>
-        </div>
-      )}
-
-      {/* Voice notice (Action Reel — silent) */}
+      {/* Action Reel audio notice */}
       {isActionReel && (
         <div className="mt-8 rounded-xl border border-[var(--bg-border)] bg-[var(--bg-elevated)] p-4">
           <p className="text-sm font-medium text-[var(--text-primary)]">🔇 Silent video</p>
           <p className="mt-1 text-sm text-[var(--text-secondary)]">
-            Action Reels are silent — no voiceover is generated. Add background music in the final step.
+            Action Reels are silent — no dialogue is generated. Add background music in the final step.
           </p>
-        </div>
-      )}
-
-      {/* Voice picker (Stories only) */}
-      {!isUgc && !isActionReel && (
-        <div className="mt-8">
-          <div className="mb-3 flex items-center justify-between">
-            <p className="text-xs font-medium uppercase tracking-widest text-[var(--text-muted)]">
-              Voice
-            </p>
-            {project?.language && (
-              <p className="text-xs text-[var(--text-secondary)]">
-                {project.language} voices
-              </p>
-            )}
-          </div>
-
-          {voicesLoading ? (
-            <div className="flex gap-3 overflow-hidden">
-              {Array.from({ length: 4 }).map((_, i) => (
-                <div
-                  key={i}
-                  className="h-16 w-36 shrink-0 animate-pulse rounded-xl bg-[var(--bg-elevated)]"
-                />
-              ))}
-            </div>
-          ) : voices.length === 0 ? (
-            <p className="text-sm text-[var(--text-muted)]">No voices available.</p>
-          ) : (
-            <div className="flex gap-3 overflow-x-auto pb-2">
-              {voices.map((v) => (
-                <div
-                  key={v.id}
-                  role="button"
-                  tabIndex={0}
-                  onClick={() => selectVoice(v.id)}
-                  onKeyDown={(e) => e.key === "Enter" && selectVoice(v.id)}
-                  className={cn(
-                    "flex shrink-0 cursor-pointer items-center gap-2 rounded-xl border px-3 py-2.5 transition-all",
-                    selectedVoiceId === v.id
-                      ? "border-[var(--accent-primary)] bg-[var(--accent-primary)]/10"
-                      : "border-[var(--bg-border)] bg-[var(--bg-elevated)] hover:border-[var(--text-muted)]"
-                  )}
-                >
-                  <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-[var(--accent-primary)]/20 text-sm font-bold text-[var(--accent-primary)]">
-                    {v.name[0]}
-                  </div>
-                  <div className="text-left">
-                    <p className="text-sm font-medium text-[var(--text-primary)]">{v.name}</p>
-                    <p className="text-[10px] text-[var(--text-muted)]">
-                      {v.gender ?? v.language}
-                    </p>
-                  </div>
-                  <button
-                    type="button"
-                    disabled={loadingPreview === v.id}
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      void togglePreview(v.id);
-                    }}
-                    className="ml-1 flex h-6 w-6 items-center justify-center rounded-full bg-[var(--bg-border)] text-[var(--text-secondary)] hover:text-[var(--text-primary)] transition-colors disabled:opacity-50"
-                  >
-                    {loadingPreview === v.id ? (
-                      <Loader2 className="h-2.5 w-2.5 animate-spin" />
-                    ) : playingPreview === v.id ? (
-                      <Square className="h-2.5 w-2.5" />
-                    ) : (
-                      <Play className="h-2.5 w-2.5" />
-                    )}
-                  </button>
-                </div>
-              ))}
-            </div>
-          )}
-
-          {!selectedVoiceId && !voicesLoading && (
-            <p className="mt-2 text-xs text-[var(--accent-warning)]">
-              Select a voice to continue
-            </p>
-          )}
         </div>
       )}
 

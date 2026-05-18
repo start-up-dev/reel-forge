@@ -223,65 +223,6 @@ export async function concatenateClips(
   return outPath;
 }
 
-// Step 2.5 (generated only) — Speed up or slow down voiceover audio via atempo filter.
-// atempo is limited to 0.5–2.0 per filter, which matches our allowed range exactly,
-// so a single filter instance is always sufficient.
-export async function speedAudio(inputPath: string, speed: number, dir: string): Promise<string> {
-  if (speed === 1.0) return inputPath;
-  const outPath = join(dir, "audio_sped.mp3");
-  await execa(
-    "ffmpeg",
-    [
-      "-y",
-      "-i", inputPath,
-      "-filter:a", `atempo=${speed}`,
-      "-c:a", "libmp3lame",
-      "-b:a", "192k",
-      outPath,
-    ],
-    { stderr: "pipe" },
-  ).catch((err) => {
-    throw new Error(`FFmpeg speed audio failed: ${(err as Error).message}`);
-  });
-  return outPath;
-}
-
-// Step 3 (generated only) — Mix voiceover over clip audio (at bgmVolume as BGM) onto concatenated video.
-// audioDurationSeconds is authoritative — output is trimmed to exactly this length.
-// bgmVolume is a fraction in [0, 1]; e.g. 0.15 = 15% clip audio level.
-export async function mixAudio(
-  videoPath: string,
-  audioPath: string,
-  audioDurationSeconds: number,
-  dir: string,
-  bgmVolume = 0.15,
-): Promise<string> {
-  const outPath = join(dir, "mixed.mp4");
-
-  await execa(
-    "ffmpeg",
-    [
-      "-y",
-      "-i", videoPath,
-      "-i", audioPath,
-      "-filter_complex",
-      `[0:a]volume=${bgmVolume}[clipbgm];[1:a]volume=1.0[voice];[clipbgm][voice]amix=inputs=2:duration=longest:dropout_transition=0:normalize=0[aout]`,
-      "-map", "0:v",
-      "-map", "[aout]",
-      "-c:v", "copy",
-      "-c:a", "aac",
-      "-b:a", "192k",
-      "-t", String(audioDurationSeconds),
-      outPath,
-    ],
-    { stderr: "pipe" },
-  ).catch((err) => {
-    throw new Error(`FFmpeg audio mix failed: ${(err as Error).message}`);
-  });
-
-  return outPath;
-}
-
 // Step 5 — Burn subtitles into the mixed video and produce the final MP4.
 // Uses H.264 CRF 23 + AAC 192k for final output.
 // Falls back to no subtitles if libass is not compiled into FFmpeg.

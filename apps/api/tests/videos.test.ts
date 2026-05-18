@@ -40,8 +40,6 @@ const SAMPLE_VIDEO = {
   status: "DRAFT",
   idea: null,
   script: null,
-  audioUrl: null,
-  wordTimestampsUrl: null,
   durationSeconds: null,
   subtitleStyle: "bold_pop",
   bgmEnabled: false,

@@ -36,6 +36,7 @@ WORKDIR /app
 
 ENV NODE_ENV=production
 ENV PORT=8080
+ENV HOSTNAME=0.0.0.0
 
 # Next.js standalone build copies only necessary files
 COPY --from=builder /app/apps/web/public ./apps/web/public
