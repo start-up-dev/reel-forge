@@ -45,35 +45,104 @@ import {
   FAQ,
   FINAL_CTA,
   FOOTER,
+  SITE,
 } from "@/lib/content";
 import Image from "next/image";
 
+const APP_URL = process.env.NEXT_PUBLIC_APP_URL ?? "https://aireelforge.com";
+
 // ─── rgba shorthand for the new orange primary ─────────────────────────────
 const O = (a: number) => `rgba(245,92,42,${a})`;
+
+function JsonLd() {
+  const softwareApp = {
+    "@context": "https://schema.org",
+    "@type": "SoftwareApplication",
+    name: SITE.name,
+    applicationCategory: "MultimediaApplication",
+    operatingSystem: "Web",
+    url: APP_URL,
+    description:
+      "AI-powered short-form video content machine. Plan a full week of videos in 10 minutes — scripts written, scenes generated, assembled and auto-posted.",
+    offers: PRICING.plans.map((p) => ({
+      "@type": "Offer",
+      name: p.name,
+      price: p.price.replace("$", ""),
+      priceCurrency: "USD",
+    })),
+    creator: {
+      "@type": "Organization",
+      name: "Make Real",
+      url: "https://makereal.io",
+    },
+  };
+
+  const faqPage = {
+    "@context": "https://schema.org",
+    "@type": "FAQPage",
+    mainEntity: FAQ.items.map((item) => ({
+      "@type": "Question",
+      name: item.question,
+      acceptedAnswer: { "@type": "Answer", text: item.answer },
+    })),
+  };
+
+  const organization = {
+    "@context": "https://schema.org",
+    "@type": "Organization",
+    name: SITE.name,
+    url: APP_URL,
+    parentOrganization: {
+      "@type": "Organization",
+      name: "Make Real",
+      url: "https://makereal.io",
+    },
+  };
+
+  return (
+    <>
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(softwareApp) }}
+      />
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(faqPage) }}
+      />
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(organization) }}
+      />
+    </>
+  );
+}
 
 export default async function RootPage() {
   const { userId } = await auth();
   if (userId) redirect("/brands");
 
   return (
-    <div className="min-h-screen overflow-x-hidden bg-[var(--bg-base)] text-[var(--text-primary)] selection:bg-[var(--accent-primary)] selection:text-white">
-      <StickyNav />
-      <HeroSection />
+    <>
+      <JsonLd />
+      <div className="min-h-screen overflow-x-hidden bg-[var(--bg-base)] text-[var(--text-primary)] selection:bg-[var(--accent-primary)] selection:text-white">
+        <StickyNav />
+        <HeroSection />
 
-      {/* Reordered Showcase right after Hero */}
-      <ShowcaseSection />
+        {/* Reordered Showcase right after Hero */}
+        <ShowcaseSection />
 
-      {/* <ProofStrip /> */}
-      <ProblemSection />
-      <SolutionReveal />
-      <PipelineSection />
-      <StylesSection />
-      <BeforeAfterSection />
-      <PricingSection />
-      <FAQSection />
-      <FinalCTASection />
-      <FooterSection />
-    </div>
+        {/* <ProofStrip /> */}
+        <ProblemSection />
+        <SolutionReveal />
+        <PipelineSection />
+        <StylesSection />
+        <BeforeAfterSection />
+        <PricingSection />
+        <FAQSection />
+        <FinalCTASection />
+        <FooterSection />
+      </div>
+    </>
   );
 }
 

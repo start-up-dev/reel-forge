@@ -17,10 +17,61 @@ const jetbrainsMono = JetBrains_Mono({
   display: "swap",
 });
 
+const APP_URL = process.env.NEXT_PUBLIC_APP_URL ?? "https://aireelforge.com";
+
 export const metadata: Metadata = {
-  title: "ReelForge — AI Video Creator",
+  metadataBase: new URL(APP_URL),
+  title: {
+    default: "ReelForge — AI Short-Form Video Content Machine",
+    template: "%s | ReelForge",
+  },
   description:
-    "Create viral short-form videos for TikTok, Instagram Reels, YouTube Shorts, and Facebook Reels in minutes with AI.",
+    "Plan a full week of short-form videos in 10 minutes. ReelForge writes every script, generates every AI video, and auto-posts to Facebook, TikTok, and Instagram — while you sleep. Try a full week for $5.",
+  keywords: [
+    "AI video creator",
+    "automated Facebook videos",
+    "AI content creator",
+    "short-form video automation",
+    "AI video generator",
+    "Facebook Reels automation",
+    "weekly content planner AI",
+    "TikTok video automation",
+    "social media content machine",
+    "ReelForge",
+  ],
+  authors: [{ name: "Make Real", url: "https://makereal.io" }],
+  creator: "Make Real",
+  publisher: "ReelForge",
+  robots: {
+    index: true,
+    follow: true,
+    googleBot: {
+      index: true,
+      follow: true,
+      "max-video-preview": -1,
+      "max-image-preview": "large",
+      "max-snippet": -1,
+    },
+  },
+  openGraph: {
+    type: "website",
+    locale: "en_US",
+    url: APP_URL,
+    siteName: "ReelForge",
+    title: "ReelForge — AI Short-Form Video Content Machine",
+    description:
+      "Plan a full week of short-form videos in 10 minutes. ReelForge writes every script, generates every AI video, and auto-posts to Facebook, TikTok, and Instagram — while you sleep.",
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: "ReelForge — AI Short-Form Video Content Machine",
+    description:
+      "Plan a full week of short-form videos in 10 minutes. AI writes scripts, generates videos, auto-posts. Try a full week for $5.",
+    creator: "@reelforge",
+  },
+  alternates: {
+    canonical: APP_URL,
+  },
 };
 
 export default function RootLayout({
