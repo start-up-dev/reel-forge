@@ -19,9 +19,6 @@ import {
   Play,
   Lightbulb,
   Bot,
-  Mic,
-  Image as ImageIcon,
-  Palette,
   Type,
   Rocket,
   Check,
@@ -577,7 +574,7 @@ function SolutionReveal() {
         <FadeIn delay={0.4}>
           <div className="mb-10 md:mb-12 grid grid-cols-2 sm:flex sm:flex-wrap justify-center gap-3">
             {SOLUTION.pipelineNodes.map((node, i) => {
-              const nodeIcons = [Lightbulb, PenLine, Mic, ImageIcon, Rocket];
+              const nodeIcons = [Layers, Lightbulb, CheckCircle, Bot, Rocket];
               const NodeIcon = nodeIcons[i] || CheckCircle;
               const isLast = node === "Finished Video";
 
@@ -619,7 +616,7 @@ function SolutionReveal() {
 /* ─── Pipeline ────────────────────────────────────────────────────────────── */
 
 function PipelineSection() {
-  const stepIcons = [Lightbulb, Bot, Mic, ImageIcon, Palette, Type, Rocket];
+  const stepIcons = [Layers, Lightbulb, CheckCircle, Bot, Rocket];
 
   return (
     <section id="pipeline" className="mx-auto max-w-6xl px-6 py-20 md:py-32">

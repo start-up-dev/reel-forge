@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useCallback, useEffect } from "react";
+import { useState, useCallback, useEffect, useRef } from "react";
 import Link from "next/link";
 import {
   LayoutGrid,
@@ -10,10 +10,8 @@ import {
   Share2,
   Trash2,
   Play,
+  Pause,
   Film,
-  X,
-  Loader2,
-  AlertCircle,
 } from "lucide-react";
 import { toast } from "sonner";
 import { Skeleton } from "@repo/ui/skeleton";
@@ -73,7 +71,6 @@ export default function LibraryPage() {
   const [debouncedSearch, setDebouncedSearch] = useState("");
   const [deleteVideo, setDeleteVideo] = useState<VideoLibraryItem | null>(null);
   const [deleting, setDeleting] = useState(false);
-  const [previewVideo, setPreviewVideo] = useState<VideoLibraryItem | null>(null);
 
   // Debounce search
   useEffect(() => {
@@ -205,7 +202,7 @@ export default function LibraryPage() {
             </p>
           </div>
           <Link
-            href="/dashboard"
+            href="/brands"
             className="rounded-lg bg-[var(--accent-primary)] px-5 py-2.5 text-sm font-medium text-white transition-opacity hover:opacity-90"
           >
             Create your first video
@@ -220,7 +217,6 @@ export default function LibraryPage() {
             <LibraryGridCard
               key={video.id}
               video={video}
-              onPreview={() => setPreviewVideo(video)}
               onDelete={() => setDeleteVideo(video)}
             />
           ))}
@@ -255,7 +251,6 @@ export default function LibraryPage() {
                 <LibraryListRow
                   key={video.id}
                   video={video}
-                  onPreview={() => setPreviewVideo(video)}
                   onDelete={() => setDeleteVideo(video)}
                 />
               ))}
@@ -274,18 +269,6 @@ export default function LibraryPage() {
             Load more
           </button>
         </div>
-      )}
-
-      {/* Inline video preview modal */}
-      {previewVideo && (
-        <VideoPreviewModal
-          video={previewVideo}
-          onClose={() => setPreviewVideo(null)}
-          onDelete={() => {
-            setDeleteVideo(previewVideo);
-            setPreviewVideo(null);
-          }}
-        />
       )}
 
       {/* Delete confirm */}
@@ -312,93 +295,134 @@ export default function LibraryPage() {
 
 function LibraryGridCard({
   video,
-  onPreview,
   onDelete,
 }: {
   video: VideoLibraryItem;
-  onPreview: () => void;
   onDelete: () => void;
 }) {
   const s = statusBadgeStyles(video.status);
-  const canDownload = video.status === VideoStatus.Complete && video.outputUrl;
+  const canPlay = video.status === VideoStatus.Complete && !!video.outputUrl;
   const postBadge = postScheduleBadge(video.postSchedule);
+  const videoRef = useRef<HTMLVideoElement>(null);
+  const [playing, setPlaying] = useState(false);
+
+  function togglePlay() {
+    const el = videoRef.current;
+    if (!el) return;
+    if (el.paused) {
+      void el.play();
+      setPlaying(true);
+    } else {
+      el.pause();
+      setPlaying(false);
+    }
+  }
 
   return (
-    <div className="group relative overflow-hidden rounded-xl border border-[var(--bg-border)] bg-[var(--bg-surface)]">
-      {/* Thumbnail */}
-      <div
-        role="button"
-        tabIndex={0}
-        onClick={onPreview}
-        onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") onPreview(); }}
-        className="relative block w-full cursor-pointer aspect-[9/16] overflow-hidden bg-[var(--bg-elevated)]"
-      >
-        <div className="absolute inset-0 flex items-center justify-center">
-          <Film className="h-8 w-8 text-[var(--bg-border)]" />
+    <div className="group overflow-hidden rounded-xl border border-[var(--bg-border)] bg-[var(--bg-surface)]">
+      {/* Video / placeholder */}
+      <div className="relative aspect-[9/16] overflow-hidden bg-[var(--bg-elevated)]">
+        {canPlay ? (
+          <>
+            <video
+              ref={videoRef}
+              src={video.outputUrl!}
+              preload="metadata"
+              playsInline
+              className="absolute inset-0 h-full w-full object-cover"
+              onEnded={() => setPlaying(false)}
+            />
+            {/* Badges */}
+            <div className="absolute left-2 top-2 z-10 flex flex-col items-start gap-1">
+              {postBadge && (
+                <span className={`rounded-full px-2 py-0.5 text-[10px] font-semibold ${postBadge.className}`}>
+                  {postBadge.label}
+                </span>
+              )}
+            </div>
+            {/* Play/pause tap area */}
+            <button
+              type="button"
+              aria-label={playing ? "Pause" : "Play"}
+              onClick={togglePlay}
+              className="absolute inset-0 flex items-center justify-center"
+            >
+              <div className={`flex h-11 w-11 items-center justify-center rounded-full bg-black/50 backdrop-blur-sm transition-opacity ${playing ? "opacity-0 group-hover:opacity-100" : "opacity-100"}`}>
+                {playing
+                  ? <Pause className="h-5 w-5 text-white" />
+                  : <Play className="h-5 w-5 translate-x-0.5 text-white" />}
+              </div>
+            </button>
+            {/* Delete overlay button */}
+            <button
+              type="button"
+              aria-label="Delete"
+              onClick={(e) => { e.stopPropagation(); onDelete(); }}
+              className="absolute right-2 top-2 z-10 flex h-7 w-7 items-center justify-center rounded-lg bg-black/40 text-white/70 opacity-0 backdrop-blur-sm transition-opacity group-hover:opacity-100 hover:bg-[var(--accent-danger)]/60 hover:text-white"
+            >
+              <Trash2 className="h-3.5 w-3.5" />
+            </button>
+          </>
+        ) : (
+          <>
+            <div className="absolute inset-0 flex items-center justify-center">
+              <Film className="h-8 w-8 text-[var(--bg-border)]" />
+            </div>
+            <div className="absolute right-2 top-2">
+              <span className={`rounded-full px-2 py-0.5 text-[10px] font-semibold ${s.bg} ${s.text}`}>
+                {s.label}
+              </span>
+            </div>
+          </>
+        )}
+      </div>
+
+      {/* Footer: title + actions */}
+      <div className="flex items-center gap-2 p-2.5">
+        <div className="min-w-0 flex-1">
+          <p className="truncate text-xs font-medium text-[var(--text-primary)]">{video.title}</p>
+          <p className="text-[10px] text-[var(--text-muted)]">
+            {formatRelativeDate(new Date(video.createdAt))}
+          </p>
         </div>
-        <div className="absolute right-2 top-2 flex flex-col items-end gap-1">
-          <span className={`rounded-full px-2 py-0.5 text-[10px] font-semibold ${s.bg} ${s.text}`}>
-            {s.label}
-          </span>
-          {postBadge && (
-            <span className={`rounded-full px-2 py-0.5 text-[10px] font-semibold ${postBadge.className}`}>
-              {postBadge.label}
-            </span>
-          )}
-        </div>
-        {/* Hover overlay */}
-        <div className="absolute inset-0 flex items-end justify-between bg-gradient-to-t from-black/60 to-transparent p-2 opacity-0 transition-opacity group-hover:opacity-100">
-          <div className="flex items-center gap-1.5">
-            {canDownload && (
+        <div className="flex shrink-0 items-center gap-1">
+          {canPlay && (
+            <>
               <a
                 href={video.outputUrl!}
                 target="_blank"
                 rel="noopener noreferrer"
-                onClick={(e) => e.stopPropagation()}
                 aria-label="Download"
-                className="flex h-7 w-7 items-center justify-center rounded-lg bg-white/20 text-white backdrop-blur-sm hover:bg-white/30"
+                title="Download"
+                className="flex h-7 w-7 items-center justify-center rounded-lg border border-[var(--bg-border)] text-[var(--text-muted)] transition-colors hover:border-[var(--accent-primary)]/40 hover:text-[var(--accent-primary)]"
               >
                 <Download className="h-3.5 w-3.5" />
               </a>
-            )}
-            {canDownload && (
               <button
-                aria-label="Share"
-                onClick={(e) => {
-                  e.stopPropagation();
+                type="button"
+                aria-label="Copy link"
+                title="Copy link"
+                onClick={() => {
                   navigator.clipboard.writeText(video.outputUrl ?? "");
                   toast.success("Link copied!");
                 }}
-                className="flex h-7 w-7 items-center justify-center rounded-lg bg-white/20 text-white backdrop-blur-sm hover:bg-white/30"
+                className="flex h-7 w-7 items-center justify-center rounded-lg border border-[var(--bg-border)] text-[var(--text-muted)] transition-colors hover:border-[var(--accent-primary)]/40 hover:text-[var(--accent-primary)]"
               >
                 <Share2 className="h-3.5 w-3.5" />
               </button>
-            )}
-          </div>
-          <button
-            aria-label="Delete"
-            onClick={(e) => {
-              e.stopPropagation();
-              onDelete();
-            }}
-            className="flex h-7 w-7 items-center justify-center rounded-lg bg-[var(--accent-danger)]/30 text-[var(--accent-danger)] backdrop-blur-sm hover:bg-[var(--accent-danger)]/50"
-          >
-            <Trash2 className="h-3.5 w-3.5" />
-          </button>
+            </>
+          )}
+          {!canPlay && (
+            <button
+              type="button"
+              aria-label="Delete"
+              onClick={onDelete}
+              className="flex h-7 w-7 items-center justify-center rounded-lg border border-[var(--bg-border)] text-[var(--text-muted)] transition-colors hover:border-[var(--accent-danger)]/40 hover:text-[var(--accent-danger)]"
+            >
+              <Trash2 className="h-3.5 w-3.5" />
+            </button>
+          )}
         </div>
-        <div className="absolute inset-0 flex items-center justify-center opacity-0 transition-opacity group-hover:opacity-100">
-          <div className="flex h-10 w-10 items-center justify-center rounded-full bg-white/20 backdrop-blur-sm">
-            <Play className="h-5 w-5 text-white" />
-          </div>
-        </div>
-      </div>
-
-      {/* Label */}
-      <div className="p-2.5">
-        <p className="truncate text-xs font-medium text-[var(--text-primary)]">{video.title}</p>
-        <p className="text-[10px] text-[var(--text-muted)]">
-          {formatRelativeDate(new Date(video.createdAt))}
-        </p>
       </div>
     </div>
   );
@@ -408,32 +432,27 @@ function LibraryGridCard({
 
 function LibraryListRow({
   video,
-  onPreview,
   onDelete,
 }: {
   video: VideoLibraryItem;
-  onPreview: () => void;
   onDelete: () => void;
 }) {
   const s = statusBadgeStyles(video.status);
-  const canDownload = video.status === VideoStatus.Complete && video.outputUrl;
+  const canDownload = video.status === VideoStatus.Complete && !!video.outputUrl;
   const postBadge = postScheduleBadge(video.postSchedule);
 
   return (
     <tr className="group bg-[var(--bg-surface)] transition-colors hover:bg-[var(--bg-elevated)]">
       {/* Title */}
       <td className="py-3 pl-4 pr-3">
-        <button
-          onClick={onPreview}
-          className="flex items-center gap-3 text-left"
-        >
+        <div className="flex items-center gap-3">
           <div className="h-10 w-7 shrink-0 overflow-hidden rounded bg-[var(--bg-elevated)] flex items-center justify-center">
             <Film className="h-4 w-4 text-[var(--bg-border)]" />
           </div>
           <span className="text-sm font-medium text-[var(--text-primary)] line-clamp-1">
             {video.title}
           </span>
-        </button>
+        </div>
       </td>
       {/* Status */}
       <td className="py-3 px-3 hidden sm:table-cell">
@@ -497,103 +516,3 @@ function LibraryListRow({
   );
 }
 
-/* ── Video Preview Modal ─────────────────────────────────────────────────── */
-
-function VideoPreviewModal({
-  video,
-  onClose,
-  onDelete,
-}: {
-  video: VideoLibraryItem;
-  onClose: () => void;
-  onDelete: () => void;
-}) {
-  const canDownload = video.status === VideoStatus.Complete && video.outputUrl;
-
-  return (
-    <div
-      className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-sm p-4"
-      onClick={onClose}
-    >
-      <div
-        className="relative w-full max-w-sm overflow-hidden rounded-2xl border border-[var(--bg-border)] bg-[var(--bg-surface)] shadow-[var(--shadow-modal)]"
-        onClick={(e) => e.stopPropagation()}
-      >
-        {/* Close */}
-        <button
-          onClick={onClose}
-          aria-label="Close"
-          className="absolute right-3 top-3 z-10 flex h-8 w-8 items-center justify-center rounded-full bg-black/40 text-white backdrop-blur-sm hover:bg-black/60"
-        >
-          <X className="h-4 w-4" />
-        </button>
-
-        {/* Video / placeholder */}
-        {canDownload ? (
-          <video
-            src={video.outputUrl!}
-            className="aspect-[9/16] w-full object-cover"
-            controls
-            autoPlay
-            muted
-            playsInline
-          />
-        ) : (
-          <div className="aspect-[9/16] w-full flex items-center justify-center bg-[var(--bg-elevated)]">
-            <div className="flex flex-col items-center gap-3 text-center">
-              {video.status === VideoStatus.Failed ? (
-                <AlertCircle className="h-10 w-10 text-[var(--accent-danger)]" />
-              ) : (
-                <Loader2 className="h-10 w-10 animate-spin text-[var(--accent-primary)]" />
-              )}
-              <p className="text-sm text-[var(--text-muted)]">
-                {video.status === VideoStatus.Failed ? "Video failed" : "Still processing…"}
-              </p>
-            </div>
-          </div>
-        )}
-
-        {/* Info + actions */}
-        <div className="p-4">
-          <h3 className="truncate font-semibold text-[var(--text-primary)]">{video.title}</h3>
-          <p className="mt-0.5 text-sm text-[var(--text-muted)]">
-            {formatRelativeDate(new Date(video.createdAt))}
-            {video.durationSeconds && (
-              <> · {Math.floor(video.durationSeconds / 60)}:{String(video.durationSeconds % 60).padStart(2, "0")}</>
-            )}
-          </p>
-          {canDownload && (
-            <div className="mt-4 flex gap-2">
-              <a
-                href={video.outputUrl!}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="flex flex-1 items-center justify-center gap-2 rounded-lg bg-[var(--accent-primary)] py-2 text-sm font-medium text-white hover:opacity-90 transition-opacity"
-              >
-                <Download className="h-4 w-4" />
-                Download
-              </a>
-              <button
-                onClick={() => {
-                  navigator.clipboard.writeText(video.outputUrl ?? "");
-                  toast.success("Link copied!");
-                }}
-                className="flex flex-1 items-center justify-center gap-2 rounded-lg border border-[var(--bg-border)] bg-[var(--bg-elevated)] py-2 text-sm font-medium text-[var(--text-primary)] hover:bg-[var(--bg-border)] transition-colors"
-              >
-                <Share2 className="h-4 w-4" />
-                Share
-              </button>
-            </div>
-          )}
-          <button
-            onClick={onDelete}
-            className="mt-2 flex w-full items-center justify-center gap-2 rounded-lg py-2 text-sm text-[var(--accent-danger)] hover:bg-[var(--accent-danger)]/10 transition-colors"
-          >
-            <Trash2 className="h-4 w-4" />
-            Delete
-          </button>
-        </div>
-      </div>
-    </div>
-  );
-}
