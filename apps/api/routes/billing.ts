@@ -17,10 +17,10 @@ const PLAN_CONFIG: Record<
 > = {
   [env.STRIPE_STARTER_PRICE_ID]: {
     plan: "starter",
-    dailyLimit: 5,
-    monthlyLimit: 150,
+    dailyLimit: 1,
+    monthlyLimit: 30,
   },
-  [env.STRIPE_PRO_PRICE_ID]: { plan: "pro", dailyLimit: 15, monthlyLimit: 450 },
+  [env.STRIPE_PRO_PRICE_ID]: { plan: "pro", dailyLimit: 3, monthlyLimit: 90 },
 };
 
 const PLAN_PRICE_MAP: Record<string, string> = {
@@ -168,10 +168,10 @@ export async function billingRoutes(fastify: FastifyInstance): Promise<void> {
         dailyLimit: 0,
         monthlyLimit: 0,
         trialPaid: true,
-        trialVideoRemaining: 3,
+        trialVideoRemaining: 7,
       },
-      starter: { plan: "starter", dailyLimit: 5, monthlyLimit: 150 },
-      pro: { plan: "pro", dailyLimit: 15, monthlyLimit: 450 },
+      starter: { plan: "starter", dailyLimit: 1, monthlyLimit: 30 },
+      pro: { plan: "pro", dailyLimit: 3, monthlyLimit: 90 },
     };
 
     fastify.post<{ Body: { plan?: string } }>(
@@ -234,13 +234,13 @@ async function handleStripeEvent(event: Stripe.Event): Promise<void> {
       if (!userId) return;
 
       if (session.mode === "payment") {
-        // $5 Try Out payment — unlock 3 trial videos
+        // $5 Try Out payment — unlock 7 trial videos (one full week plan at 1/day)
         await db
           .update(users)
           .set({
             plan: "try_out",
             trialPaid: true,
-            trialVideoRemaining: 3,
+            trialVideoRemaining: 7,
             stripeCustomerId: session.customer as string | null,
             updatedAt: new Date(),
           })

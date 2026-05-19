@@ -1,19 +1,15 @@
-import { and, desc, eq } from "drizzle-orm";
+import { and, asc, desc, eq, inArray } from "drizzle-orm";
 import type { FastifyInstance } from "fastify";
 import { z } from "zod";
 import { db } from "../lib/db/index.js";
-import { brandProfiles, contentPlans, videos } from "../lib/db/schema.js";
+import { brandProfiles, contentPlans, postSchedules, videos } from "../lib/db/schema.js";
 import { subscribeToPlan } from "../lib/plan-event-bus.js";
 import { startBatchGeneration } from "../services/batch-generator.js";
 import { generateWeekPlan } from "../services/claude.js";
 import type { TopicEntry } from "../services/claude.js";
 
-function getNextMonday(fromDate = new Date()): string {
-  const d = new Date(fromDate);
-  const day = d.getDay(); // 0=Sun, 1=Mon ... 6=Sat
-  const daysUntilMonday = day === 1 ? 0 : day === 0 ? 1 : 8 - day;
-  d.setDate(d.getDate() + daysUntilMonday);
-  return d.toISOString().slice(0, 10);
+function getTodayDateString(): string {
+  return new Date().toISOString().slice(0, 10);
 }
 
 function mapFormatToVideoType(format: string): string {
@@ -24,7 +20,7 @@ function mapFormatToVideoType(format: string): string {
 
 const createBody = z.object({
   brandProfileId: z.string().uuid(),
-  postsPerDay: z.union([z.literal(1), z.literal(2), z.literal(3), z.literal(5)]),
+  postsPerDay: z.union([z.literal(1), z.literal(3)]),
 });
 
 const overrideBody = z.object({
@@ -62,7 +58,34 @@ export async function contentPlansRoutes(fastify: FastifyInstance) {
       });
     }
 
-    const weekStartDate = getNextMonday();
+    // Plan gate: check user's subscription allows creating a plan
+    const userPlan = user.plan;
+    const { trialPaid, trialVideoRemaining } = user;
+    if (userPlan === "none" && !trialPaid) {
+      return reply.status(403).send({
+        error: { code: "NO_PLAN", message: "Upgrade required to create a content plan.", redirect: "billing" },
+      });
+    }
+    if (trialPaid && userPlan !== "starter" && userPlan !== "pro") {
+      // Trial: only 1/day, must have enough credits
+      if (postsPerDay !== 1) {
+        return reply.status(403).send({
+          error: { code: "PLAN_LIMIT", message: "Trial plan only supports 1 video per day. Upgrade to Pro for 3/day." },
+        });
+      }
+      if ((trialVideoRemaining ?? 0) < 7) {
+        return reply.status(403).send({
+          error: { code: "INSUFFICIENT_CREDITS", message: "Not enough trial credits for a full week plan (needs 7). Upgrade to continue.", redirect: "billing" },
+        });
+      }
+    }
+    if (userPlan === "starter" && postsPerDay !== 1) {
+      return reply.status(403).send({
+        error: { code: "PLAN_LIMIT", message: "Starter plan supports 1 video per day. Upgrade to Pro for 3/day." },
+      });
+    }
+
+    const weekStartDate = getTodayDateString();
 
     let topics: TopicEntry[];
     try {
@@ -114,7 +137,30 @@ export async function contentPlansRoutes(fastify: FastifyInstance) {
       .where(eq(videos.contentPlanId, id))
       .orderBy(desc(videos.createdAt));
 
-    return reply.send({ data: { ...plan, videos: planVideos } });
+    // Enrich with post schedule info so the calendar can show correct posting status
+    const videoIds = planVideos.map((v) => v.id);
+    const schedules =
+      videoIds.length > 0
+        ? await db
+            .select({
+              videoId: postSchedules.videoId,
+              scheduledAt: postSchedules.scheduledAt,
+              postType: postSchedules.postType,
+              status: postSchedules.status,
+            })
+            .from(postSchedules)
+            .where(inArray(postSchedules.videoId, videoIds))
+            .orderBy(asc(postSchedules.updatedAt))
+        : [];
+
+    const scheduleByVideoId = new Map(schedules.map((s) => [s.videoId, s]));
+
+    const enrichedVideos = planVideos.map((v) => ({
+      ...v,
+      postSchedule: scheduleByVideoId.get(v.id) ?? null,
+    }));
+
+    return reply.send({ data: { ...plan, videos: enrichedVideos } });
   });
 
   // PATCH /api/content-plans/:id/topics/:index — override a single topic

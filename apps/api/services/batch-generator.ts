@@ -4,7 +4,7 @@ import { brandProfiles, clipRequests, contentPlans, postSchedules, scenes, socia
 import { emitPlanEvent } from "../lib/plan-event-bus.js";
 import { generateSignedReadUrl } from "../lib/storage.js";
 import { uploadReelToFacebook } from "./facebook.js";
-import { generateDialogueSegments, generateScript, generateTitle, splitScenes } from "./claude.js";
+import { generateDialogueSegments, generatePostCaption, generateScript, generateTitle, splitScenes } from "./claude.js";
 import { sendBatchCompleteEmail } from "./email.js";
 import type { TopicEntry } from "./claude.js";
 
@@ -251,6 +251,12 @@ async function autoPostCompletedVideos(
 
     const topics = Array.isArray(plan.topics) ? (plan.topics as TopicEntry[]) : [];
 
+    const [brandRow] = await db
+      .select()
+      .from(brandProfiles)
+      .where(eq(brandProfiles.id, plan.brandProfileId))
+      .limit(1);
+
     for (const video of completeVideos) {
       try {
         if (!video.outputUrl) continue;
@@ -269,6 +275,16 @@ async function autoPostCompletedVideos(
         if (!videoRes.ok) continue;
         const videoBuffer = Buffer.from(await videoRes.arrayBuffer());
 
+        // Generate a rich caption with hashtags; fall back to title if it fails
+        let caption = video.title;
+        if (topic && video.script && brandRow) {
+          try {
+            caption = await generatePostCaption(brandRow, topic, video.script);
+          } catch {
+            // non-fatal — keep title as caption
+          }
+        }
+
         let platformPostId: string | null = null;
         let postError: string | null = null;
 
@@ -277,7 +293,7 @@ async function autoPostCompletedVideos(
             account.pageId,
             account.accessToken,
             videoBuffer,
-            video.title,
+            caption,
             {
               draft: plan.postType === "draft",
               scheduledAt: plan.postType === "scheduled" ? scheduledAt : undefined,

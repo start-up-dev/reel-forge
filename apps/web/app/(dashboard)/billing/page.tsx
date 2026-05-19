@@ -24,14 +24,14 @@ const plans = [
     price: "$5",
     period: "one time",
     planType: PlanType.TryOut,
-    features: ["3 video credits", "All subtitle styles", "20+ AI voices", "1080×1920 MP4 output"],
+    features: ["7 video credits", "One full week plan", "Auto-schedule to Facebook", "All subtitle styles", "1080×1920 MP4 output"],
   },
   {
     name: "Starter",
     price: "$49",
     period: "/ month",
     planType: PlanType.Starter,
-    features: ["5 videos per day", "150 videos per month", "All platforms", "BGM library", "Email notifications"],
+    features: ["1 video per day", "30 videos per month", "Auto-schedule to Facebook", "BGM library", "Email notifications"],
   },
   {
     name: "Pro",
@@ -40,7 +40,7 @@ const plans = [
     planType: PlanType.Pro,
     highlight: true,
     badge: "Most Popular",
-    features: ["15 videos per day", "450 videos per month", "All Starter features", "Priority queue", "Custom voice prompts"],
+    features: ["3 videos per day", "90 videos per month", "All Starter features", "Priority queue", "Custom voice prompts"],
   },
 ];
 
@@ -160,12 +160,12 @@ function BillingContent() {
               <div className="mb-1.5 flex items-center justify-between text-xs">
                 <span className="text-[var(--text-secondary)]">Video credits used</span>
                 <span className="font-medium text-[var(--text-primary)]">
-                  {3 - trialRemaining} / 3
+                  {7 - trialRemaining} / 7
                 </span>
               </div>
               <ProgressBar
-                value={((3 - trialRemaining) / 3) * 100}
-                color={trialRemaining === 0 ? "danger" : trialRemaining === 1 ? "warning" : "primary"}
+                value={((7 - trialRemaining) / 7) * 100}
+                color={trialRemaining === 0 ? "danger" : trialRemaining <= 2 ? "warning" : "primary"}
               />
             </div>
           ) : (

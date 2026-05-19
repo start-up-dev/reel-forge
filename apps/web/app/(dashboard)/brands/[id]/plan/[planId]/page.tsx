@@ -10,19 +10,21 @@ import {
   X,
   XCircle,
   Circle,
+  Download,
+  Clock,
+  CalendarCheck,
+  FileText,
   Sparkles,
 } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@repo/ui/button";
 import type { ContentPlan, ContentFormat, PostType, TopicEntry } from "@repo/types";
 import { useApiClient, withToast } from "@/lib/api-client";
-import { usePlanProgress } from "@/hooks/usePlanProgress";
+import { usePlanProgress, type PlanProgressState } from "@/hooks/usePlanProgress";
 
 const SLOT_TIMES: Record<number, string[]> = {
   1: ["9:00 AM"],
-  2: ["9:00 AM", "6:00 PM"],
-  3: ["9:00 AM", "12:00 PM", "6:00 PM"],
-  5: ["7:00 AM", "9:00 AM", "12:00 PM", "3:00 PM", "6:00 PM"],
+  3: ["9:00 AM", "2:00 PM", "6:00 PM"],
 };
 
 function getWeekDates(weekStartDate: string): Date[] {
@@ -43,69 +45,63 @@ const FORMAT_BADGE: Record<ContentFormat, { label: string; className: string }> 
 
 const FORMAT_OPTIONS: ContentFormat[] = ["ugc", "montage", "tutorial", "story"];
 
-const VIDEO_STATUS_CONFIG: Record<
-  string,
-  { label: string; icon: React.ReactNode; color: string; order: number }
-> = {
-  COMPLETE: {
-    label: "Ready",
-    icon: <CheckCircle2 className="h-4 w-4" />,
-    color: "text-[var(--accent-success)]",
-    order: 0,
-  },
-  SCRIPT_PENDING: {
-    label: "Scripting…",
-    icon: <Loader2 className="h-4 w-4 animate-spin" />,
-    color: "text-amber-400",
-    order: 2,
-  },
-  SCENES_PENDING: {
-    label: "Planning scenes…",
-    icon: <Loader2 className="h-4 w-4 animate-spin" />,
-    color: "text-amber-400",
-    order: 2,
-  },
-  CLIPS_QUEUED: {
-    label: "In Grok queue…",
-    icon: <Loader2 className="h-4 w-4 animate-spin" />,
-    color: "text-blue-400",
-    order: 2,
-  },
-  CLIPS_PROCESSING: {
-    label: "Generating clips…",
-    icon: <Loader2 className="h-4 w-4 animate-spin" />,
-    color: "text-blue-400",
-    order: 2,
-  },
-  ASSEMBLY_PENDING: {
-    label: "Assembling video…",
-    icon: <Loader2 className="h-4 w-4 animate-spin" />,
-    color: "text-purple-400",
-    order: 2,
-  },
-  ASSEMBLY_PROCESSING: {
-    label: "Assembling video…",
-    icon: <Loader2 className="h-4 w-4 animate-spin" />,
-    color: "text-purple-400",
-    order: 2,
-  },
-  FAILED: {
-    label: "Failed",
-    icon: <XCircle className="h-4 w-4" />,
-    color: "text-[var(--accent-danger)]",
-    order: 3,
-  },
-};
-
-function getVideoStatusCfg(status: string) {
-  return (
-    VIDEO_STATUS_CONFIG[status] ?? {
-      label: "Waiting",
-      icon: <Circle className="h-4 w-4" />,
-      color: "text-[var(--text-muted)]",
-      order: 4,
+// Video status → display config
+function getStatusDisplay(
+  videoStatus: string,
+  postSchedule: { postType: string; status: string; scheduledAt: string | null } | null,
+  planPostType: string,
+): { label: string; icon: React.ReactNode; color: string } {
+  if (videoStatus === "COMPLETE") {
+    if (postSchedule?.status === "failed") {
+      return { label: "Posting failed", icon: <XCircle className="h-3 w-3" />, color: "text-[var(--accent-danger)]" };
     }
-  );
+    if (postSchedule?.status === "posted") {
+      if (postSchedule.postType === "scheduled" && postSchedule.scheduledAt) {
+        const d = new Date(postSchedule.scheduledAt);
+        const label = d.toLocaleDateString("en-US", { month: "short", day: "numeric", hour: "numeric", minute: "2-digit" });
+        return {
+          label: `Scheduled ${label}`,
+          icon: <CalendarCheck className="h-3 w-3" />,
+          color: "text-[var(--accent-secondary)]",
+        };
+      }
+      if (postSchedule.postType === "draft") {
+        return { label: "Saved as Draft", icon: <FileText className="h-3 w-3" />, color: "text-[var(--text-muted)]" };
+      }
+    }
+    if (planPostType === "manual") {
+      return { label: "Ready to download", icon: <CheckCircle2 className="h-3 w-3" />, color: "text-[var(--accent-success)]" };
+    }
+    return { label: "Complete", icon: <CheckCircle2 className="h-3 w-3" />, color: "text-[var(--accent-success)]" };
+  }
+  if (videoStatus === "FAILED") {
+    return { label: "Failed", icon: <XCircle className="h-3 w-3" />, color: "text-[var(--accent-danger)]" };
+  }
+  if (videoStatus === "ASSEMBLY_PENDING" || videoStatus === "ASSEMBLY_PROCESSING") {
+    return { label: "Assembling…", icon: <Loader2 className="h-3 w-3 animate-spin" />, color: "text-purple-400" };
+  }
+  if (videoStatus === "CLIPS_QUEUED" || videoStatus === "CLIPS_PROCESSING") {
+    return { label: "Generating clips…", icon: <Loader2 className="h-3 w-3 animate-spin" />, color: "text-blue-400" };
+  }
+  if (videoStatus === "SCRIPT_PENDING" || videoStatus === "SCENES_PENDING" || videoStatus === "SCRIPT_READY" || videoStatus === "SCENES_READY") {
+    return { label: "Scripting…", icon: <Loader2 className="h-3 w-3 animate-spin" />, color: "text-amber-400" };
+  }
+  if (videoStatus === "BRAINSTORM_PENDING") {
+    return { label: "Starting…", icon: <Loader2 className="h-3 w-3 animate-spin" />, color: "text-amber-400" };
+  }
+  return { label: "Queued", icon: <Circle className="h-3 w-3" />, color: "text-[var(--text-muted)]" };
+}
+
+interface VideoInfo {
+  id: string;
+  title: string;
+  status: string;
+  outputUrl?: string | null;
+  postSchedule?: {
+    postType: string;
+    status: string;
+    scheduledAt: string | null;
+  } | null;
 }
 
 interface OverridePanel {
@@ -113,38 +109,101 @@ interface OverridePanel {
   topicIndex: number;
 }
 
-function TopicCard({ topic, onEdit }: { topic: TopicEntry; onEdit: () => void }) {
-  const badge = FORMAT_BADGE[topic.format as ContentFormat] ?? FORMAT_BADGE.ugc;
+// ─── Topic card (draft state) ─────────────────────────────────────────────────
 
+function DraftCell({ topic, onEdit }: { topic: TopicEntry; onEdit: () => void }) {
+  const badge = FORMAT_BADGE[topic.format as ContentFormat] ?? FORMAT_BADGE.ugc;
   return (
-    <div className="relative min-h-[110px] rounded-lg border border-[var(--bg-border)] bg-[var(--bg-elevated)] p-3">
+    <div className="relative flex h-full min-h-[120px] flex-col rounded-lg border border-[var(--bg-border)] bg-[var(--bg-elevated)] p-3">
       {topic.overridden && (
         <span className="absolute right-2 top-2 rounded-full bg-[var(--accent-primary)]/15 px-1.5 py-0.5 text-[9px] font-semibold uppercase tracking-wide text-[var(--accent-primary)]">
           edited
         </span>
       )}
-      <div className="mb-1.5 flex items-start gap-1.5">
-        <span
-          className={`shrink-0 rounded-full px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide ${badge.className}`}
-        >
-          {badge.label}
-        </span>
-      </div>
-      <p className="mb-1 pr-6 text-xs font-semibold leading-snug text-[var(--text-primary)] line-clamp-2">
+      <span className={`mb-1.5 self-start rounded-full px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide ${badge.className}`}>
+        {badge.label}
+      </span>
+      <p className="flex-1 pr-5 text-xs font-semibold leading-snug text-[var(--text-primary)] line-clamp-3">
         {topic.title}
       </p>
-      <p className="line-clamp-2 text-[11px] italic text-[var(--text-muted)]">{topic.hook}</p>
+      <p className="mt-1 line-clamp-2 text-[10px] italic text-[var(--text-muted)]">{topic.hook}</p>
       <button
         type="button"
         onClick={onEdit}
         className="absolute bottom-2 right-2 rounded p-1 text-[var(--text-muted)] transition-colors hover:text-[var(--text-primary)]"
         aria-label="Edit topic"
       >
-        <Pencil className="h-3.5 w-3.5" />
+        <Pencil className="h-3 w-3" />
       </button>
     </div>
   );
 }
+
+// ─── Active/complete cell (post-approval) ─────────────────────────────────────
+
+function ActiveCell({
+  topic,
+  video,
+  planPostType,
+}: {
+  topic: TopicEntry;
+  video: VideoInfo | null;
+  planPostType: string;
+}) {
+  const badge = FORMAT_BADGE[topic.format as ContentFormat] ?? FORMAT_BADGE.ugc;
+  const status = video?.status ?? "DRAFT";
+  const display = getStatusDisplay(status, video?.postSchedule ?? null, planPostType);
+  const isComplete = status === "COMPLETE";
+  const outputUrl = video?.outputUrl;
+
+  function handleDownload() {
+    if (!outputUrl) return;
+    const a = document.createElement("a");
+    a.href = outputUrl;
+    a.download = `${topic.title.replace(/\s+/g, "_")}.mp4`;
+    a.click();
+  }
+
+  return (
+    <div
+      className={`relative flex h-full min-h-[120px] flex-col rounded-lg border p-3 transition-colors ${
+        isComplete
+          ? "border-[var(--accent-success)]/30 bg-[var(--accent-success)]/5"
+          : status === "FAILED"
+            ? "border-[var(--accent-danger)]/30 bg-[var(--accent-danger)]/5"
+            : "border-[var(--bg-border)] bg-[var(--bg-elevated)]"
+      }`}
+    >
+      <span className={`mb-1.5 self-start rounded-full px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide ${badge.className}`}>
+        {badge.label}
+      </span>
+      <p className="flex-1 text-xs font-semibold leading-snug text-[var(--text-primary)] line-clamp-3">
+        {topic.title}
+      </p>
+
+      {/* Status row */}
+      <div className={`mt-2 flex items-center gap-1 ${display.color}`}>
+        {display.icon}
+        <span className="text-[10px] font-medium leading-none">{display.label}</span>
+      </div>
+
+      {/* Download button for complete videos */}
+      {isComplete && outputUrl && (
+        <button
+          type="button"
+          onClick={handleDownload}
+          className="absolute bottom-2 right-2 rounded-md border border-[var(--bg-border)] bg-[var(--bg-surface)] p-1.5 text-[var(--text-muted)] transition-colors hover:border-[var(--accent-primary)]/40 hover:text-[var(--accent-primary)]"
+          aria-label="Download video"
+          title="Download video"
+        >
+          <Download className="h-3 w-3" />
+        </button>
+      )}
+    </div>
+  );
+}
+
+// ─── Override drawer ──────────────────────────────────────────────────────────
 
 function OverridePanelDrawer({
   panel,
@@ -167,11 +226,7 @@ function OverridePanelDrawer({
     <div className="fixed inset-y-0 right-0 z-50 flex w-full max-w-[360px] flex-col border-l border-[var(--bg-border)] bg-[var(--bg-surface)] shadow-2xl">
       <div className="flex items-center justify-between border-b border-[var(--bg-border)] px-5 py-4">
         <h2 className="text-sm font-semibold text-[var(--text-primary)]">Edit Video Idea</h2>
-        <button
-          type="button"
-          onClick={onClose}
-          className="rounded p-1 text-[var(--text-muted)] hover:text-[var(--text-primary)]"
-        >
+        <button type="button" onClick={onClose} className="rounded p-1 text-[var(--text-muted)] hover:text-[var(--text-primary)]">
           <X className="h-4 w-4" />
         </button>
       </div>
@@ -201,9 +256,7 @@ function OverridePanelDrawer({
             className="mt-1 w-full rounded-lg border border-[var(--bg-border)] bg-[var(--bg-elevated)] px-3 py-2 text-sm text-[var(--text-primary)] focus:outline-none focus:ring-1 focus:ring-[var(--accent-primary)]"
           >
             {FORMAT_OPTIONS.map((f) => (
-              <option key={f} value={f}>
-                {FORMAT_BADGE[f].label}
-              </option>
+              <option key={f} value={f}>{FORMAT_BADGE[f].label}</option>
             ))}
           </select>
         </label>
@@ -226,9 +279,7 @@ function OverridePanelDrawer({
         </label>
       </div>
       <div className="flex gap-2 border-t border-[var(--bg-border)] px-5 py-4">
-        <Button variant="secondary" onClick={onClose} className="flex-1">
-          Cancel
-        </Button>
+        <Button variant="secondary" onClick={onClose} className="flex-1">Cancel</Button>
         <Button
           onClick={() => onSave(panel.topicIndex, { title, hook, format, angle, scriptOutline })}
           disabled={saving}
@@ -241,21 +292,23 @@ function OverridePanelDrawer({
   );
 }
 
-function AgentActivityPanel({
+// ─── Slim progress bar (post-approval) ───────────────────────────────────────
+
+function PlanProgressBar({
   planId,
-  totalVideos,
-  brandId,
+  progress,
+  onRetry,
 }: {
   planId: string;
-  totalVideos: number;
-  brandId: string;
+  progress: PlanProgressState;
+  onRetry: () => void;
 }) {
   const router = useRouter();
-  const api = useApiClient();
-  const progress = usePlanProgress(planId, totalVideos);
+  const totalVideos = progress.totalCount;
   const pct = totalVideos > 0 ? Math.round((progress.completedCount / totalVideos) * 100) : 0;
   const [retrying, setRetrying] = useState(false);
-  // Show retry after 15s with no activity
+  const api = useApiClient();
+
   const [showRetry, setShowRetry] = useState(false);
   useEffect(() => {
     if (progress.videoStatuses.size > 0 || progress.isBatchComplete) return;
@@ -268,141 +321,68 @@ function AgentActivityPanel({
     setShowRetry(false);
     await withToast(() => api.contentPlans.retryGeneration(planId), "Retry failed");
     setRetrying(false);
+    onRetry();
   }
 
-  const sortedEntries = [...progress.videoStatuses.entries()].sort(
-    ([, a], [, b]) => getVideoStatusCfg(a.status).order - getVideoStatusCfg(b.status).order
-  );
+  if (progress.isBatchComplete) {
+    return (
+      <div className="mb-6 flex items-center justify-between rounded-xl border border-[var(--accent-success)]/30 bg-[var(--accent-success)]/8 px-4 py-3">
+        <div className="flex items-center gap-2">
+          <Sparkles className="h-4 w-4 text-[var(--accent-success)]" />
+          <span className="text-sm font-semibold text-[var(--accent-success)]">
+            All done — {progress.completedCount} video{progress.completedCount !== 1 ? "s" : ""} ready
+          </span>
+          {progress.failedCount > 0 && (
+            <span className="text-xs text-[var(--accent-danger)]">· {progress.failedCount} failed</span>
+          )}
+        </div>
+        <Button variant="secondary" onClick={() => router.push(`/library?plan=${planId}`)} className="h-8 px-3 text-xs gap-1">
+          View in Library →
+        </Button>
+      </div>
+    );
+  }
 
   return (
-    <div className="mt-8 space-y-3">
-      {/* Status banner */}
-      <div
-        className="rounded-xl border border-[var(--bg-border)] bg-[var(--bg-surface)] px-5 py-4"
-        style={{ borderLeftWidth: "4px", borderLeftColor: "var(--accent-primary)" }}
-      >
-        {progress.isBatchComplete ? (
-          <div className="text-center">
-            <div className="mb-2 flex justify-center">
-              <Sparkles className="h-6 w-6 text-[var(--accent-primary)]" />
-            </div>
-            <p className="font-semibold text-[var(--text-primary)]">
-              All done!{" "}
-              {progress.completedCount} video{progress.completedCount !== 1 ? "s" : ""} ready
-            </p>
-            {progress.failedCount > 0 && (
-              <p className="mt-0.5 text-sm text-[var(--accent-danger)]">
-                {progress.failedCount} failed
-              </p>
-            )}
-            <p className="mt-1 text-xs text-[var(--text-muted)]">Check your email for a summary.</p>
-            <div className="mt-4 flex justify-center gap-2">
-              <Button onClick={() => router.push(`/library?plan=${planId}`)} className="gap-2">
-                Review Videos →
-              </Button>
-              <Button
-                variant="secondary"
-                onClick={() => router.push(`/brands/${brandId}`)}
-              >
-                View Brand
-              </Button>
-            </div>
-          </div>
+    <div className="mb-6 rounded-xl border border-[var(--bg-border)] bg-[var(--bg-surface)] px-4 py-3">
+      <div className="flex items-center justify-between gap-3">
+        <div className="flex items-center gap-2">
+          <span className="relative flex h-2 w-2">
+            <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-[var(--accent-primary)] opacity-75" />
+            <span className="relative inline-flex h-2 w-2 rounded-full bg-[var(--accent-primary)]" />
+          </span>
+          <span className="text-sm font-medium text-[var(--text-primary)]">
+            Generating — {progress.completedCount}/{totalVideos} complete
+          </span>
+        </div>
+        <span className="text-xs text-[var(--text-muted)]">{pct}%</span>
+      </div>
+      <div className="mt-2 h-1.5 w-full overflow-hidden rounded-full bg-[var(--bg-elevated)]">
+        {pct === 0 ? (
+          <div className="h-full w-1/4 animate-pulse rounded-full bg-[var(--accent-primary)]/40" />
         ) : (
-          <>
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-2">
-                <span className="relative flex h-2.5 w-2.5">
-                  <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-[var(--accent-primary)] opacity-75" />
-                  <span className="relative inline-flex h-2.5 w-2.5 rounded-full bg-[var(--accent-primary)]" />
-                </span>
-                <span className="text-sm font-semibold text-[var(--text-primary)]">
-                  Generating your Week 1 content
-                </span>
-              </div>
-              <span className="text-xs text-[var(--text-muted)]">
-                {progress.completedCount} / {totalVideos} &middot; {pct}%
-              </span>
-            </div>
-            <div className="mt-3 h-1.5 w-full overflow-hidden rounded-full bg-[var(--bg-elevated)]">
-              {pct === 0 ? (
-                <div className="h-full w-1/3 animate-pulse rounded-full bg-[var(--accent-primary)]/40" />
-              ) : (
-                <div
-                  className="h-full rounded-full bg-[var(--accent-primary)] transition-all duration-700"
-                  style={{ width: `${pct}%` }}
-                />
-              )}
-            </div>
-            <p className="mt-2 text-xs text-[var(--text-muted)]">
-              You can close this tab — we&apos;ll email you when everything&apos;s ready
-            </p>
-            {showRetry && (
-              <div className="mt-3 flex items-center gap-2 rounded-lg border border-[var(--accent-warning)]/30 bg-[var(--accent-warning)]/10 px-3 py-2">
-                <span className="flex-1 text-xs text-[var(--accent-warning)]">
-                  Generation seems stuck. Try restarting?
-                </span>
-                <Button
-                  variant="secondary"
-                  onClick={handleRetry}
-                  disabled={retrying}
-                  className="h-7 px-3 text-xs"
-                >
-                  {retrying ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : "Retry"}
-                </Button>
-              </div>
-            )}
-          </>
+          <div className="h-full rounded-full bg-[var(--accent-primary)] transition-all duration-700" style={{ width: `${pct}%` }} />
         )}
       </div>
-
-      {/* Activity feed */}
-      {(sortedEntries.length > 0 || !progress.isBatchComplete) && (
-        <div className="overflow-hidden rounded-xl border border-[var(--bg-border)] bg-[var(--bg-surface)]">
-          <div className="border-b border-[var(--bg-border)] px-4 py-2.5">
-            <span className="text-[10px] font-semibold uppercase tracking-widest text-[var(--text-muted)]">
-              Activity
-            </span>
-          </div>
-          {sortedEntries.length === 0 ? (
-            <div className="divide-y divide-[var(--bg-border)]">
-              {Array.from({ length: Math.min(totalVideos, 5) }, (_, i) => (
-                <div key={i} className="flex items-center gap-3 px-4 py-3">
-                  <div className="h-4 w-4 shrink-0 animate-pulse rounded-full bg-[var(--bg-elevated)]" />
-                  <div
-                    className="h-2.5 animate-pulse rounded-full bg-[var(--bg-elevated)]"
-                    style={{ width: `${45 + (i * 11) % 35}%` }}
-                  />
-                  <div className="ml-auto h-2.5 w-14 animate-pulse rounded-full bg-[var(--bg-elevated)]" />
-                </div>
-              ))}
-            </div>
-          ) : (
-            <div className="divide-y divide-[var(--bg-border)]">
-              {sortedEntries.map(([videoId, entry]) => {
-                const cfg = getVideoStatusCfg(entry.status);
-                return (
-                  <div key={videoId} className="flex items-center gap-3 px-4 py-3">
-                    <span className={`shrink-0 ${cfg.color}`}>{cfg.icon}</span>
-                    <p className="flex-1 truncate text-sm text-[var(--text-primary)]">
-                      {entry.title || "Untitled video"}
-                    </p>
-                    <span className={`shrink-0 text-xs ${cfg.color}`}>{cfg.label}</span>
-                  </div>
-                );
-              })}
-            </div>
-          )}
+      {showRetry && (
+        <div className="mt-2 flex items-center gap-2">
+          <span className="flex-1 text-xs text-[var(--accent-warning)]">Seems stuck.</span>
+          <Button variant="secondary" onClick={handleRetry} disabled={retrying} className="h-7 px-3 text-xs">
+            {retrying ? <Loader2 className="h-3 w-3 animate-spin" /> : "Retry"}
+          </Button>
         </div>
       )}
     </div>
   );
 }
 
+// ─── Main page ────────────────────────────────────────────────────────────────
+
 export default function ContentPlanPage() {
   const { id: brandId, planId } = useParams<{ id: string; planId: string }>();
   const api = useApiClient();
   const [plan, setPlan] = useState<ContentPlan | null>(null);
+  const [videos, setVideos] = useState<VideoInfo[]>([]);
   const [loading, setLoading] = useState(true);
   const [overridePanel, setOverridePanel] = useState<OverridePanel | null>(null);
   const [savingOverride, setSavingOverride] = useState(false);
@@ -410,9 +390,17 @@ export default function ContentPlanPage() {
   const [approving, setApproving] = useState(false);
   const [postType, setPostType] = useState<PostType>("draft");
 
+  // Live status from SSE (post-approval)
+  const totalVideos = plan ? plan.postsPerDay * 7 : 0;
+  const progress = usePlanProgress(plan?.status !== "draft" ? planId : "", totalVideos);
+
   const loadPlan = useCallback(async () => {
     const result = await withToast(() => api.contentPlans.get(planId), "Failed to load plan");
-    if (result?.data) setPlan(result.data as ContentPlan);
+    if (result?.data) {
+      const data = result.data as unknown as ContentPlan & { videos: VideoInfo[] };
+      setPlan(data);
+      setVideos(data.videos ?? []);
+    }
     setLoading(false);
   }, [api, planId]);
 
@@ -420,12 +408,16 @@ export default function ContentPlanPage() {
     void loadPlan();
   }, [loadPlan]);
 
+  // Refresh video data when batch completes to pick up outputUrls + postSchedule
+  useEffect(() => {
+    if (progress.isBatchComplete) {
+      void loadPlan();
+    }
+  }, [progress.isBatchComplete, loadPlan]);
+
   async function handleRegenerate() {
     setRegenerating(true);
-    const result = await withToast(
-      () => api.contentPlans.regenerate(planId),
-      "Regeneration failed"
-    );
+    const result = await withToast(() => api.contentPlans.regenerate(planId), "Regeneration failed");
     if (result?.data) {
       setPlan(result.data);
       toast.success("Plan regenerated");
@@ -436,12 +428,7 @@ export default function ContentPlanPage() {
   async function handleSaveOverride(index: number, data: Partial<TopicEntry>) {
     setSavingOverride(true);
     const result = await withToast(
-      () =>
-        api.contentPlans.overrideTopic(
-          planId,
-          index,
-          data as Parameters<typeof api.contentPlans.overrideTopic>[2]
-        ),
+      () => api.contentPlans.overrideTopic(planId, index, data as Parameters<typeof api.contentPlans.overrideTopic>[2]),
       "Failed to save override"
     );
     if (result?.data) {
@@ -454,10 +441,7 @@ export default function ContentPlanPage() {
 
   async function handleApprove() {
     setApproving(true);
-    const result = await withToast(
-      () => api.contentPlans.approve(planId, { postType }),
-      "Failed to approve plan"
-    );
+    const result = await withToast(() => api.contentPlans.approve(planId, { postType }), "Failed to approve plan");
     if (result?.data?.ok) {
       toast.success("Plan approved — generation starting");
       setPlan((prev) => (prev ? { ...prev, status: "approved" } : prev));
@@ -483,12 +467,27 @@ export default function ContentPlanPage() {
 
   const topics = Array.isArray(plan.topics) ? (plan.topics as TopicEntry[]) : [];
   const postsPerDay = plan.postsPerDay;
-  const totalVideos = postsPerDay * 7;
   const weekDates = getWeekDates(plan.weekStartDate);
   const slotTimes = SLOT_TIMES[postsPerDay] ?? SLOT_TIMES[1] ?? ["9:00 AM"];
+  const isDraft = plan.status === "draft";
+  const planPostType = plan.postType ?? "manual";
+
+  // Merge live SSE statuses into video lookup
+  const mergedVideoByTitle = new Map(
+    videos.map((v) => {
+      const liveStatus = progress.videoStatuses.get(v.id);
+      return [
+        v.title,
+        {
+          ...v,
+          status: liveStatus?.status ?? v.status,
+        } as VideoInfo,
+      ];
+    }),
+  );
 
   return (
-    <div className="mx-auto max-w-7xl px-4 py-8">
+    <div className="mx-auto max-w-full px-4 py-6">
       {overridePanel && (
         <OverridePanelDrawer
           panel={overridePanel}
@@ -498,45 +497,39 @@ export default function ContentPlanPage() {
         />
       )}
 
-      <div className="mb-6 flex flex-wrap items-center justify-between gap-3">
+      {/* Header */}
+      <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
         <div>
-          <h1 className="text-xl font-bold text-[var(--text-primary)]">Week Plan</h1>
+          <h1 className="text-xl font-bold text-[var(--text-primary)]">Content Calendar</h1>
           <p className="mt-0.5 text-sm text-[var(--text-muted)]">
-            Week of {plan.weekStartDate} &middot; {postsPerDay} post
-            {postsPerDay > 1 ? "s" : ""}/day &middot; {topics.length} videos
+            From {plan.weekStartDate} &middot; {postsPerDay} post{postsPerDay > 1 ? "s" : ""}/day &middot; {topics.length} videos
           </p>
         </div>
-        {plan.status === "draft" && (
-          <Button
-            onClick={handleRegenerate}
-            disabled={regenerating}
-            className="gap-2"
-            variant="secondary"
-          >
-            {regenerating ? (
-              <Loader2 className="h-4 w-4 animate-spin" />
-            ) : (
-              <RefreshCw className="h-4 w-4" />
-            )}
-            Regenerate Plan
+        {isDraft && (
+          <Button onClick={handleRegenerate} disabled={regenerating} className="gap-2" variant="secondary">
+            {regenerating ? <Loader2 className="h-4 w-4 animate-spin" /> : <RefreshCw className="h-4 w-4" />}
+            Regenerate
           </Button>
         )}
       </div>
 
-      {/* Calendar grid */}
+      {/* Progress bar (post-approval) */}
+      {!isDraft && (
+        <PlanProgressBar
+          planId={planId}
+          progress={progress}
+          onRetry={loadPlan}
+        />
+      )}
+
+      {/* Full-width calendar grid */}
       <div className="overflow-x-auto">
-        <div className="min-w-[800px]">
-          {/* Header row: time spacer + 7 day columns */}
-          <div
-            className="mb-2 grid gap-2"
-            style={{ gridTemplateColumns: "52px repeat(7, 1fr)" }}
-          >
-            <div /> {/* spacer for time label column */}
+        <div className="min-w-[700px]">
+          {/* Day headers */}
+          <div className="mb-2 grid gap-2" style={{ gridTemplateColumns: `48px repeat(7, 1fr)` }}>
+            <div />
             {weekDates.map((date, i) => (
-              <div
-                key={i}
-                className="rounded-lg bg-[var(--bg-elevated)] px-3 py-2 text-center"
-              >
+              <div key={i} className="rounded-lg bg-[var(--bg-elevated)] px-2 py-2 text-center">
                 <p className="text-[10px] font-semibold uppercase tracking-[0.08em] text-[var(--text-muted)]">
                   {date.toLocaleDateString("en-US", { weekday: "short", timeZone: "UTC" })}
                 </p>
@@ -551,36 +544,44 @@ export default function ContentPlanPage() {
           {Array.from({ length: postsPerDay }, (_, slotIdx) => {
             const slotTime = slotTimes[slotIdx] ?? "";
             return (
-              <div
-                key={slotIdx}
-                className="mb-2 grid gap-2"
-                style={{ gridTemplateColumns: "52px repeat(7, 1fr)" }}
-              >
-                {/* Time label */}
-                <div className="flex items-center justify-end pr-1">
-                  <span className="text-[10px] font-medium leading-tight text-[var(--text-muted)]">
+              <div key={slotIdx} className="mb-2 grid gap-2" style={{ gridTemplateColumns: `48px repeat(7, 1fr)` }}>
+                <div className="flex items-start justify-end pt-3 pr-1">
+                  <span className="flex items-center gap-0.5 text-[10px] font-medium leading-tight text-[var(--text-muted)]">
+                    <Clock className="h-2.5 w-2.5" />
                     {slotTime}
                   </span>
                 </div>
 
                 {weekDates.map((_, dayIdx) => {
                   const dayNumber = dayIdx + 1;
-                  const topic = topics.find(
-                    (t) => t.day === dayNumber && t.slot === slotIdx + 1
-                  );
+                  const topic = topics.find((t) => t.day === dayNumber && t.slot === slotIdx + 1);
+
                   if (!topic) {
                     return (
                       <div
                         key={dayIdx}
-                        className="min-h-[110px] rounded-lg border border-dashed border-[var(--bg-border)] bg-[var(--bg-elevated)]/50"
+                        className="min-h-[120px] rounded-lg border border-dashed border-[var(--bg-border)] bg-[var(--bg-elevated)]/30"
                       />
                     );
                   }
+
+                  if (isDraft) {
+                    return (
+                      <DraftCell
+                        key={dayIdx}
+                        topic={topic}
+                        onEdit={() => setOverridePanel({ topic, topicIndex: topic.index })}
+                      />
+                    );
+                  }
+
+                  const video = mergedVideoByTitle.get(topic.title) ?? null;
                   return (
-                    <TopicCard
+                    <ActiveCell
                       key={dayIdx}
                       topic={topic}
-                      onEdit={() => setOverridePanel({ topic, topicIndex: topic.index })}
+                      video={video}
+                      planPostType={planPostType}
                     />
                   );
                 })}
@@ -590,31 +591,19 @@ export default function ContentPlanPage() {
         </div>
       </div>
 
-      {/* Approve CTA (draft state) */}
-      {plan.status === "draft" && (
-        <div className="mt-8 space-y-4">
+      {/* Approve section (draft only) */}
+      {isDraft && (
+        <div className="mt-6 space-y-4">
           <div className="rounded-xl border border-[var(--bg-border)] bg-[var(--bg-elevated)] p-4">
             <p className="mb-3 text-xs font-semibold uppercase tracking-wide text-[var(--text-muted)]">
-              Facebook posting
+              Posting mode
             </p>
             <div className="grid grid-cols-1 gap-2 sm:grid-cols-3">
               {(
                 [
-                  {
-                    value: "draft",
-                    label: "Save as Drafts",
-                    description: "Posts created as Facebook drafts — publish manually",
-                  },
-                  {
-                    value: "scheduled",
-                    label: "Schedule Automatically",
-                    description: "Posts scheduled at optimal time slots",
-                  },
-                  {
-                    value: "manual",
-                    label: "Download Only",
-                    description: "No Facebook posting — download videos yourself",
-                  },
+                  { value: "draft", label: "Save as Drafts", description: "Videos created as Facebook drafts — you publish manually" },
+                  { value: "scheduled", label: "Schedule Automatically", description: "Posts auto-scheduled at optimal slots throughout the week" },
+                  { value: "manual", label: "Download Only", description: "No Facebook posting — download the MP4s yourself" },
                 ] as { value: PostType; label: string; description: string }[]
               ).map((opt) => (
                 <button
@@ -627,13 +616,7 @@ export default function ContentPlanPage() {
                       : "border-[var(--bg-border)] hover:border-[var(--accent-primary)]/50"
                   }`}
                 >
-                  <p
-                    className={`text-xs font-semibold ${
-                      postType === opt.value
-                        ? "text-[var(--accent-primary)]"
-                        : "text-[var(--text-primary)]"
-                    }`}
-                  >
+                  <p className={`text-xs font-semibold ${postType === opt.value ? "text-[var(--accent-primary)]" : "text-[var(--text-primary)]"}`}>
                     {opt.label}
                   </p>
                   <p className="mt-0.5 text-[10px] text-[var(--text-muted)]">{opt.description}</p>
@@ -642,24 +625,11 @@ export default function ContentPlanPage() {
             </div>
           </div>
 
-          <Button
-            onClick={handleApprove}
-            disabled={approving}
-            className="w-full gap-2 py-3 text-base"
-          >
-            {approving ? (
-              <Loader2 className="h-5 w-5 animate-spin" />
-            ) : (
-              <CheckCircle2 className="h-5 w-5" />
-            )}
-            Start Generating &rarr;
+          <Button onClick={handleApprove} disabled={approving} className="w-full gap-2 py-3 text-base">
+            {approving ? <Loader2 className="h-5 w-5 animate-spin" /> : <CheckCircle2 className="h-5 w-5" />}
+            Start Generating →
           </Button>
         </div>
-      )}
-
-      {/* Agentic progress panel (post-approval) */}
-      {plan.status !== "draft" && (
-        <AgentActivityPanel planId={planId} totalVideos={totalVideos} brandId={brandId} />
       )}
     </div>
   );

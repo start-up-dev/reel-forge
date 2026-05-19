@@ -56,7 +56,7 @@ const O = (a: number) => `rgba(245,92,42,${a})`;
 
 export default async function RootPage() {
   const { userId } = await auth();
-  if (userId) redirect("/dashboard");
+  if (userId) redirect("/brands");
 
   return (
     <div className="min-h-screen overflow-x-hidden bg-[var(--bg-base)] text-[var(--text-primary)] selection:bg-[var(--accent-primary)] selection:text-white">

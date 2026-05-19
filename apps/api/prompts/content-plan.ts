@@ -41,11 +41,17 @@ Each object must have exactly these fields:
     .filter(Boolean)
     .join("\n");
 
+  const startDate = new Date(weekStartDate + "T00:00:00Z");
+  const dayNames = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"];
+  const startDayName = dayNames[startDate.getUTCDay()] ?? "today";
+
   const userPrompt = `${brandDetails}
 
-Week start date: ${weekStartDate} (Monday)
+Week start date: ${weekStartDate} (${startDayName}, this is day=1 in your plan)
 Posts per day: ${postsPerDay}
 Total posts this week: ${totalPosts}
+
+Important: day=1 maps to ${startDayName} (${weekStartDate}), day=2 is the next day, and so on through day=7.
 
 Instructions:
 - Vary formats across the week (mix ugc, montage, tutorial, story — no more than 3 of the same format)

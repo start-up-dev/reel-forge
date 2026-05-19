@@ -10,6 +10,7 @@ import {
   buildActionReelSceneMessages,
 } from "../prompts/index.js";
 import { buildWeekPlanMessages } from "../prompts/content-plan.js";
+import { buildPostCaptionMessages } from "../prompts/caption.js";
 
 const client = new Anthropic({ apiKey: env.ANTHROPIC_API_KEY });
 
@@ -409,6 +410,29 @@ export async function splitScenes(
   }
 
   throw new Error("Scene split failed after 3 attempts: model did not return a valid scenes array.");
+}
+
+// ─── Post caption generation ──────────────────────────────────────────────────
+
+export async function generatePostCaption(
+  brand: BrandProfileRow,
+  topic: TopicEntry,
+  script: string,
+): Promise<string> {
+  const { system, messages } = buildPostCaptionMessages(brand, topic, script);
+
+  const message = await client.messages.create({
+    model: "claude-haiku-4-5-20251001",
+    max_tokens: 512,
+    system,
+    messages,
+  });
+
+  const block = message.content[0];
+  if (block?.type !== "text" || !block.text.trim()) {
+    return topic.title;
+  }
+  return block.text.trim();
 }
 
 // ─── Brand profile suggestion ─────────────────────────────────────────────────

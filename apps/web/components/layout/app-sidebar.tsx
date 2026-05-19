@@ -3,29 +3,24 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import {
-  Home,
   Library,
   Layers,
   Settings,
   CreditCard,
   Zap,
   TrendingUp,
+  Tv2,
 } from "lucide-react";
 import { useUser } from "@/lib/hooks/use-user";
 import { cn } from "@repo/ui/utils";
 
 const navSections = [
   {
-    label: "Overview",
-    items: [
-      { href: "/dashboard", label: "Home", icon: Home },
-      { href: "/library", label: "Library", icon: Library },
-    ],
-  },
-  {
     label: "Content",
     items: [
       { href: "/brands", label: "Brands", icon: Layers },
+      { href: "/library", label: "Library", icon: Library },
+      { href: "/channels", label: "Channels", icon: Tv2 },
     ],
   },
   {
@@ -96,7 +91,7 @@ export function AppSidebar({ isOpen, onClose }: AppSidebarProps) {
               </p>
               <ul className="space-y-0.5">
                 {section.items.map(({ href, label, icon: Icon }) => {
-                  const isActive = pathname.startsWith(href) && (href !== "/dashboard" || pathname === "/dashboard");
+                  const isActive = pathname.startsWith(href);
                   return (
                     <li key={href}>
                       <Link

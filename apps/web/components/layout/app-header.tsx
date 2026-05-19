@@ -7,17 +7,38 @@ import { PlanType } from "@repo/types";
 import { useUser } from "@/lib/hooks/use-user";
 
 const pageTitles: Record<string, string> = {
-  "/dashboard": "Dashboard",
+  "/brands": "Brands",
   "/library": "My Videos",
+  "/channels": "Channels",
   "/settings": "Settings",
   "/billing": "Billing",
 };
 
 function getTitle(pathname: string) {
   if (pathname in pageTitles) return pageTitles[pathname];
-  if (pathname.startsWith("/videos/")) return "Video";
+  if (pathname.startsWith("/brands/") && pathname.includes("/plan/")) return "Content Plan";
+  if (pathname.startsWith("/brands/")) return "Brand";
   return "ReelForge";
 }
+
+const PLAN_BADGE: Record<string, { label: string; className: string } | null> = {
+  none: null,
+  try_out: {
+    label: "Trial",
+    className:
+      "border-[var(--bg-border)] text-[var(--text-muted)] bg-[var(--bg-elevated)]",
+  },
+  starter: {
+    label: "Starter",
+    className:
+      "border-[var(--accent-secondary)]/30 text-[var(--accent-secondary)] bg-[var(--accent-secondary)]/10",
+  },
+  pro: {
+    label: "Pro",
+    className:
+      "border-[var(--accent-primary)]/30 text-[var(--accent-primary)] bg-[var(--accent-primary)]/10",
+  },
+};
 
 interface AppHeaderProps {
   onMenuToggle?: () => void;
@@ -35,6 +56,8 @@ export function AppHeader({ onMenuToggle }: AppHeaderProps) {
   const dailyUsed = user?.videosToday ?? 0;
   const dailyLimit = hasActivePlan && !isTryOut ? (user?.dailyLimit ?? 0) : 0;
 
+  const planBadge = PLAN_BADGE[plan] ?? null;
+
   return (
     <header className="flex h-16 shrink-0 items-center justify-between border-b border-[var(--bg-border)] bg-[var(--bg-surface)] px-4 sm:px-6">
       <div className="flex items-center gap-3">
@@ -50,7 +73,7 @@ export function AppHeader({ onMenuToggle }: AppHeaderProps) {
         </h1>
       </div>
 
-      <div className="flex items-center gap-3 sm:gap-5">
+      <div className="flex items-center gap-3 sm:gap-4">
         {hasActivePlan && (
           <div className="hidden items-center gap-3 sm:flex">
             {isTryOut ? (
@@ -58,13 +81,13 @@ export function AppHeader({ onMenuToggle }: AppHeaderProps) {
                 <div className="flex items-center gap-2">
                   <span className="text-xs text-[var(--text-muted)]">Credits used</span>
                   <span className={`text-xs font-medium tabular-nums ${trialRemaining === 0 ? "text-[var(--accent-danger)]" : "text-[var(--text-primary)]"}`}>
-                    {3 - trialRemaining} / 3
+                    {7 - trialRemaining} / 7
                   </span>
                 </div>
                 <div className="h-1.5 w-24 overflow-hidden rounded-full bg-[var(--bg-elevated)]">
                   <div
-                    className={`h-full rounded-full transition-all ${trialRemaining === 0 ? "bg-[var(--accent-danger)]" : trialRemaining === 1 ? "bg-[var(--accent-warning)]" : "bg-[var(--accent-primary)]"}`}
-                    style={{ width: `${Math.min(((3 - trialRemaining) / 3) * 100, 100)}%` }}
+                    className={`h-full rounded-full transition-all ${trialRemaining === 0 ? "bg-[var(--accent-danger)]" : trialRemaining <= 2 ? "bg-[var(--accent-warning)]" : "bg-[var(--accent-primary)]"}`}
+                    style={{ width: `${Math.min(((7 - trialRemaining) / 7) * 100, 100)}%` }}
                   />
                 </div>
               </>
@@ -86,6 +109,15 @@ export function AppHeader({ onMenuToggle }: AppHeaderProps) {
             )}
           </div>
         )}
+
+        {planBadge && (
+          <span
+            className={`hidden sm:inline-flex items-center rounded-full border px-2.5 py-0.5 text-[11px] font-semibold ${planBadge.className}`}
+          >
+            {planBadge.label}
+          </span>
+        )}
+
         <UserButton
           appearance={{
             elements: {
