@@ -2,13 +2,7 @@
 
 import { Suspense, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
-import { X } from "lucide-react";
-import {
-  ArrowLeft,
-  ArrowRight,
-  Check,
-  Loader2,
-} from "lucide-react";
+import { ArrowLeft, ArrowRight, Check, Loader2, X, Plug } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@repo/ui/button";
 import type { CharacterType, ContentTone, TargetAudienceAge, TargetAudienceVibe, VisualStyle } from "@repo/types";
@@ -679,17 +673,30 @@ function NewBrandPageInner() {
   return (
     <div className="mx-auto max-w-xl px-4 py-10">
       {isOnboarding && !bannerDismissed && (
-        <div className="mb-6 flex items-start justify-between gap-3 rounded-xl border-l-4 border-[var(--accent-warning)] bg-[var(--accent-warning)]/10 px-4 py-3">
-          <div>
-            <p className="text-sm font-semibold text-[var(--text-primary)]">✦ Welcome!</p>
-            <p className="mt-0.5 text-xs text-[var(--text-secondary)]">
-              Set up your brand — takes about 5 minutes. Your character and content plan are created here.
-            </p>
+        <div className="mb-6 flex items-start justify-between gap-3 rounded-xl border border-[var(--accent-secondary)]/30 bg-[var(--accent-secondary)]/10 px-4 py-4">
+          <div className="flex items-start gap-3">
+            <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-[var(--accent-secondary)]/20 mt-0.5">
+              <Plug className="h-4 w-4 text-[var(--accent-secondary)]" />
+            </div>
+            <div>
+              <p className="text-sm font-semibold text-[var(--text-primary)]">Connect your social media first</p>
+              <p className="mt-0.5 text-xs text-[var(--text-secondary)]">
+                For the best experience, go to{" "}
+                <button
+                  type="button"
+                  onClick={() => router.push("/channels")}
+                  className="font-medium text-[var(--accent-secondary)] underline underline-offset-2 hover:opacity-80"
+                >
+                  Channels
+                </button>{" "}
+                and connect your Facebook page — ReelForge will build your brand automatically. Or fill in the details below to create one manually.
+              </p>
+            </div>
           </div>
           <button
             type="button"
             onClick={() => setBannerDismissed(true)}
-            className="shrink-0 text-[var(--text-muted)] hover:text-[var(--text-primary)]"
+            className="shrink-0 text-[var(--text-muted)] hover:text-[var(--text-primary)] transition-colors"
           >
             <X className="h-4 w-4" />
           </button>

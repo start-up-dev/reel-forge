@@ -645,7 +645,7 @@ function SolutionReveal() {
             {SOLUTION.pipelineNodes.map((node, i) => {
               const nodeIcons = [Layers, Lightbulb, CheckCircle, Bot, Rocket];
               const NodeIcon = nodeIcons[i] || CheckCircle;
-              const isLast = node === "Finished Video";
+              const isLast = i === SOLUTION.pipelineNodes.length - 1;
 
               return (
                 <div key={node} className="flex items-center group">

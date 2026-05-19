@@ -9,7 +9,6 @@ import { Button } from "@repo/ui/button";
 import { ConfirmDialog } from "@repo/ui/confirm-dialog";
 import type { BrandProfile } from "@repo/types";
 import { useApiClient, withToast } from "@/lib/api-client";
-import { useUser } from "@/lib/hooks/use-user";
 
 const TONE_LABEL: Record<string, string> = {
   energetic: "Energetic",
@@ -39,18 +38,10 @@ const CHARACTER_TYPE_LABEL: Record<string, string> = {
 export default function BrandsPage() {
   const router = useRouter();
   const api = useApiClient();
-  const { user, loading: userLoading } = useUser();
   const [brands, setBrands] = useState<BrandProfile[]>([]);
   const [loading, setLoading] = useState(true);
   const [connecting, setConnecting] = useState(false);
   const [deleteId, setDeleteId] = useState<string | null>(null);
-
-  useEffect(() => {
-    if (userLoading) return;
-    if (user && !user.onboardingComplete) {
-      router.replace("/brands/new?onboarding=true");
-    }
-  }, [user, userLoading, router]);
 
   useEffect(() => {
     void (async () => {

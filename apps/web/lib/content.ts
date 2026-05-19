@@ -196,7 +196,7 @@ export const SHOWCASE = {
 export const PROOF_STATS = [
   { value: "7", label: "Videos planned\nin 10 minutes" },
   { value: "~0", label: "Minutes of editing\never required" },
-  { value: "Auto", label: "Posts to Facebook\nwhile you sleep" },
+  { value: "Auto", label: "Posts to your channels\nwhile you sleep" },
   { value: "1", label: "Approval click\nfor the whole week" },
 ] as const;
 
@@ -237,7 +237,7 @@ export const SOLUTION = {
   headlineLine1: "You don't have a content problem.",
   headlineLine2: "You have a time problem.",
   body: [
-    "What if Sunday night you spent 10 minutes reviewing a week of video ideas — and by Monday morning, the first one was already live on Facebook?",
+    "What if Sunday night you spent 10 minutes reviewing a week of video ideas — and by Monday morning, the first one was already live on your channels?",
     "No scripting. No recording. No editing. No scheduling. No checking. Just... done.",
   ],
   closer: "That's not a dream. That's ReelForge.",
@@ -257,7 +257,7 @@ export const PIPELINE = {
     {
       num: "01",
       title: "Set your brand once. Use it forever.",
-      body: "Connect your Facebook page. Tell ReelForge your niche, your tone, your visual style. We build your AI brand character — a consistent visual identity that appears in every scene of every video, every single week. Set it once. Never think about it again.",
+      body: "Connect your social accounts. Tell ReelForge your niche, your tone, your visual style. We build your AI brand character — a consistent visual identity that appears in every scene of every video, every single week. Set it once. Never think about it again.",
     },
     {
       num: "02",
@@ -283,8 +283,8 @@ export const PIPELINE = {
     {
       num: "05",
       title: "Posts itself. You just check the results.",
-      body: "Choose how you want to publish: auto-schedule to Facebook at peak times, save as drafts for your own review, or download the MP4s. Your videos go live exactly when they should. The algorithm sees consistency. Your audience sees content. You see growth — without the grind.",
-      pill: "Autopilot from approval to Facebook",
+      body: "Choose how you want to publish: auto-schedule at peak times, save as drafts for your own review, or download the MP4s. Your videos go live exactly when they should. The algorithm sees consistency. Your audience sees content. You see growth — without the grind.",
+      pill: "Autopilot from approval to publish",
       pillVariant: "success" as const,
     },
   ],
@@ -438,13 +438,13 @@ export const PRICING = {
   headlineLine1: "Start for $5.",
   headlineLine2: "See your first week live.",
   subheadline:
-    "7 video credits. A complete week of content. See a finished video on your Facebook page — then decide.",
+    "7 video credits. A complete week of content. See a finished video live on your channel — then decide.",
   urgencyBanner:
     "Founding member pricing — subscription rates are locked in for life when you join during launch.",
   urgencyNote: "Rates increase after launch period ends.",
   monthlyNote: "All subscriptions billed monthly. Cancel any time.",
   footerNote:
-    "All plans: 1080×1920 MP4 · Subtitles burned in · Auto-post to Facebook · Video library included",
+    "All plans: 1080×1920 MP4 · Subtitles burned in · Auto-post to social channels · Video library included",
   plans: [
     {
       name: "Try Out",
@@ -455,7 +455,7 @@ export const PRICING = {
       features: [
         "7 video credits — a complete week",
         "AI-generated week plan",
-        "Auto-post to Facebook",
+        "Auto-post to social channels",
         "Full visual style library",
         "Download your MP4s anytime",
       ],
@@ -473,7 +473,7 @@ export const PRICING = {
         "1 video per day, every day",
         "30 videos per month",
         "Unlimited week plans",
-        "Auto-schedule or save as drafts on Facebook",
+        "Auto-schedule or save as drafts",
         "Email when your videos are ready",
       ],
       cta: "Start Starter Plan",
@@ -518,9 +518,9 @@ export const FAQ = {
         "Yes. During setup you define your niche, tone, and visual style — and we build your AI brand character, a consistent visual identity that appears across every scene of every video, week after week. Your audience won't be able to tell which videos you made personally and which ones ReelForge made for you. That's not an accident.",
     },
     {
-      question: "What does 'auto-post to Facebook' actually mean?",
+      question: "What does 'auto-post' actually mean?",
       answer:
-        "When you approve your week plan, you choose how your videos publish: auto-scheduled at peak engagement times, saved as Facebook drafts for you to review first, or downloaded as MP4s so you post them yourself. The videos are already made. How and when they land on Facebook is entirely your call.",
+        "When you approve your week plan, you choose how your videos publish: auto-scheduled at peak engagement times, saved as drafts for you to review first, or downloaded as MP4s so you post them yourself. The videos are already made. How and when they go live is entirely your call.",
     },
     {
       question: "Can I edit the plan before I approve it?",
@@ -530,17 +530,17 @@ export const FAQ = {
     {
       question: "What if I don't like how one of the videos came out?",
       answer:
-        "If you're saving videos as Facebook drafts, you review every one before it goes public. If you're using 'Download Only' mode, you decide what gets posted. The system never publishes anything without the rules you set upfront. You're in control — you've just stopped doing the work.",
+        "If you're saving videos as drafts, you review every one before it goes public. If you're using 'Download Only' mode, you decide what gets posted. The system never publishes anything without the rules you set upfront. You're in control — you've just stopped doing the work.",
     },
     {
       question: "Is the $5 Try Out plan really one-time, no strings?",
       answer:
-        "$5. One time. 7 video credits — enough for one full week of content. No subscription starts automatically. No card-on-file surprise. Use your credits whenever you're ready. It's the fastest way to see a finished, AI-generated video on your actual Facebook page — for the cost of a coffee.",
+        "$5. One time. 7 video credits — enough for one full week of content. No subscription starts automatically. No card-on-file surprise. Use your credits whenever you're ready. It's the fastest way to see a finished, AI-generated video live on your actual channel — for the cost of a coffee.",
     },
     {
       question: "How is this different from just using ChatGPT and CapCut?",
       answer:
-        "You could assemble tools yourself. You'd write prompts for every scene, generate images one by one, stitch them into video manually, sync subtitles by hand, upload to Facebook, schedule the post, then do it again tomorrow. That's still hours of work per video. ReelForge isn't a better shovel. It's the whole machine — plan, generate, assemble, post — running on autopilot. There's a difference between a tool and a system.",
+        "You could assemble tools yourself. You'd write prompts for every scene, generate images one by one, stitch them into video manually, sync subtitles by hand, upload to your channels, schedule the post, then do it again tomorrow. That's still hours of work per video. ReelForge isn't a better shovel. It's the whole machine — plan, generate, assemble, post — running on autopilot. There's a difference between a tool and a system.",
     },
   ],
 };
