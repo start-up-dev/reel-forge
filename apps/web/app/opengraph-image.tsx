@@ -1,19 +1,21 @@
 import { ImageResponse } from "next/og";
-import { readFile } from "node:fs/promises";
-import path from "node:path";
 
 export const alt = "ReelForge — AI Short-Form Video Content Machine";
 export const size = { width: 1200, height: 630 };
 export const contentType = "image/png";
 
+async function loadInterFont(weight: 700 | 900): Promise<ArrayBuffer> {
+  const url = `https://cdn.jsdelivr.net/npm/@fontsource/inter@5.1.0/files/inter-latin-${weight}-normal.woff`;
+  const res = await fetch(url);
+  if (!res.ok) throw new Error(`Font fetch failed: ${res.status}`);
+  return res.arrayBuffer();
+}
+
 export default async function Image() {
-  const fontBuf = await readFile(
-    path.join(process.cwd(), "app/fonts/GeistVF.woff"),
-  );
-  const fontData = fontBuf.buffer.slice(
-    fontBuf.byteOffset,
-    fontBuf.byteOffset + fontBuf.byteLength,
-  ) as ArrayBuffer;
+  const [interBold, interBlack] = await Promise.all([
+    loadInterFont(700),
+    loadInterFont(900),
+  ]);
 
   return new ImageResponse(
     (
@@ -26,7 +28,7 @@ export default async function Image() {
           height: "100%",
           backgroundColor: "#09090b",
           padding: "60px 80px",
-          fontFamily: "Geist",
+          fontFamily: "Inter",
           position: "relative",
           overflow: "hidden",
         }}
@@ -117,15 +119,14 @@ export default async function Image() {
           <div
             style={{
               display: "flex",
-              gap: "0px",
-              marginBottom: "44px",
               flexDirection: "column",
+              marginBottom: "44px",
             }}
           >
             <span
               style={{
                 fontSize: "34px",
-                fontWeight: 500,
+                fontWeight: 700,
                 color: "#71717a",
                 lineHeight: 1.35,
               }}
@@ -146,28 +147,26 @@ export default async function Image() {
 
           {/* Stat pills */}
           <div style={{ display: "flex", gap: "14px" }}>
-            {[
-              "7 Videos / Week",
-              "10 Min Setup",
-              "Auto-Posts to Social",
-            ].map((stat) => (
-              <div
-                key={stat}
-                style={{
-                  display: "flex",
-                  alignItems: "center",
-                  background: "rgba(255,255,255,0.04)",
-                  border: "1px solid rgba(255,255,255,0.09)",
-                  borderRadius: "12px",
-                  padding: "12px 22px",
-                  color: "#a1a1aa",
-                  fontSize: "16px",
-                  fontWeight: 600,
-                }}
-              >
-                {stat}
-              </div>
-            ))}
+            {["7 Videos / Week", "10 Min Setup", "Auto-Posts to Social"].map(
+              (stat) => (
+                <div
+                  key={stat}
+                  style={{
+                    display: "flex",
+                    alignItems: "center",
+                    background: "rgba(255,255,255,0.04)",
+                    border: "1px solid rgba(255,255,255,0.09)",
+                    borderRadius: "12px",
+                    padding: "12px 22px",
+                    color: "#a1a1aa",
+                    fontSize: "16px",
+                    fontWeight: 700,
+                  }}
+                >
+                  {stat}
+                </div>
+              ),
+            )}
           </div>
         </div>
 
@@ -195,7 +194,6 @@ export default async function Image() {
             style={{
               display: "flex",
               alignItems: "center",
-              gap: "8px",
               background: "rgba(245,92,42,0.08)",
               border: "1px solid rgba(245,92,42,0.2)",
               borderRadius: "8px",
@@ -220,12 +218,8 @@ export default async function Image() {
     {
       ...size,
       fonts: [
-        {
-          name: "Geist",
-          data: fontData,
-          style: "normal",
-          weight: 900,
-        },
+        { name: "Inter", data: interBold, style: "normal", weight: 700 },
+        { name: "Inter", data: interBlack, style: "normal", weight: 900 },
       ],
     },
   );
