@@ -269,6 +269,9 @@ export const socialAccounts = pgTable(
     userId: text("user_id")
       .notNull()
       .references(() => users.id, { onDelete: "cascade" }),
+    brandProfileId: uuid("brand_profile_id").references(() => brandProfiles.id, {
+      onDelete: "set null",
+    }),
     platform: text("platform").notNull(),
     pageId: text("page_id").notNull(),
     pageName: text("page_name").notNull(),
@@ -292,9 +295,6 @@ export const brandProfiles = pgTable(
     userId: text("user_id")
       .notNull()
       .references(() => users.id, { onDelete: "cascade" }),
-    socialAccountId: uuid("social_account_id").references(() => socialAccounts.id, {
-      onDelete: "set null",
-    }),
     name: text("name").notNull(),
     niche: text("niche").notNull(),
     nicheDescription: text("niche_description"),

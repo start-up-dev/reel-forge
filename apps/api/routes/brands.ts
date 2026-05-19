@@ -2,7 +2,7 @@ import { and, desc, eq, sql } from "drizzle-orm";
 import type { FastifyInstance } from "fastify";
 import { z } from "zod";
 import { db } from "../lib/db/index.js";
-import { brandProfiles } from "../lib/db/schema.js";
+import { brandProfiles, socialAccounts } from "../lib/db/schema.js";
 import {
   ASSET_URL_TTL_MINUTES,
   generateSignedReadUrl,
@@ -11,10 +11,10 @@ import {
 } from "../lib/storage.js";
 import { buildCharacterSheetPrompt } from "../prompts/character-sheet.js";
 import { generateCharacterSheet } from "../services/openai-image.js";
+import { suggestBrandProfile } from "../services/claude.js";
 
 const createBody = z.object({
   name: z.string().min(1).max(200),
-  socialAccountId: z.string().uuid().optional(),
   niche: z.string().min(1).max(200),
   nicheDescription: z.string().max(1000).optional(),
   targetAudienceAge: z.enum(["gen_z", "millennial", "gen_x", "all"]).optional(),
@@ -37,7 +37,7 @@ const logoUploadBody = z.object({
 });
 
 export async function brandsRoutes(fastify: FastifyInstance) {
-  // GET /api/brand-profiles — list all brand profiles for the user
+  // GET /api/brand-profiles — list all brand profiles for the user, with connected channels
   fastify.get("/brand-profiles", async (request, reply) => {
     const user = request.currentUser!;
     const rows = await db
@@ -45,7 +45,31 @@ export async function brandsRoutes(fastify: FastifyInstance) {
       .from(brandProfiles)
       .where(eq(brandProfiles.userId, user.id))
       .orderBy(desc(brandProfiles.createdAt));
-    return reply.send({ data: rows });
+
+    const channels = await db
+      .select({
+        id: socialAccounts.id,
+        userId: socialAccounts.userId,
+        brandProfileId: socialAccounts.brandProfileId,
+        platform: socialAccounts.platform,
+        pageId: socialAccounts.pageId,
+        pageName: socialAccounts.pageName,
+        pageAvatarUrl: socialAccounts.pageAvatarUrl,
+        tokenExpiresAt: socialAccounts.tokenExpiresAt,
+        createdAt: socialAccounts.createdAt,
+        updatedAt: socialAccounts.updatedAt,
+      })
+      .from(socialAccounts)
+      .where(eq(socialAccounts.userId, user.id));
+
+    const channelsByBrand = channels.reduce<Record<string, typeof channels>>((acc, ch) => {
+      if (ch.brandProfileId) {
+        (acc[ch.brandProfileId] ??= []).push(ch);
+      }
+      return acc;
+    }, {});
+
+    return reply.send({ data: rows.map((r) => ({ ...r, channels: channelsByBrand[r.id] ?? [] })) });
   });
 
   // POST /api/brand-profiles — create a new brand profile
@@ -61,7 +85,6 @@ export async function brandsRoutes(fastify: FastifyInstance) {
       .insert(brandProfiles)
       .values({
         userId: user.id,
-        socialAccountId: d.socialAccountId ?? null,
         name: d.name,
         niche: d.niche,
         nicheDescription: d.nicheDescription ?? null,
@@ -81,7 +104,7 @@ export async function brandsRoutes(fastify: FastifyInstance) {
     return reply.status(201).send({ data: row });
   });
 
-  // GET /api/brand-profiles/:id — get a single brand profile
+  // GET /api/brand-profiles/:id — get a single brand profile with connected channels
   fastify.get<{ Params: { id: string } }>("/brand-profiles/:id", async (request, reply) => {
     const user = request.currentUser!;
     const { id } = request.params;
@@ -96,15 +119,28 @@ export async function brandsRoutes(fastify: FastifyInstance) {
       return reply.status(404).send({ error: { message: "Brand profile not found." } });
     }
 
-    let characterSheetUrl: string | null = null;
-    if (row.characterSheetGcsPath) {
-      characterSheetUrl = await generateSignedReadUrl(
-        row.characterSheetGcsPath,
-        ASSET_URL_TTL_MINUTES,
-      );
-    }
+    const [channels, characterSheetUrl] = await Promise.all([
+      db
+        .select({
+          id: socialAccounts.id,
+          userId: socialAccounts.userId,
+          brandProfileId: socialAccounts.brandProfileId,
+          platform: socialAccounts.platform,
+          pageId: socialAccounts.pageId,
+          pageName: socialAccounts.pageName,
+          pageAvatarUrl: socialAccounts.pageAvatarUrl,
+          tokenExpiresAt: socialAccounts.tokenExpiresAt,
+          createdAt: socialAccounts.createdAt,
+          updatedAt: socialAccounts.updatedAt,
+        })
+        .from(socialAccounts)
+        .where(and(eq(socialAccounts.brandProfileId, id), eq(socialAccounts.userId, user.id))),
+      row.characterSheetGcsPath
+        ? generateSignedReadUrl(row.characterSheetGcsPath, ASSET_URL_TTL_MINUTES)
+        : Promise.resolve(null),
+    ]);
 
-    return reply.send({ data: { ...row, characterSheetUrl } });
+    return reply.send({ data: { ...row, channels, characterSheetUrl } });
   });
 
   // PATCH /api/brand-profiles/:id — partial update
@@ -130,7 +166,6 @@ export async function brandsRoutes(fastify: FastifyInstance) {
     const d = parsed.data;
     const patch: Record<string, unknown> = { updatedAt: new Date() };
     if (d.name !== undefined) patch.name = d.name;
-    if (d.socialAccountId !== undefined) patch.socialAccountId = d.socialAccountId;
     if (d.niche !== undefined) patch.niche = d.niche;
     if (d.nicheDescription !== undefined) patch.nicheDescription = d.nicheDescription;
     if (d.targetAudienceAge !== undefined) patch.targetAudienceAge = d.targetAudienceAge;
@@ -174,6 +209,42 @@ export async function brandsRoutes(fastify: FastifyInstance) {
 
     return reply.send({ data: { ok: true } });
   });
+
+  // POST /api/brand-profiles/:id/suggest — Claude analyses connected channels and suggests brand profile
+  fastify.post<{ Params: { id: string } }>(
+    "/brand-profiles/:id/suggest",
+    async (request, reply) => {
+      const user = request.currentUser!;
+      const { id } = request.params;
+
+      const { feedback } = (request.body as { feedback?: string }) ?? {};
+
+      const [row] = await db
+        .select()
+        .from(brandProfiles)
+        .where(and(eq(brandProfiles.id, id), eq(brandProfiles.userId, user.id)))
+        .limit(1);
+      if (!row) {
+        return reply.status(404).send({ error: { message: "Brand profile not found." } });
+      }
+
+      // Use the first connected channel for analysis
+      const [channel] = await db
+        .select()
+        .from(socialAccounts)
+        .where(and(eq(socialAccounts.brandProfileId, id), eq(socialAccounts.userId, user.id)))
+        .limit(1);
+
+      const suggestion = await suggestBrandProfile({
+        pageName: channel?.pageName ?? row.name,
+        platform: channel?.platform ?? "facebook",
+        pageAvatarUrl: channel?.pageAvatarUrl,
+        feedback: feedback ?? undefined,
+      });
+
+      return reply.send({ data: suggestion });
+    },
+  );
 
   // POST /api/brand-profiles/:id/logo-upload-url
   fastify.post<{ Params: { id: string } }>(

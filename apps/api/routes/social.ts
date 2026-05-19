@@ -3,7 +3,7 @@ import { and, desc, eq } from "drizzle-orm";
 import type { FastifyInstance } from "fastify";
 import { z } from "zod";
 import { db } from "../lib/db/index.js";
-import { postSchedules, socialAccounts, videos } from "../lib/db/schema.js";
+import { brandProfiles, postSchedules, socialAccounts, videos } from "../lib/db/schema.js";
 import { generateSignedReadUrl } from "../lib/storage.js";
 import { uploadReelToFacebook } from "../services/facebook.js";
 import { env } from "../lib/env.js";
@@ -13,6 +13,7 @@ const connectBody = z.object({
   pageName: z.string().min(1),
   pageAvatarUrl: z.string().url().optional(),
   accessToken: z.string().min(1),
+  brandProfileId: z.string().uuid().optional(),
 });
 
 const postVideoBody = z.object({
@@ -22,14 +23,17 @@ const postVideoBody = z.object({
 });
 
 export async function socialRoutes(fastify: FastifyInstance): Promise<void> {
-  // GET /api/auth/facebook/authorize
-  fastify.get("/auth/facebook/authorize", async (request, reply) => {
+  // GET /api/auth/facebook/authorize?brandId=xxx (brandId optional — omit for new brand flow)
+  fastify.get<{ Querystring: { brandId?: string } }>("/auth/facebook/authorize", async (request, reply) => {
     if (!env.FACEBOOK_APP_ID || !env.FACEBOOK_REDIRECT_URI) {
       return reply.status(503).send({ error: "Facebook OAuth not configured" });
     }
     const user = request.currentUser!;
     const nonce = crypto.randomBytes(16).toString("hex");
-    const state = `${user.id}:${nonce}`;
+    // Encode optional brandId in state so callback page can route correctly
+    const state = request.query.brandId
+      ? `${user.id}:${nonce}:${request.query.brandId}`
+      : `${user.id}:${nonce}`;
 
     const params = new URLSearchParams({
       client_id: env.FACEBOOK_APP_ID,
@@ -106,19 +110,55 @@ export async function socialRoutes(fastify: FastifyInstance): Promise<void> {
   );
 
   // POST /api/social/facebook/connect
+  // If brandProfileId is omitted, a draft brand profile is auto-created from the page info.
   fastify.post("/social/facebook/connect", async (request, reply) => {
     const parsed = connectBody.safeParse(request.body);
     if (!parsed.success) {
       return reply.status(400).send({ error: parsed.error.flatten() });
     }
-    const { pageId, pageName, pageAvatarUrl, accessToken } = parsed.data;
+    const { pageId, pageName, pageAvatarUrl, accessToken, brandProfileId: incomingBrandId } = parsed.data;
     const user = request.currentUser!;
 
-    // Upsert social account
+    // Resolve which brand to link to
+    let resolvedBrandId: string;
+
+    if (incomingBrandId) {
+      // Adding channel to existing brand — verify it belongs to the user
+      const [existing] = await db
+        .select({ id: brandProfiles.id })
+        .from(brandProfiles)
+        .where(and(eq(brandProfiles.id, incomingBrandId), eq(brandProfiles.userId, user.id)))
+        .limit(1);
+      if (!existing) {
+        return reply.status(404).send({ error: "Brand profile not found." });
+      }
+      resolvedBrandId = existing.id;
+    } else {
+      // New brand flow — create a draft brand profile seeded from the channel name
+      const [draft] = await db
+        .insert(brandProfiles)
+        .values({
+          userId: user.id,
+          name: pageName,
+          niche: "general",
+          tone: "casual",
+          visualStyle: "realistic",
+          characterType: "none",
+          onboardingComplete: false,
+        })
+        .returning();
+      if (!draft) {
+        return reply.status(500).send({ error: "Failed to create brand profile." });
+      }
+      resolvedBrandId = draft.id;
+    }
+
+    // Upsert social account with brand link
     const [account] = await db
       .insert(socialAccounts)
       .values({
         userId: user.id,
+        brandProfileId: resolvedBrandId,
         platform: "facebook",
         pageId,
         pageName,
@@ -129,6 +169,7 @@ export async function socialRoutes(fastify: FastifyInstance): Promise<void> {
       .onConflictDoUpdate({
         target: [socialAccounts.userId, socialAccounts.platform, socialAccounts.pageId],
         set: {
+          brandProfileId: resolvedBrandId,
           pageName,
           pageAvatarUrl: pageAvatarUrl ?? null,
           accessToken,
@@ -144,6 +185,7 @@ export async function socialRoutes(fastify: FastifyInstance): Promise<void> {
       data: {
         id: account.id,
         userId: account.userId,
+        brandProfileId: account.brandProfileId,
         platform: account.platform,
         pageId: account.pageId,
         pageName: account.pageName,
@@ -151,6 +193,7 @@ export async function socialRoutes(fastify: FastifyInstance): Promise<void> {
         tokenExpiresAt: account.tokenExpiresAt,
         createdAt: account.createdAt,
         updatedAt: account.updatedAt,
+        isNewBrand: !incomingBrandId,
       },
     });
   });
@@ -162,6 +205,7 @@ export async function socialRoutes(fastify: FastifyInstance): Promise<void> {
       .select({
         id: socialAccounts.id,
         userId: socialAccounts.userId,
+        brandProfileId: socialAccounts.brandProfileId,
         platform: socialAccounts.platform,
         pageId: socialAccounts.pageId,
         pageName: socialAccounts.pageName,

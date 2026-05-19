@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from "react";
 import Link from "next/link";
-import { Loader2, Plus, UserSquare2, Pencil, Trash2, ChevronRight } from "lucide-react";
+import { Loader2, Plug, UserSquare2, Pencil, Trash2, ChevronRight } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@repo/ui/button";
 import { ConfirmDialog } from "@repo/ui/confirm-dialog";
@@ -38,6 +38,7 @@ export default function BrandsPage() {
   const api = useApiClient();
   const [brands, setBrands] = useState<BrandProfile[]>([]);
   const [loading, setLoading] = useState(true);
+  const [connecting, setConnecting] = useState(false);
   const [deleteId, setDeleteId] = useState<string | null>(null);
 
   useEffect(() => {
@@ -47,6 +48,15 @@ export default function BrandsPage() {
       setLoading(false);
     })();
   }, [api]);
+
+  async function handleConnectChannel() {
+    setConnecting(true);
+    const result = await withToast(() => api.social.authorize(), "Failed to start Facebook OAuth");
+    if (result?.data?.authUrl) {
+      window.location.href = result.data.authUrl;
+    }
+    setConnecting(false);
+  }
 
   async function handleDelete() {
     if (!deleteId) return;
@@ -65,16 +75,14 @@ export default function BrandsPage() {
     <div className="mx-auto max-w-3xl px-4 py-10">
       <div className="mb-8 flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-bold text-[var(--text-primary)]">Brand Profiles</h1>
+          <h1 className="text-2xl font-bold text-[var(--text-primary)]">Brands</h1>
           <p className="mt-1 text-sm text-[var(--text-muted)]">
-            Define your brand identity — niche, tone, visual style, and character.
+            Connect a channel to create a brand. Claude builds the identity from your page.
           </p>
         </div>
-        <Button asChild>
-          <Link href="/brands/new" className="gap-2 flex items-center">
-            <Plus className="h-4 w-4" />
-            New Brand
-          </Link>
+        <Button onClick={() => void handleConnectChannel()} loading={connecting} className="gap-2">
+          <Plug className="h-4 w-4" />
+          Connect Channel
         </Button>
       </div>
 
@@ -85,18 +93,19 @@ export default function BrandsPage() {
       ) : brands.length === 0 ? (
         <div className="flex flex-col items-center gap-4 rounded-2xl border border-dashed border-[var(--bg-border)] py-16 text-center">
           <div className="flex h-14 w-14 items-center justify-center rounded-full bg-[var(--bg-elevated)]">
-            <UserSquare2 className="h-6 w-6 text-[var(--text-muted)]" />
+            <Plug className="h-6 w-6 text-[var(--text-muted)]" />
           </div>
           <div>
             <p className="text-sm font-medium text-[var(--text-secondary)]">
-              No brand profiles yet
+              No brands yet
             </p>
             <p className="mt-1 text-sm text-[var(--text-muted)]">
-              Create your first brand profile to start generating content.
+              Connect a Facebook page and Claude will build your brand profile automatically.
             </p>
           </div>
-          <Button asChild>
-            <Link href="/brands/new">Create Brand Profile</Link>
+          <Button onClick={() => void handleConnectChannel()} loading={connecting} className="gap-2">
+            <Plug className="h-4 w-4" />
+            Connect Channel
           </Button>
         </div>
       ) : (

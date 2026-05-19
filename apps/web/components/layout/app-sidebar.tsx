@@ -6,7 +6,6 @@ import {
   Home,
   Library,
   Layers,
-  Plug,
   Settings,
   CreditCard,
   Zap,
@@ -27,7 +26,6 @@ const navSections = [
     label: "Content",
     items: [
       { href: "/brands", label: "Brands", icon: Layers },
-      { href: "/channels", label: "Channels", icon: Plug },
     ],
   },
   {

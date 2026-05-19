@@ -10,6 +10,8 @@ import {
   Pencil,
   ChevronRight,
   UserSquare2,
+  Globe,
+  Plug,
 } from "lucide-react";
 import { Button } from "@repo/ui/button";
 import type { BrandProfile, ContentPlan } from "@repo/types";
@@ -59,6 +61,7 @@ export default function BrandHubPage() {
   const [brand, setBrand] = useState<BrandProfile | null>(null);
   const [plans, setPlans] = useState<ContentPlan[]>([]);
   const [loading, setLoading] = useState(true);
+  const [addingChannel, setAddingChannel] = useState(false);
 
   const load = useCallback(async () => {
     const [brandResult, plansResult] = await Promise.all([
@@ -73,6 +76,15 @@ export default function BrandHubPage() {
   useEffect(() => {
     void load();
   }, [load]);
+
+  async function handleAddChannel() {
+    setAddingChannel(true);
+    const result = await withToast(() => api.social.authorize(id), "Failed to start Facebook OAuth");
+    if (result?.data?.authUrl) {
+      window.location.href = result.data.authUrl;
+    }
+    setAddingChannel(false);
+  }
 
   if (loading) {
     return (
@@ -140,6 +152,50 @@ export default function BrandHubPage() {
           </p>
         </button>
       )}
+
+      {/* Channels section */}
+      <div className="mb-6">
+        <div className="mb-3 flex items-center justify-between">
+          <h2 className="text-sm font-semibold uppercase tracking-wide text-[var(--text-muted)]">
+            Channels
+          </h2>
+          <button
+            type="button"
+            onClick={() => void handleAddChannel()}
+            disabled={addingChannel}
+            className="flex items-center gap-1.5 rounded-lg px-2.5 py-1.5 text-xs font-medium text-[var(--text-muted)] transition-colors hover:bg-[var(--bg-elevated)] hover:text-[var(--text-primary)] disabled:opacity-50"
+          >
+            {addingChannel ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Plug className="h-3.5 w-3.5" />}
+            Add Channel
+          </button>
+        </div>
+        {brand.channels && brand.channels.length > 0 ? (
+          <ul className="space-y-2">
+            {brand.channels.map((ch) => (
+              <li key={ch.id} className="flex items-center gap-3 rounded-xl border border-[var(--bg-border)] bg-[var(--bg-elevated)] px-4 py-2.5">
+                {ch.pageAvatarUrl ? (
+                  // eslint-disable-next-line @next/next/no-img-element
+                  <img src={ch.pageAvatarUrl} alt={ch.pageName} className="h-8 w-8 rounded-full object-cover" />
+                ) : (
+                  <div className="flex h-8 w-8 items-center justify-center rounded-full bg-[var(--bg-border)]">
+                    <Globe className="h-4 w-4 text-[var(--text-muted)]" />
+                  </div>
+                )}
+                <div className="flex-1 min-w-0">
+                  <p className="truncate text-sm font-medium text-[var(--text-primary)]">{ch.pageName}</p>
+                </div>
+                <span className="inline-flex items-center rounded-full bg-[var(--accent-secondary)]/15 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-[var(--accent-secondary)]">
+                  {ch.platform}
+                </span>
+              </li>
+            ))}
+          </ul>
+        ) : (
+          <div className="rounded-xl border border-dashed border-[var(--bg-border)] px-4 py-4 text-center">
+            <p className="text-xs text-[var(--text-muted)]">No channels connected yet.</p>
+          </div>
+        )}
+      </div>
 
       {/* Content Plans section */}
       <div className="mb-4 flex items-center justify-between">

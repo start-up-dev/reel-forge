@@ -313,7 +313,6 @@ export type CharacterType = "human" | "mascot" | "abstract" | "none";
 export interface BrandProfile {
   id: string;
   userId: string;
-  socialAccountId: string | null;
   name: string;
   niche: string;
   nicheDescription: string | null;
@@ -330,8 +329,23 @@ export interface BrandProfile {
   referenceVideoUrl: string | null;
   onboardingComplete: boolean;
   characterSheetGenerationCount: number;
+  channels: SocialAccount[];
   createdAt: Date;
   updatedAt: Date;
+}
+
+export interface BrandSuggestion {
+  niche: string;
+  nicheDescription: string;
+  targetAudienceAge: TargetAudienceAge;
+  targetAudienceVibe: TargetAudienceVibe;
+  tone: ContentTone;
+  visualStyle: VisualStyle;
+  characterType: CharacterType;
+  characterDescription: string;
+  primaryColor: string;
+  secondaryColor: string;
+  reasoning: string;
 }
 
 // ─── Content Plans (Track 20) ─────────────────────────────────────────────────
@@ -385,6 +399,7 @@ export interface ContentPlan {
 export interface SocialAccount {
   id: string;
   userId: string;
+  brandProfileId: string | null;
   platform: SocialPlatform;
   pageId: string;
   pageName: string;

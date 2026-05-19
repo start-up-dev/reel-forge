@@ -410,3 +410,74 @@ export async function splitScenes(
 
   throw new Error("Scene split failed after 3 attempts: model did not return a valid scenes array.");
 }
+
+// ─── Brand profile suggestion ─────────────────────────────────────────────────
+
+export interface BrandSuggestion {
+  niche: string;
+  nicheDescription: string;
+  targetAudienceAge: "gen_z" | "millennial" | "gen_x" | "all";
+  targetAudienceVibe: "entertainment" | "education" | "inspiration" | "humor";
+  tone: string;
+  visualStyle: string;
+  characterType: "human" | "mascot" | "abstract" | "none";
+  characterDescription: string;
+  primaryColor: string;
+  secondaryColor: string;
+  reasoning: string;
+}
+
+export async function suggestBrandProfile(channelInfo: {
+  pageName: string;
+  platform: string;
+  pageAvatarUrl?: string | null;
+  feedback?: string;
+}): Promise<BrandSuggestion> {
+  const systemPrompt = `You are a brand strategist helping creators build their content identity.
+Analyze the social media channel info provided and suggest a complete brand profile.
+Be specific and opinionated — give concrete suggestions, not generic ones.
+For colors, suggest hex codes that match the brand vibe.
+For characterDescription, be vivid and specific (2-3 sentences on appearance, personality, style).`;
+
+  const userContent = `Channel: "${channelInfo.pageName}" on ${channelInfo.platform}.
+${channelInfo.feedback ? `\nUser feedback on previous suggestion: "${channelInfo.feedback}"\nAdjust your suggestions accordingly.` : ""}
+
+Based on this channel, suggest a brand profile. Be specific and creative.`;
+
+  const message = await client.messages.create({
+    model: "claude-sonnet-4-6",
+    max_tokens: 1024,
+    system: systemPrompt,
+    tools: [
+      {
+        name: "suggest_brand_profile",
+        description: "Submit brand profile suggestions for this channel",
+        input_schema: {
+          type: "object" as const,
+          properties: {
+            niche: { type: "string", description: "Short niche label, e.g. 'Tech productivity'" },
+            nicheDescription: { type: "string", description: "1-2 sentence description of the specific niche" },
+            targetAudienceAge: { type: "string", enum: ["gen_z", "millennial", "gen_x", "all"] },
+            targetAudienceVibe: { type: "string", enum: ["entertainment", "education", "inspiration", "humor"] },
+            tone: { type: "string", enum: ["energetic", "calm", "witty", "inspirational", "professional", "dramatic"] },
+            visualStyle: { type: "string", enum: ["realistic", "anime", "3d_animation", "cartoon", "cinematic", "minimalist"] },
+            characterType: { type: "string", enum: ["human", "mascot", "abstract", "none"] },
+            characterDescription: { type: "string", description: "Vivid description of the character's appearance and personality. Empty string if characterType is 'none'." },
+            primaryColor: { type: "string", description: "Hex color code, e.g. #f55c2a" },
+            secondaryColor: { type: "string", description: "Hex color code, e.g. #4a90e2" },
+            reasoning: { type: "string", description: "1-2 sentences explaining why these choices fit the channel" },
+          },
+          required: ["niche", "nicheDescription", "targetAudienceAge", "targetAudienceVibe", "tone", "visualStyle", "characterType", "characterDescription", "primaryColor", "secondaryColor", "reasoning"],
+        },
+      },
+    ],
+    tool_choice: { type: "tool", name: "suggest_brand_profile" },
+    messages: [{ role: "user", content: userContent }],
+  });
+
+  const toolUse = message.content.find(
+    (b): b is Anthropic.ToolUseBlock => b.type === "tool_use",
+  );
+  if (!toolUse) throw new Error("Brand suggestion returned no tool call.");
+  return toolUse.input as BrandSuggestion;
+}

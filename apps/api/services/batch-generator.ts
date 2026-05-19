@@ -1,7 +1,6 @@
 import { and, asc, eq, inArray, sql } from "drizzle-orm";
 import { db } from "../lib/db/index.js";
 import { brandProfiles, clipRequests, contentPlans, postSchedules, scenes, socialAccounts, users, videos } from "../lib/db/schema.js";
-import type { BrandProfileRow } from "../lib/db/schema.js";
 import { emitPlanEvent } from "../lib/plan-event-bus.js";
 import { generateSignedReadUrl } from "../lib/storage.js";
 import { uploadReelToFacebook } from "./facebook.js";
@@ -233,18 +232,11 @@ async function autoPostCompletedVideos(
 
     if (!plan || plan.postType === "manual") return;
 
-    const [brand] = await db
-      .select()
-      .from(brandProfiles)
-      .where(eq(brandProfiles.id, plan.brandProfileId))
-      .limit(1);
-
-    if (!brand?.socialAccountId) return;
-
+    // Find the first channel connected to this brand
     const [account] = await db
       .select()
       .from(socialAccounts)
-      .where(eq(socialAccounts.id, brand.socialAccountId))
+      .where(eq(socialAccounts.brandProfileId, plan.brandProfileId))
       .limit(1);
 
     if (!account) return;

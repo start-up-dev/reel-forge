@@ -24,7 +24,7 @@ export async function downloadAssets(
   // ElevenLabs removed — clip audio is preserved; no separate audio file needed.
   const audioPath: string | null = null;
   const wordTimestampsPath: string | null = null;
-  let characterBasePath: string | null = null;
+  const characterBasePath: string | null = null;
 
   const downloads: Promise<void>[] = [];
 

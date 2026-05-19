@@ -5,6 +5,7 @@ import type {
   ActionReelStyle,
   ApiResponse,
   BrandProfile,
+  BrandSuggestion,
   CharacterType,
   ContentFormat,
   ContentPlan,
@@ -266,7 +267,6 @@ export function createApiClient(getToken: () => Promise<string | null>) {
         tone: ContentTone;
         visualStyle: VisualStyle;
         characterType: CharacterType;
-        socialAccountId?: string;
         nicheDescription?: string;
         targetAudienceAge?: TargetAudienceAge;
         targetAudienceVibe?: TargetAudienceVibe;
@@ -280,6 +280,15 @@ export function createApiClient(getToken: () => Promise<string | null>) {
           body: JSON.stringify(data),
         });
       },
+      suggest(
+        id: string,
+        feedback?: string
+      ): Promise<ApiResponse<BrandSuggestion>> {
+        return authedRequest(`/api/brand-profiles/${id}/suggest`, {
+          method: "POST",
+          body: JSON.stringify({ feedback }),
+        });
+      },
       update(
         id: string,
         data: Partial<{
@@ -288,7 +297,6 @@ export function createApiClient(getToken: () => Promise<string | null>) {
           tone: ContentTone;
           visualStyle: VisualStyle;
           characterType: CharacterType;
-          socialAccountId: string;
           nicheDescription: string;
           targetAudienceAge: TargetAudienceAge;
           targetAudienceVibe: TargetAudienceVibe;
@@ -380,8 +388,9 @@ export function createApiClient(getToken: () => Promise<string | null>) {
 
     // ── Social accounts ───────────────────────────────────────────────────
     social: {
-      authorize(): Promise<ApiResponse<{ authUrl: string }>> {
-        return authedRequest("/api/auth/facebook/authorize");
+      authorize(brandId?: string): Promise<ApiResponse<{ authUrl: string }>> {
+        const qs = brandId ? `?brandId=${brandId}` : "";
+        return authedRequest(`/api/auth/facebook/authorize${qs}`);
       },
       callback(code: string, state: string): Promise<ApiResponse<{ pages: FacebookPage[] }>> {
         const qs = new URLSearchParams({ code, state });
@@ -392,7 +401,8 @@ export function createApiClient(getToken: () => Promise<string | null>) {
         pageName: string;
         pageAvatarUrl?: string;
         accessToken: string;
-      }): Promise<ApiResponse<SocialAccount>> {
+        brandProfileId?: string;
+      }): Promise<ApiResponse<SocialAccount & { isNewBrand: boolean }>> {
         return authedRequest("/api/social/facebook/connect", {
           method: "POST",
           body: JSON.stringify(data),

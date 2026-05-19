@@ -22,6 +22,7 @@ function ChannelsCallbackPageInner() {
   const api = useApiClient();
 
   const [pages, setPages] = useState<FacebookPage[] | null>(null);
+  const [pendingBrandId, setPendingBrandId] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [connecting, setConnecting] = useState(false);
 
@@ -38,6 +39,11 @@ function ChannelsCallbackPageInner() {
       setError("Missing OAuth parameters.");
       return;
     }
+
+    // State format: userId:nonce or userId:nonce:brandId
+    const parts = state.split(":");
+    const brandIdFromState = parts.length >= 3 ? parts[2] ?? null : null;
+    setPendingBrandId(brandIdFromState);
 
     void (async () => {
       const result = await withToast(
@@ -61,12 +67,21 @@ function ChannelsCallbackPageInner() {
           pageName: page.name,
           pageAvatarUrl: page.pictureUrl ?? undefined,
           accessToken: page.accessToken,
+          brandProfileId: pendingBrandId ?? undefined,
         }),
       "Failed to connect page"
     );
     if (result?.data) {
       toast.success(`Connected ${page.name}`);
-      router.push("/channels");
+      if (result.data.isNewBrand && result.data.brandProfileId) {
+        // New brand was created — go to agentic onboarding
+        router.push(`/brands/${result.data.brandProfileId}/onboard`);
+      } else if (result.data.brandProfileId) {
+        // Added to existing brand — go back to brand detail
+        router.push(`/brands/${result.data.brandProfileId}`);
+      } else {
+        router.push("/brands");
+      }
     }
     setConnecting(false);
   }
@@ -75,8 +90,8 @@ function ChannelsCallbackPageInner() {
     return (
       <div className="flex flex-col items-center justify-center gap-4 py-32 text-center">
         <p className="text-sm text-[var(--accent-danger)]">{error}</p>
-        <Button variant="ghost" onClick={() => router.push("/channels")}>
-          ← Back to Channels
+        <Button variant="ghost" onClick={() => router.push("/brands")}>
+          ← Back to Brands
         </Button>
       </div>
     );
@@ -97,7 +112,9 @@ function ChannelsCallbackPageInner() {
         Select a Facebook page
       </h1>
       <p className="mb-6 text-sm text-[var(--text-muted)]">
-        Choose which page to connect for content publishing.
+        {pendingBrandId
+          ? "Choose which page to add to your brand."
+          : "Choose which page to connect. We'll build your brand profile from it."}
       </p>
       <ul className="space-y-2">
         {pages.map((page) => (

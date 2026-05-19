@@ -3,7 +3,7 @@ import type { FastifyInstance } from "fastify";
 import { z } from "zod";
 import type { SnapshotClip } from "@repo/types";
 import { db } from "../lib/db/index.js";
-import { clipRequests, postSchedules, scenes, users, videos } from "../lib/db/schema.js";
+import { clipRequests, postSchedules, scenes, videos } from "../lib/db/schema.js";
 import {
   ASSET_URL_TTL_MINUTES,
   generateSignedReadUrl,
