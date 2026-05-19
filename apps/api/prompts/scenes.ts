@@ -203,12 +203,17 @@ PACING: quick energetic strokes for excitement / slow deliberate drawing for wei
 
 // ─── Builder ──────────────────────────────────────────────────────────────────
 
+// Character-based render styles that feature an on-screen character.
+// These styles benefit from the character sheet reference when one exists.
+const CHARACTER_BASED_STYLES = new Set(["mascot", "cartoon"]);
+
 export function buildScenesMessages(
   script: string,
   audioDurationSeconds: number,
   targetCount: number,
   renderStyle?: string,
   characterNote?: string | null,
+  hasCharacterSheet?: boolean,
 ): PromptPair {
   const system =
     renderStyle && renderStyle !== "cinematic"
@@ -216,6 +221,29 @@ export function buildScenesMessages(
       : SCENE_DIRECTOR_SYSTEM;
 
   const isTalkingStyle = renderStyle === "talking";
+  const isCharacterStyle = renderStyle ? CHARACTER_BASED_STYLES.has(renderStyle) : false;
+
+  // Build the character instruction block.
+  // When a character sheet image is attached to Grok, Claude must NOT describe the
+  // character's appearance — it defers entirely to the reference image.
+  // The characterNote (WORLD/SETTING lines) is still used for environment consistency.
+  let characterBlock = "";
+
+  if (isCharacterStyle && hasCharacterSheet) {
+    // Only pass the WORLD line — not the full characterNote — so Claude has environment
+    // context without seeing physical description lines (HAIR, FACE, etc.) that could
+    // tempt it to describe character appearance instead of deferring to the image.
+    const worldLine = characterNote?.split("\n").find((l) => l.trimStart().startsWith("WORLD:")) ?? null;
+    const worldContext = worldLine
+      ? `\nCharacter's home environment (use this to write consistent ENVIRONMENT sections): ${worldLine}`
+      : "";
+    characterBlock = `\nCHARACTER REF — a character sheet image is attached to Grok Imagine:
+In every scene's visualPrompt, write the CHARACTER/MASCOT section as exactly this line:
+"CHARACTER: Replicate the character from the attached reference sheet exactly — same colours, proportions, features, accessories, and distinguishing marks. Do not alter or describe any physical feature."
+Then describe only their POSE/EXPRESSION, ENVIRONMENT, CAMERA, LIGHTING, ATMOSPHERE — never their physical appearance.${worldContext}\n`;
+  } else if (characterNote) {
+    characterBlock = `\nCHARACTER & STYLE NOTE — embed this into every scene's visualPrompt verbatim:\n${characterNote}\n`;
+  }
 
   return {
     system,
@@ -226,7 +254,7 @@ ${script}
 
 Total audio duration: ${audioDurationSeconds} seconds
 Required scene count: exactly ${targetCount}
-${characterNote ? `\nCHARACTER & STYLE NOTE — embed this into every scene's visualPrompt verbatim:\n${characterNote}\n` : ""}
+${characterBlock}
 Rules:
 - EXACTLY ${targetCount} scene${targetCount === 1 ? "" : "s"} — no more, no fewer
 - textExcerpt: exact words from the script this scene covers

@@ -287,9 +287,25 @@ export function buildActionReelSceneMessages(
   targetCount: number,
   actionReelStyle?: string | null,
   characterNote?: string | null,
+  hasCharacterSheet?: boolean,
 ): PromptPair {
   const style = actionReelStyle ?? "workout";
   const system = ACTION_REEL_STYLE_SYSTEMS[style] ?? ACTION_REEL_STYLE_SYSTEMS.workout!;
+
+  // Build character block. Action reels typically use a generic athlete, but when a
+  // brand has a specific character sheet, defer to the reference image for appearance
+  // and use characterNote only for WORLD/SETTING context.
+  let characterBlock = "";
+  if (hasCharacterSheet) {
+    const worldLine = characterNote?.split("\n").find((l) => l.trimStart().startsWith("WORLD:")) ?? null;
+    const worldContext = worldLine
+      ? `\nCharacter's home environment (use for consistent ATMOSPHERE/SETTING): ${worldLine}`
+      : "";
+    characterBlock = `\nCHARACTER REF — a character sheet image is attached to Grok Imagine:
+Write the ATHLETE section in every visualPrompt as: "ATHLETE: Replicate the character from the attached reference sheet exactly." Do not describe physical appearance — only describe their action, body position, and the scene.${worldContext}\n`;
+  } else if (characterNote) {
+    characterBlock = `\nCHARACTER & STYLE NOTE — embed into every visualPrompt:\n${characterNote}\n`;
+  }
 
   return {
     system,
@@ -299,7 +315,7 @@ SHOT PLAN (one shot per line):
 ${shotPlan}
 
 Required scene count: exactly ${targetCount}
-${characterNote ? `\nCHARACTER & STYLE NOTE — embed into every visualPrompt:\n${characterNote}\n` : ""}Rules:
+${characterBlock}Rules:
 - EXACTLY ${targetCount} scene${targetCount === 1 ? "" : "s"} — one per shot description line
 - textExcerpt: the exact shot description line from the shot plan
 - visualPrompt: hyper-specific AI image prompt following your style system EXACTLY. 9:16 vertical frame.

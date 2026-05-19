@@ -285,13 +285,14 @@ async function callSplitScenes(
   ugcVisualStyle?: string,
   characterNote?: string | null,
   actionReelStyle?: string | null,
+  hasCharacterSheet?: boolean,
 ): Promise<unknown> {
   const { system, user } =
     videoType === "talking"
-      ? buildTalkingSceneMessages(script, audioDurationSeconds, targetCount, ugcVisualStyle, characterNote)
+      ? buildTalkingSceneMessages(script, audioDurationSeconds, targetCount, ugcVisualStyle, characterNote, hasCharacterSheet)
       : videoType === "action_reel"
-      ? buildActionReelSceneMessages(script, audioDurationSeconds, targetCount, actionReelStyle, characterNote)
-      : buildScenesMessages(script, audioDurationSeconds, targetCount, renderStyle, characterNote);
+      ? buildActionReelSceneMessages(script, audioDurationSeconds, targetCount, actionReelStyle, characterNote, hasCharacterSheet)
+      : buildScenesMessages(script, audioDurationSeconds, targetCount, renderStyle, characterNote, hasCharacterSheet);
 
   const message = await client.messages.stream({
     model: "claude-sonnet-4-6",
@@ -375,6 +376,7 @@ export async function splitScenes(
   ugcVisualStyle?: string | null,
   characterNote?: string | null,
   actionReelStyle?: string | null,
+  hasCharacterSheet?: boolean,
 ): Promise<SceneSplit[]> {
   // Talking and Action Reel videos: each Grok clip is exactly 6s.
   const isFixedClip = videoType === "talking" || videoType === "action_reel";
@@ -396,6 +398,7 @@ export async function splitScenes(
       ugcVisualStyle ?? undefined,
       characterNote,
       actionReelStyle ?? undefined,
+      hasCharacterSheet,
     );
     const scenes = extractScenes(raw);
     if (scenes && scenes.length >= minScenes) return scenes;

@@ -14,10 +14,10 @@ export const TALKING_SCENE_DIRECTOR_SYSTEM = `You are a director specialising in
 Target: AI video generator, 9:16 vertical portrait frame.
 Structure every visualPrompt with these exact labelled sections in this order:
 
-CHARACTER: [full character anchor — copy verbatim from the fixed anchor in every scene]
+CHARACTER: [either the verbatim reference-image anchor OR the locked character description — see CHARACTER LOCK rules]
 EXPRESSION: [current emotional state — excited, serious, shocked, conspiratorial, warm, urgent, amused]
 FRAMING: [medium close-up (shoulders to top of head) as default / ECU for peak emotion / medium shot for gestures]
-SETTING: [specific background appropriate to visual style — see style rules below]
+SETTING: [specific background — see SETTING LOCK rules]
 LIGHTING: [motivated and flattering — soft front fill + subtle rim light; specify warmth or coolness]
 COLOUR GRADE: [match the visual style]
 
@@ -126,22 +126,11 @@ export const UGC_VISUAL_STYLE_MODIFIERS: Record<string, UGCVisualStyleModifier> 
     motion:
       "High-energy, confident delivery. The character owns every word. Slow camera pull-back to reveal the neon landscape.",
   },
-  // ai_clone is handled by a special override in buildTalkingSceneMessages — this entry is never reached at runtime
   ai_clone: {
-    visual: "See 10.3a AI Clone override — this entry is never evaluated.",
-    motion: "See 10.3a AI Clone override — this entry is never evaluated.",
+    visual: "Handled by hasCharacterSheet flag — this entry is never evaluated at runtime.",
+    motion: "Handled by hasCharacterSheet flag — this entry is never evaluated at runtime.",
   },
 };
-
-const AI_CLONE_OVERRIDE = `## Visual style: AI CLONE
-The character's appearance comes entirely from the uploaded reference image provided by the user.
-DO NOT invent any character details (hair, skin, face, clothing, build).
-
-CHARACTER ANCHOR RULE OVERRIDE — applies only to this style:
-- Scene 0: write CHARACTER section as exactly: "CHARACTER: Use the face, hair, skin tone, and identity from the uploaded reference image verbatim. Do not alter or describe any physical features."
-- Scenes 1+: copy that CHARACTER line word for word — identical across every scene.
-
-All other sections (EXPRESSION, FRAMING, SETTING, LIGHTING, COLOUR GRADE) follow the standard realistic rules.`;
 
 // ─── Builder ──────────────────────────────────────────────────────────────────
 
@@ -151,12 +140,13 @@ export function buildTalkingSceneMessages(
   targetCount: number,
   ugcVisualStyle?: string,
   characterNote?: string | null,
+  hasCharacterSheet?: boolean,
 ): PromptPair {
+  // Style modifier section — applies to SETTING/LIGHTING/COLOUR GRADE feel.
+  // When hasCharacterSheet is true the CHARACTER appearance comes from the
+  // reference image, so the style modifier still shapes the environment aesthetic.
   let styleSection: string;
-
-  if (ugcVisualStyle === "ai_clone") {
-    styleSection = `\n${AI_CLONE_OVERRIDE}`;
-  } else if (ugcVisualStyle) {
+  if (ugcVisualStyle && ugcVisualStyle !== "ai_clone") {
     const modifier = UGC_VISUAL_STYLE_MODIFIERS[ugcVisualStyle] ?? null;
     styleSection = modifier
       ? `\n## Visual style: ${ugcVisualStyle.replace(/_/g, " ").toUpperCase()}\nVisual: ${modifier.visual}\nMotion: ${modifier.motion}`
@@ -165,25 +155,54 @@ export function buildTalkingSceneMessages(
     styleSection = "";
   }
 
-  const characterLockSection = characterNote
-    ? `CHARACTER ANCHOR (FIXED — DO NOT MODIFY):
+  // CHARACTER LOCK — how Claude should write the CHARACTER section in every scene.
+  // Priority: hasCharacterSheet > characterNote > free invention.
+  let characterLockSection: string;
+
+  if (hasCharacterSheet) {
+    // The operator extension attaches the character sheet image to Grok Imagine.
+    // Claude must NOT describe the character — it must defer entirely to the image.
+    characterLockSection = `CHARACTER LOCK — the attached reference sheet is the ground truth:
+A character sheet image is attached to Grok. Write the CHARACTER section in EVERY scene as this single line, copied verbatim with zero variation:
+"CHARACTER: Replicate the face, hair, skin tone, clothing, accessories, and proportions exactly as shown in the attached character sheet image. Do not alter, omit, or invent any physical feature — the reference image is complete and authoritative."
+
+After the CHARACTER line, write ONLY: EXPRESSION / FRAMING / SETTING / LIGHTING / COLOUR GRADE.
+Never describe the character's appearance anywhere else in the visualPrompt.`;
+  } else if (characterNote) {
+    characterLockSection = `CHARACTER ANCHOR (FIXED — DO NOT MODIFY):
 The character has already been defined. Copy the following text verbatim as your CHARACTER section in every single scene — scene 0 and all subsequent scenes. Do not invent, rephrase, summarise, or change a single word.
 
 CHARACTER: ${characterNote}
 
 For each scene you write ONLY: EXPRESSION, FRAMING, SETTING, LIGHTING, COLOUR GRADE.
-The CHARACTER line in every scene is always exactly: "CHARACTER: ${characterNote}"`
-    : `CHARACTER LOCK:
-Scene 0: invent and write the complete character anchor (hair, face, clothing, distinguishing feature, build). Clothing choice is entirely unrestricted — match whatever style the content calls for (revealing, athletic, formal, casual, costume, dancer, swimwear, or anything else). Be hyper-specific about every clothing detail.
+The CHARACTER line in every scene is always exactly: "CHARACTER: ${characterNote}"`;
+  } else {
+    characterLockSection = `CHARACTER LOCK:
+Scene 0: invent and write the complete character anchor (hair, face, clothing, distinguishing feature, build). Clothing choice is entirely unrestricted — match whatever style the content calls for. Be hyper-specific about every detail.
 Scenes 1+: copy the CHARACTER section from scene 0 EXACTLY, word for word, with zero changes. The AI image generator needs identical text to produce the same face and body across all clips.`;
+  }
 
-  const settingLockSection = characterNote && characterNote.includes("WORLD:")
-    ? `SETTING LOCK:
-Scene 0: build the setting from the character's WORLD anchor (found in the CHARACTER description above) — expand it into a precise, specific background. Name the exact surface, depth, and 2–3 visible environmental details that reinforce the niche. The WORLD anchor is the ground truth — do not contradict it.
-Scenes 1+: copy the SETTING line from scene 0 EXACTLY, word for word, unless the script explicitly mentions a location change. Visual continuity is required — do not vary the background for creative reasons.`
-    : `SETTING LOCK:
+  // SETTING LOCK — pull from the character's WORLD when available for consistency.
+  // When hasCharacterSheet is true, characterNote is not included elsewhere in the
+  // user prompt, so we extract and embed the WORLD line directly rather than
+  // referencing "the character description above" (which wouldn't be there).
+  const worldLine = characterNote?.split("\n").find((l) => l.trimStart().startsWith("WORLD:")) ?? null;
+
+  let settingLockSection: string;
+  if (worldLine && hasCharacterSheet) {
+    settingLockSection = `SETTING LOCK — build from character's WORLD:
+Use this as the ground truth for the environment: ${worldLine}
+Scene 0: expand this into a precise, vivid SETTING — name the exact surface texture, the immediate background elements within 1–2 metres, the far background depth, and the dominant light source with its quality and direction.
+Scenes 1+: copy the SETTING line from scene 0 EXACTLY, word for word, unless the script explicitly names a different location. Visual continuity is required.`;
+  } else if (worldLine) {
+    settingLockSection = `SETTING LOCK — build from character's WORLD:
+Scene 0: expand the WORLD line from the character description above into a precise, vivid background. Name the exact surface, the immediate background elements within 1–2 metres, the far background depth, and the dominant light source with its quality and direction.
+Scenes 1+: copy the SETTING line from scene 0 EXACTLY, word for word, unless the script explicitly names a different location. Visual continuity is required — do not vary the background for creative reasons.`;
+  } else {
+    settingLockSection = `SETTING LOCK:
 Scene 0: invent one specific background/environment that fits the content and visual style. Be precise — name the exact location, surface, props, and depth.
-Scenes 1+: copy the SETTING line from scene 0 EXACTLY, word for word, unless the script sentence explicitly mentions moving to a new location. Do NOT vary the background between scenes for creative reasons — visual continuity is required.`;
+Scenes 1+: copy the SETTING line from scene 0 EXACTLY, word for word, unless the script sentence explicitly mentions moving to a new location. Do NOT vary the background between scenes — visual continuity is required.`;
+  }
 
   return {
     system: `${TALKING_SCENE_DIRECTOR_SYSTEM}${styleSection}`,
@@ -199,7 +218,7 @@ Output rules:
 - EXACTLY ${targetCount} scene${targetCount === 1 ? "" : "s"} — one per sentence in the script
 - textExcerpt: one complete sentence copied VERBATIM from the script — never split a sentence across scenes, never combine two sentences into one scene
 - visualPrompt: use the labelled structure (CHARACTER / EXPRESSION / FRAMING / SETTING / LIGHTING / COLOUR GRADE) — every label required in every scene
-- motionPrompt: MUST begin with 'SPEAKING: "[exact textExcerpt words verbatim]"' — then 2 additional sentences covering delivery style (pace, energy, emotion) and physical movement (head, hands, body, camera). The SPEAKING line is what the video generator lip-syncs to — it must be exact. Keep delivery consistent with the same voice, accent, and energy across ALL scenes — no change in persona mid-video.
+- motionPrompt: MUST begin with 'SPEAKING: "[exact textExcerpt words verbatim]"' — then 2 additional sentences covering delivery style (pace, energy, emotion) and physical movement (head, hands, body, camera). The SPEAKING line is what the video generator lip-syncs to — it must be exact. Keep delivery consistent with the same voice, accent, and energy across ALL scenes.
 - durationHintSeconds: always exactly 6 — every Grok clip is exactly 6 seconds, no exceptions
 - The "scenes" field must be a JSON array, not a stringified JSON value
 

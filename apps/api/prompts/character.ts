@@ -3,9 +3,13 @@ import { brandContext } from "./utils.js";
 import type { PromptPair } from "./script.js";
 
 // ─── UGC character description prompt builder ─────────────────────────────────
-// Phase A of Track 13: generate a locked five-line character description before
-// scene generation. The output is stored on the video row and injected into every
+// Phase A of Track 13: generate a locked character description before scene
+// generation. The output is stored on the video row and injected into every
 // scene prompt as a fixed CHARACTER anchor.
+//
+// When a character sheet IMAGE also exists, Claude uses this description only
+// for the WORLD/SETTING sections — the character's physical appearance is
+// handled entirely by the reference image attached to Grok.
 
 const UGC_STYLE_CONTEXT: Record<string, string> = {
   realistic:     "Natural proportions, real-world clothing and skin tones, no stylisation",
@@ -31,35 +35,42 @@ export function buildUGCCharacterDescriptionPrompt(
   const styleContext = UGC_STYLE_CONTEXT[ugcVisualStyle] ?? "Natural proportions, real-world clothing and skin tones";
 
   return {
-    system: "You are a character designer creating a locked visual identity for a short-form video creator. Your output will be used as the CHARACTER section of an AI image generation prompt and must produce the same person reliably across many different scenes. The character must look like a genuine expert and passionate enthusiast in their niche — someone the target audience would immediately recognise, trust, and want to follow.",
+    system: "You are a character designer creating a locked visual identity for a short-form video creator. Your output will be used in two ways: (1) as the CHARACTER anchor injected into AI image generation prompts to produce the same person reliably across many scenes, and (2) as the WORLD anchor that establishes the character's consistent background environment. The character must look like a genuine expert and passionate enthusiast in their niche — someone the target audience would immediately recognise, trust, and want to follow.",
     user: `Project context:
 ${brandContext(brand)}
 
 Visual style: ${ugcVisualStyle.replace(/_/g, " ")}
 Style context: ${styleContext}
 
-Write a 80–110 word character description using exactly these seven labelled lines in this order:
-HAIR: [exact colour, length, style, any distinguishing detail]
-FACE: [skin tone with warmth description, eye colour, brow character]
-CLOTHING: [niche-authentic outfit — specific garment + exact colour + texture; must immediately signal the niche to any viewer]
-FEATURE: [one anchoring detail — earring, freckle, tattoo, badge, glasses, scar, etc.]
-BUILD: [brief impression — apparent age, physique, energy that matches the niche]
-PROPS: [1–2 niche-specific items permanently visible — held in hand, worn, or in the immediate foreground; e.g. for gym fitness: chalk-dusted barbell gripped in right hand, worn leather gym belt; for cooking: wooden spatula in right hand, apron strings tied at front]
-WORLD: [5–8 words — the character's home environment that reinforces niche; e.g. "rubber gym floor, iron weight rack behind" or "marble kitchen counter, cast-iron pans hanging"]
+Write a 220–280 word character description using exactly these eleven labelled lines in this order:
+
+HAIR: [exact colour with undertone, length, texture (fine/thick/curly/straight/wavy), specific styling — e.g. "warm chestnut brown, shoulder-length, thick and slightly wavy, worn loose with a natural centre part"]
+HEAD & FACE SHAPE: [face geometry — oval/square/heart/round, jaw width (strong/soft/narrow), cheekbone prominence, forehead proportions]
+SKIN: [precise tone with warmth description + any texture note — e.g. "warm medium-tan with golden undertone, smooth with faint freckle dusting across the nose bridge"]
+EYES: [shape (almond/round/hooded/upturned), relative size, exact colour with depth, any distinctive feature — lash fullness, visible crease, eye makeup if niche-appropriate]
+NOSE & LIPS: [nose width and profile (broad/narrow, straight/turned-up/aquiline), lip fullness (thin/medium/full), natural lip colour]
+CLOTHING: [niche-authentic outfit — every layer named with exact colour and texture; must make the niche instantly obvious at a glance]
+FEATURE: [one permanent anchoring detail — earring style, freckle cluster, tattoo placement, badge, glasses frame, scar, birthmark]
+BUILD: [apparent age, height impression, physique descriptor, energy level that matches the niche]
+POSTURE: [default head angle, shoulder set, body energy — e.g. "slight forward lean, shoulders relaxed and open, projects confident approachability"]
+PROPS: [1–2 niche-specific items permanently visible — held in hand, worn, or in immediate foreground; must make the niche unmistakable]
+WORLD: [3–4 sentences. The character's permanent home environment with full visual specificity: name the exact surface they stand/sit on with texture detail; describe the immediate background within 1–2 metres; describe the depth/far background; name the dominant light source, its quality, and direction. This world appears in every single scene by default.]
 
 Critical rules:
-- CLOTHING + PROPS together must make the niche instantly obvious at a glance — no viewer should be unsure what this person does
-- PROPS are permanent anchors — they appear in every single scene
-- WORLD is the default setting — it informs every scene's background even when the camera is tight on the character
+- Every line must be specific enough that two different artists produce the same result
+- CLOTHING + PROPS together must make the niche obvious at a glance with zero ambiguity
+- WORLD must be a complete, paintable environment description — not just a label like "gym" or "kitchen"
+- PROPS are permanent anchors — they appear in every scene regardless of the action
 
-Output ONLY the seven-line character description. No preamble. No scene context. No explanation.`,
+Output ONLY the eleven-line character description. No preamble. No explanation.`,
   };
 }
 
 // ─── Character sheet prompt builder ──────────────────────────────────────────
-// Used by Track 2 (cartoon/mascot consistency) to generate a base character
+// Used by Track 2 (cartoon/mascot consistency) to generate a character
 // description that gets injected into every subsequent scene's visualPrompt.
-// The returned prompt is passed to generateImage to produce the reference image.
+// The returned prompt is passed to Claude to produce the reference description,
+// which is then used to generate the character sheet image via GPT-image-2.
 
 export function buildCharacterSheetPrompt(
   brand: BrandProfileRow,
@@ -72,12 +83,12 @@ export function buildCharacterSheetPrompt(
       : "2D flat cartoon, thick black outlines, bold primary colours, exaggerated proportions: large head, small body, enormous expressive eyes — the character's design must scream the niche at a glance";
 
   return {
-    system: `You are a character designer creating a definitive visual reference for a ${styleLabel}. Your output will be used as an AI image generation prompt that must produce a visually consistent, instantly lovable character across many different scenes.
+    system: `You are a character designer creating a definitive visual reference for a ${styleLabel}. Your output will be used as an AI image generation prompt that must produce a visually consistent, instantly lovable character across many different scenes and across months of content.
 
 Your character description must be:
-- Hyper-specific: every detail (colour, shape, expression range, distinguishing features) locked down
-- Repeatable: another AI model reading this description generates the same character every time
+- Hyper-specific: every colour (use named colour values), shape, proportion, and distinguishing feature locked down so precisely that another AI model generates the same character on the first attempt
 - Niche-embedded: the character's silhouette, accessories, and props must make the niche immediately obvious — a viewer should know the niche within one second of seeing the character
+- World-grounded: the character's home environment must be defined completely enough to appear consistently behind them across every scene
 - Likable: give the character personality through specific expressive features and one or two charming quirks`,
     user: `Project context:
 ${brandContext(brand)}
@@ -85,16 +96,17 @@ ${brandContext(brand)}
 Render style: ${styleLabel}
 Style rules: ${styleRules}
 
-Write a character sheet prompt (180–240 words) that describes this character so precisely that an AI image generator will produce the same character reliably. Include ALL of these:
+Write a character sheet description (220–270 words) covering ALL of these sections in order:
 
-SILHOUETTE & TYPE: species/type, overall shape, size impression
-COLOUR PALETTE: exact named colours for every body region (skin/surface, hair/top, clothing, eyes, outline)
-NICHE PROPS (required — 2–3 items): specific objects permanently attached to or held by the character that instantly signal the niche — they appear in every single scene (e.g. for gym fitness: always gripping a miniature barbell, always wearing a tiny lifting belt, chalk dust on hands; for cooking: always holding a wooden spoon, always wearing a striped apron; for finance: always holding a gold coin, always wearing a tiny tie)
-DISTINGUISHING FEATURES: hat, marking, texture, accessory, facial detail that makes this character unique
-EXPRESSION & PERSONALITY: default face expression + one quirk that makes it charming (e.g. one eyebrow always slightly raised, perpetual tiny sweat drop, permanent wide grin)
-POSE ENERGY: how the character typically stands or floats — their default body language
-ENVIRONMENT MOTIFS: 2–3 background/scene elements that appear whenever the character is shown (e.g. for fitness: rubber gym floor tiles, iron weight rack, chalk cloud; for cooking: wooden cutting board surface, steam wisps, herb sprigs)
+SILHOUETTE & TYPE: species/type, overall body shape impression, size relative to frame
+COLOUR PALETTE: exact named colours for every body region — skin/surface, hair/top material, primary clothing, secondary clothing, eyes, outline colour, any accent colours. Be specific: "cobalt blue" not "blue", "warm cream" not "white".
+NICHE PROPS (2–3 items, required): specific objects permanently attached to or held by the character that instantly signal the niche — they appear in every single scene (e.g. for fitness: always gripping a miniature barbell, always wearing a tiny lifting belt; for cooking: always holding a wooden spoon, always wearing a striped apron)
+DISTINGUISHING FEATURES: hat style/colour, marking, texture pattern, accessory, facial detail — the one thing that makes this character instantly recognisable in a crowd
+EXPRESSION & PERSONALITY: default face expression described precisely + one charming quirk (e.g. one eyebrow perpetually slightly raised, permanent tiny sweat drop on forehead, wide grin showing two square front teeth)
+POSE ENERGY: exactly how the character stands or floats — their default body language and energy
+WORLD: [3–4 sentences. The character's permanent home environment: name the exact ground surface with texture; describe the 1–2 metre immediate background; describe the far background; name the dominant light source, quality, and direction. This environment appears in every scene.]
 
-End with: "9:16 vertical frame, no text — character centred on a simple gradient background matching the niche colour palette for reference sheet"`,
+End the description with this exact line:
+"9:16 vertical frame, no text — character centred, character sheet reference pose, environment as described above."`,
   };
 }

@@ -74,13 +74,14 @@ async function processVideo(
 
     if (!brand) throw new Error(`Brand profile not found for video ${videoId}`);
 
-    // For talking videos: use ai_clone when a character sheet image exists (visual prompts
-    // reference "the uploaded reference image"), otherwise use brand.characterDescription
-    // as the verbatim anchor injected into every scene.
+    // hasCharacterSheet: the brand has a character sheet image that the operator extension
+    // attaches to Grok Imagine. When true, every visualPrompt's CHARACTER section defers to
+    // that image ("replicate from attached reference sheet") rather than describing the
+    // character in text. The characterNote is still passed for WORLD/SETTING context.
     const hasCharacterSheet = Boolean(brand.characterSheetGcsPath);
     const effectiveUgcVisualStyle = video.ugcVisualStyle
-      ?? (video.videoType === "talking" ? (hasCharacterSheet ? "ai_clone" : brand.visualStyle ?? null) : null);
-    const characterNote = hasCharacterSheet ? null : (brand.characterDescription ?? null);
+      ?? (video.videoType === "talking" ? (brand.visualStyle ?? null) : null);
+    const characterNote = brand.characterDescription ?? null;
 
     // 1 — Generate script
     emitPlanEvent(planId, { type: "VIDEO_UPDATE", videoId, title: video.title, status: "SCRIPT_PENDING", message: "Scripting…" });
@@ -114,6 +115,7 @@ async function processVideo(
       effectiveUgcVisualStyle,
       characterNote,
       video.actionReelStyle ?? null,
+      hasCharacterSheet,
     );
 
     await db.delete(scenes).where(eq(scenes.videoId, videoId));
