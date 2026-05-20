@@ -440,8 +440,8 @@ export const PRICING = {
   subheadline:
     "7 video credits. A complete week of content. See a finished video live on your channel — then decide.",
   urgencyBanner:
-    "Founding member pricing — subscription rates are locked in for life when you join during launch.",
-  urgencyNote: "Rates increase after launch period ends.",
+    "Founding member pricing — first 100 subscribers lock in this rate for life.",
+  urgencyNote: "Once 100 spots are claimed, rates go up — permanently.",
   monthlyNote: "All subscriptions billed monthly. Cancel any time.",
   footerNote:
     "All plans: 1080×1920 MP4 · Subtitles burned in · Auto-post to social channels · Video library included",

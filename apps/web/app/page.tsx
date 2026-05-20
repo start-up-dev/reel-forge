@@ -285,37 +285,32 @@ function HeroSection() {
         </FadeIn>
 
         <FadeIn delay={0.5}>
-          <div className="mt-8 flex flex-col items-center gap-4">
-            <div className="flex flex-col sm:flex-row items-center gap-4 px-4 py-3 md:px-6 rounded-2xl bg-white/[0.02] border border-white/5 backdrop-blur-sm">
-              <div className="flex -space-x-3">
-                {[1, 2, 3, 4, 5].map((i) => (
-                  <div
-                    key={i}
-                    className="h-8 w-8 md:h-9 md:w-9 rounded-full border-2 border-[var(--bg-base)] bg-[var(--bg-elevated)] overflow-hidden"
-                  >
-                    {/* eslint-disable-next-line @next/next/no-img-element */}
-                    <img
-                      src={`https://api.dicebear.com/7.x/avataaars/svg?seed=${i + 10}`}
-                      alt="user"
-                      className="h-full w-full object-cover"
-                    />
-                  </div>
-                ))}
-              </div>
-              <div className="hidden sm:block h-8 w-px bg-white/10" />
-              <div className="text-center sm:text-left">
-                <div className="flex items-center justify-center sm:justify-start gap-1 text-[var(--accent-warning)]">
-                  <Star className="h-3 w-3 md:h-3.5 md:w-3.5 fill-current" />
-                  <Star className="h-3 w-3 md:h-3.5 md:w-3.5 fill-current" />
-                  <Star className="h-3 w-3 md:h-3.5 md:w-3.5 fill-current" />
-                  <Star className="h-3 w-3 md:h-3.5 md:w-3.5 fill-current" />
-                  <Star className="h-3 w-3 md:h-3.5 md:w-3.5 fill-current" />
-                  <span className="ml-1 text-[12px] md:text-[13px] font-black text-[var(--text-primary)]">
-                    5.0
-                  </span>
+          <div className="mt-10 flex justify-center px-4">
+            <div className="flex items-center gap-5 md:gap-8 px-5 md:px-8 py-3 md:py-4 rounded-2xl bg-white/[0.02] border border-white/5 backdrop-blur-sm">
+              <div className="text-center">
+                <div className="text-[18px] md:text-[22px] font-[900] text-[var(--text-primary)] tracking-tight leading-none">
+                  7
                 </div>
-                <p className="text-[11px] md:text-[12px] text-[var(--text-secondary)] font-medium">
-                  {HERO.proof.text}
+                <p className="mt-1 text-[9px] md:text-[10px] text-[var(--text-muted)] font-bold uppercase tracking-[0.15em]">
+                  Videos / week
+                </p>
+              </div>
+              <div className="h-8 w-px bg-white/10" />
+              <div className="text-center">
+                <div className="text-[18px] md:text-[22px] font-[900] text-[var(--text-primary)] tracking-tight leading-none">
+                  10 min
+                </div>
+                <p className="mt-1 text-[9px] md:text-[10px] text-[var(--text-muted)] font-bold uppercase tracking-[0.15em]">
+                  To set up
+                </p>
+              </div>
+              <div className="h-8 w-px bg-white/10" />
+              <div className="text-center">
+                <div className="text-[18px] md:text-[22px] font-[900] text-[var(--text-primary)] tracking-tight leading-none">
+                  0
+                </div>
+                <p className="mt-1 text-[9px] md:text-[10px] text-[var(--text-muted)] font-bold uppercase tracking-[0.15em]">
+                  Editing
                 </p>
               </div>
             </div>
@@ -387,7 +382,7 @@ function ShowcaseSection() {
             ))}
           </div>
           <p className="text-[12px] md:text-[13px] font-bold text-[var(--text-primary)] tracking-wide">
-            Hover to pause and explore {SHOWCASE.videos.length}+ viral templates
+            Hover any phone to pause · {SHOWCASE.videos.length} real ReelForge outputs
           </p>
         </div>
       </FadeIn>
@@ -639,42 +634,9 @@ function SolutionReveal() {
           </div>
         </FadeIn>
 
-        {/* Improved Pipeline nodes */}
         <FadeIn delay={0.4}>
-          <div className="mb-10 md:mb-12 grid grid-cols-2 sm:flex sm:flex-wrap justify-center gap-3">
-            {SOLUTION.pipelineNodes.map((node, i) => {
-              const nodeIcons = [Layers, Lightbulb, CheckCircle, Bot, Rocket];
-              const NodeIcon = nodeIcons[i] || CheckCircle;
-              const isLast = i === SOLUTION.pipelineNodes.length - 1;
-
-              return (
-                <div key={node} className="flex items-center group">
-                  <div
-                    className={`flex flex-1 flex-col items-center gap-2 px-3 py-4 md:px-5 md:py-5 rounded-xl md:rounded-2xl border border-white/5 bg-white/[0.02] min-w-[100px] md:min-w-[120px] transition-all hover:bg-white/[0.05] hover:border-white/10 hover:-translate-y-1 ${isLast ? "border-[var(--accent-success)]/40 bg-[var(--accent-success)]/[0.03]" : ""}`}
-                  >
-                    <div
-                      className={`flex h-9 w-9 md:h-10 md:w-10 items-center justify-center rounded-lg md:rounded-xl bg-[var(--bg-base)] border border-white/5 shadow-xl ${isLast ? "text-[var(--accent-success)] shadow-[0_0_20px_rgba(52,211,153,0.2)]" : "text-[var(--accent-primary)]"}`}
-                    >
-                      <NodeIcon className="w-4 h-4 md:w-5 md:h-5" />
-                    </div>
-                    <span
-                      className={`text-[10px] md:text-[12px] font-black uppercase tracking-tighter ${isLast ? "text-[var(--accent-success)]" : "text-[var(--text-secondary)]"}`}
-                    >
-                      {node}
-                    </span>
-                  </div>
-                  {i < SOLUTION.pipelineNodes.length - 1 && (
-                    <div className="hidden items-center md:flex px-1">
-                      <ArrowRight className="w-4 h-4 text-white/10 group-hover:text-[var(--accent-primary)]/40 transition-colors translate-y-[-10px]" />
-                    </div>
-                  )}
-                </div>
-              );
-            })}
-          </div>
-
           <PrimaryButton href={SOLUTION.inlineCta.href} size="md">
-            Explore the pipeline
+            See how it works
           </PrimaryButton>
         </FadeIn>
       </div>
