@@ -176,7 +176,7 @@ export default function CharacterSheetPage() {
           {atUiLimit && !atBackendLimit && (
             <Button
               variant="secondary"
-              onClick={() => router.push(`/brands/${params.id}/edit`)}
+              onClick={() => router.push(`/brands/${params.id}/onboard`)}
               className="gap-2"
             >
               <Palette className="h-4 w-4" />
@@ -209,7 +209,7 @@ export default function CharacterSheetPage() {
           <button
             type="button"
             className="underline hover:text-[var(--text-secondary)]"
-            onClick={() => router.push(`/brands/${params.id}/edit`)}
+            onClick={() => router.push(`/brands/${params.id}/onboard`)}
           >
             edit your brand profile
           </button>{" "}

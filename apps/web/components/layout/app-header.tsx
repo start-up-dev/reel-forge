@@ -9,7 +9,6 @@ import { useUser } from "@/lib/hooks/use-user";
 const pageTitles: Record<string, string> = {
   "/brands": "Brands",
   "/library": "My Videos",
-  "/channels": "Channels",
   "/settings": "Settings",
   "/billing": "Billing",
 };

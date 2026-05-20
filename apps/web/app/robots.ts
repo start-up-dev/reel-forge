@@ -12,7 +12,6 @@ export default function robots(): MetadataRoute.Robots {
         disallow: [
           "/dashboard/",
           "/brands/",
-          "/channels/",
           "/library/",
           "/billing/",
           "/settings/",

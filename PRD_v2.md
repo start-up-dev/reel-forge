@@ -613,23 +613,20 @@ All under `app/(dashboard)/` with `AppSidebar` + `AppHeader` layout.
 |---|---|
 | `/dashboard` | Home overview — recent videos, stats |
 | `/library` | Video gallery — paginated, searchable, filterable by status |
-| `/brands` | Brand profile list |
-| `/brands/new` | 7-step brand onboarding wizard |
-| `/brands/[id]` | Brand detail — channels, character sheet, plans |
-| `/brands/[id]/edit` | Edit brand fields |
-| `/brands/[id]/onboard` | Step-by-step onboarding flow |
-| `/brands/[id]/character-sheet` | GPT-image-2 character sheet — generate/regenerate/approve |
+| `/brands` | Brand profile list — entry point is "Connect Channel" (Facebook OAuth) |
+| `/brands/[id]` | Brand detail — two-column hub: identity cards with inline edit + channels + content plans (left); character sheet preview/regenerate + delete brand (right) |
+| `/brands/[id]/onboard` | Claude-assistant brand setup/edit — works for both new and completed brands |
+| `/brands/[id]/character-sheet` | GPT-image-2 character sheet — post-onboarding setup destination |
 | `/brands/[id]/plan/new` | Choose posting cadence (1/2/3/5 per day) |
-| `/brands/[id]/plan/[planId]` | Content calendar — topic cards, override drawer, approve CTA |
+| `/brands/[id]/plan/[planId]` | Content plan — draft state shows calendar grid for topic editing; post-approval shows pipeline kanban (Generating / Ready / Posted / Failed) with calendar as secondary view |
 | `/brands/[id]/plan/[planId]/progress` | Agentic progress view — status per video, activity feed |
-| `/channels` | Manage connected Facebook pages |
-| `/channels/callback` | Facebook OAuth callback — page picker |
+| `/channels/callback` | Facebook OAuth callback — page picker (no user-facing `/channels` index) |
 | `/billing` | Plan selection, usage meters, Stripe checkout |
 | `/settings` | Profile + notification preferences |
 
 ### 14.1 Layout
 
-`components/layout/app-sidebar.tsx` — navigation sections: Overview (Home, Library), Content (Brands), Account (Settings, Billing). Shows usage meter (paid plans) or upgrade CTA (free/trial).
+`components/layout/app-sidebar.tsx` — navigation sections: Content (Brands, Library), Account (Settings, Billing). Shows usage meter (paid plans) or upgrade CTA (free/trial). Channels are managed inline on each brand's detail page; there's no top-level Channels nav.
 
 `components/layout/app-header.tsx` — page title, usage indicator (trial credits or daily count), Clerk `UserButton`.
 

@@ -9,7 +9,6 @@ import {
   CreditCard,
   Zap,
   TrendingUp,
-  Tv2,
 } from "lucide-react";
 import { useUser } from "@/lib/hooks/use-user";
 import { cn } from "@repo/ui/utils";
@@ -20,7 +19,6 @@ const navSections = [
     items: [
       { href: "/brands", label: "Brands", icon: Layers },
       { href: "/library", label: "Library", icon: Library },
-      { href: "/channels", label: "Channels", icon: Tv2 },
     ],
   },
   {

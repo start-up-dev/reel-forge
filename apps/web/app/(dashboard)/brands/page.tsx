@@ -2,11 +2,8 @@
 
 import { useState, useEffect } from "react";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
-import { Loader2, Plug, UserSquare2, Pencil, Trash2, ChevronRight } from "lucide-react";
-import { toast } from "sonner";
+import { Loader2, Plug, UserSquare2, ChevronRight } from "lucide-react";
 import { Button } from "@repo/ui/button";
-import { ConfirmDialog } from "@repo/ui/confirm-dialog";
 import type { BrandProfile } from "@repo/types";
 import { useApiClient, withToast } from "@/lib/api-client";
 
@@ -36,12 +33,10 @@ const CHARACTER_TYPE_LABEL: Record<string, string> = {
 };
 
 export default function BrandsPage() {
-  const router = useRouter();
   const api = useApiClient();
   const [brands, setBrands] = useState<BrandProfile[]>([]);
   const [loading, setLoading] = useState(true);
   const [connecting, setConnecting] = useState(false);
-  const [deleteId, setDeleteId] = useState<string | null>(null);
 
   useEffect(() => {
     void (async () => {
@@ -58,19 +53,6 @@ export default function BrandsPage() {
       window.location.href = result.data.authUrl;
     }
     setConnecting(false);
-  }
-
-  async function handleDelete() {
-    if (!deleteId) return;
-    const result = await withToast(
-      () => api.brands.delete(deleteId),
-      "Failed to delete brand profile"
-    );
-    if (result?.data?.ok) {
-      setBrands((prev) => prev.filter((b) => b.id !== deleteId));
-      toast.success("Brand profile deleted");
-    }
-    setDeleteId(null);
   }
 
   return (
@@ -113,7 +95,7 @@ export default function BrandsPage() {
       ) : (
         <ul className="space-y-3">
           {brands.map((brand) => (
-            <li key={brand.id} className="group relative">
+            <li key={brand.id}>
               <Link
                 href={`/brands/${brand.id}`}
                 className="flex items-center gap-4 rounded-xl border border-[var(--bg-border)] bg-[var(--bg-elevated)] px-5 py-4 transition-colors hover:border-[var(--accent-primary)]/40 hover:bg-[var(--bg-surface)]"
@@ -145,43 +127,10 @@ export default function BrandsPage() {
 
                 <ChevronRight className="h-4 w-4 shrink-0 text-[var(--text-muted)]" />
               </Link>
-
-              {/* Edit / Delete actions — sit on top of the link */}
-              <div className="absolute right-12 top-1/2 flex -translate-y-1/2 items-center gap-0.5 opacity-0 transition-opacity group-hover:opacity-100">
-                <Link
-                  href={`/brands/${brand.id}/edit`}
-                  onClick={(e) => e.stopPropagation()}
-                  className="rounded-lg p-2 text-[var(--text-muted)] transition-colors hover:bg-[var(--bg-border)] hover:text-[var(--text-primary)]"
-                  aria-label="Edit"
-                >
-                  <Pencil className="h-3.5 w-3.5" />
-                </Link>
-                <button
-                  type="button"
-                  onClick={(e) => { e.preventDefault(); e.stopPropagation(); setDeleteId(brand.id); }}
-                  className="rounded-lg p-2 text-[var(--text-muted)] transition-colors hover:bg-[var(--bg-border)] hover:text-[var(--accent-danger)]"
-                  aria-label="Delete"
-                >
-                  <Trash2 className="h-3.5 w-3.5" />
-                </button>
-              </div>
             </li>
           ))}
         </ul>
       )}
-
-      <ConfirmDialog
-        open={!!deleteId}
-        onOpenChange={(open) => {
-          if (!open) setDeleteId(null);
-        }}
-        title="Delete brand profile?"
-        description="This will permanently delete the brand profile and all associated data."
-        confirmLabel="Delete"
-        cancelLabel="Cancel"
-        variant="danger"
-        onConfirm={handleDelete}
-      />
     </div>
   );
 }
