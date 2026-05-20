@@ -22,10 +22,17 @@ import {
 } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@repo/ui/button";
-import type { ContentPlan, ContentFormat, PostType, TopicEntry } from "@repo/types";
+import type {
+  ContentPlan,
+  ContentFormat,
+  PostType,
+  TopicEntry,
+} from "@repo/types";
 import { useApiClient, withToast } from "@/lib/api-client";
-import { usePlanProgress, type PlanProgressState } from "@/hooks/usePlanProgress";
-
+import {
+  usePlanProgress,
+  type PlanProgressState,
+} from "@/hooks/usePlanProgress";
 
 function getWeekDates(weekStartDate: string): Date[] {
   const parts = weekStartDate.split("-").map(Number);
@@ -33,14 +40,36 @@ function getWeekDates(weekStartDate: string): Date[] {
   const m = parts[1] ?? 1;
   const d = parts[2] ?? 1;
   const start = new Date(Date.UTC(y, m - 1, d));
-  return Array.from({ length: 7 }, (_, i) => new Date(start.getTime() + i * 86400000));
+  return Array.from(
+    { length: 7 },
+    (_, i) => new Date(start.getTime() + i * 86400000),
+  );
 }
 
-const FORMAT_BADGE: Record<ContentFormat, { label: string; className: string; accent: string }> = {
-  ugc:      { label: "UGC",      className: "bg-blue-500/15 text-blue-400",       accent: "bg-blue-500" },
-  montage:  { label: "Montage",  className: "bg-purple-500/15 text-purple-400",   accent: "bg-purple-500" },
-  tutorial: { label: "Tutorial", className: "bg-emerald-500/15 text-emerald-400", accent: "bg-emerald-500" },
-  story:    { label: "Story",    className: "bg-amber-500/15 text-amber-400",     accent: "bg-amber-500" },
+const FORMAT_BADGE: Record<
+  ContentFormat,
+  { label: string; className: string; accent: string }
+> = {
+  ugc: {
+    label: "UGC",
+    className: "bg-blue-500/15 text-blue-400",
+    accent: "bg-blue-500",
+  },
+  montage: {
+    label: "Montage",
+    className: "bg-purple-500/15 text-purple-400",
+    accent: "bg-purple-500",
+  },
+  tutorial: {
+    label: "Tutorial",
+    className: "bg-emerald-500/15 text-emerald-400",
+    accent: "bg-emerald-500",
+  },
+  story: {
+    label: "Story",
+    className: "bg-amber-500/15 text-amber-400",
+    accent: "bg-amber-500",
+  },
 };
 
 const FORMAT_OPTIONS: ContentFormat[] = ["ugc", "montage", "tutorial", "story"];
@@ -65,7 +94,10 @@ interface OverridePanel {
 // Bucket a video into a pipeline column
 type PipelineBucket = "generating" | "ready" | "posted" | "failed";
 
-function bucketOf(videoStatus: string, postSchedule: VideoInfo["postSchedule"]): PipelineBucket {
+function bucketOf(
+  videoStatus: string,
+  postSchedule: VideoInfo["postSchedule"],
+): PipelineBucket {
   if (videoStatus === "FAILED") return "failed";
   if (videoStatus !== "COMPLETE") return "generating";
   if (postSchedule?.status === "failed") return "failed";
@@ -73,19 +105,33 @@ function bucketOf(videoStatus: string, postSchedule: VideoInfo["postSchedule"]):
   return "ready";
 }
 
-function getGeneratingStageLabel(status: string): { label: string; pct: number } {
+function getGeneratingStageLabel(status: string): {
+  label: string;
+  pct: number;
+} {
   switch (status) {
-    case "BRAINSTORM_PENDING": return { label: "Starting", pct: 5 };
-    case "SCRIPT_PENDING":     return { label: "Writing script", pct: 20 };
-    case "SCRIPT_READY":       return { label: "Script ready", pct: 30 };
-    case "SCENES_PENDING":     return { label: "Designing scenes", pct: 40 };
-    case "SCENES_READY":       return { label: "Scenes ready", pct: 50 };
-    case "CLIPS_QUEUED":       return { label: "Queued for clips", pct: 55 };
-    case "CLIPS_PROCESSING":   return { label: "Generating clips", pct: 70 };
-    case "CLIPS_NEEDS_REVIEW": return { label: "Awaiting review", pct: 80 };
-    case "ASSEMBLY_PENDING":   return { label: "Assembling", pct: 88 };
-    case "ASSEMBLY_PROCESSING":return { label: "Assembling", pct: 92 };
-    default:                   return { label: "Queued", pct: 0 };
+    case "BRAINSTORM_PENDING":
+      return { label: "Starting", pct: 5 };
+    case "SCRIPT_PENDING":
+      return { label: "Writing script", pct: 20 };
+    case "SCRIPT_READY":
+      return { label: "Script ready", pct: 30 };
+    case "SCENES_PENDING":
+      return { label: "Designing scenes", pct: 40 };
+    case "SCENES_READY":
+      return { label: "Scenes ready", pct: 50 };
+    case "CLIPS_QUEUED":
+      return { label: "Queued for clips", pct: 55 };
+    case "CLIPS_PROCESSING":
+      return { label: "Generating clips", pct: 70 };
+    case "CLIPS_NEEDS_REVIEW":
+      return { label: "Awaiting review", pct: 80 };
+    case "ASSEMBLY_PENDING":
+      return { label: "Assembling", pct: 88 };
+    case "ASSEMBLY_PROCESSING":
+      return { label: "Assembling", pct: 92 };
+    default:
+      return { label: "Queued", pct: 0 };
   }
 }
 
@@ -96,23 +142,52 @@ function postStatusLabel(
   if (postSchedule?.status === "posted") {
     if (postSchedule.postType === "scheduled" && postSchedule.scheduledAt) {
       const d = new Date(postSchedule.scheduledAt);
-      const label = d.toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit" });
-      return { label: `Scheduled ${label}`, icon: <CalendarCheck className="h-3 w-3" />, color: "text-[var(--accent-secondary)]" };
+      const label = d.toLocaleTimeString("en-US", {
+        hour: "numeric",
+        minute: "2-digit",
+      });
+      return {
+        label: `Scheduled ${label}`,
+        icon: <CalendarCheck className="h-3 w-3" />,
+        color: "text-[var(--accent-secondary)]",
+      };
     }
     if (postSchedule.postType === "draft") {
-      return { label: "Saved as draft", icon: <FileText className="h-3 w-3" />, color: "text-[var(--text-muted)]" };
+      return {
+        label: "Saved as draft",
+        icon: <FileText className="h-3 w-3" />,
+        color: "text-[var(--text-muted)]",
+      };
     }
-    return { label: "Posted", icon: <CheckCircle2 className="h-3 w-3" />, color: "text-[var(--accent-success)]" };
+    return {
+      label: "Posted",
+      icon: <CheckCircle2 className="h-3 w-3" />,
+      color: "text-[var(--accent-success)]",
+    };
   }
   if (planPostType === "manual") {
-    return { label: "Ready to download", icon: <CheckCircle2 className="h-3 w-3" />, color: "text-[var(--accent-success)]" };
+    return {
+      label: "Ready to download",
+      icon: <CheckCircle2 className="h-3 w-3" />,
+      color: "text-[var(--accent-success)]",
+    };
   }
-  return { label: "Ready", icon: <CheckCircle2 className="h-3 w-3" />, color: "text-[var(--accent-success)]" };
+  return {
+    label: "Ready",
+    icon: <CheckCircle2 className="h-3 w-3" />,
+    color: "text-[var(--accent-success)]",
+  };
 }
 
 // ─── Topic card (draft state) ─────────────────────────────────────────────────
 
-function DraftCell({ topic, onEdit }: { topic: TopicEntry; onEdit: () => void }) {
+function DraftCell({
+  topic,
+  onEdit,
+}: {
+  topic: TopicEntry;
+  onEdit: () => void;
+}) {
   const badge = FORMAT_BADGE[topic.format as ContentFormat] ?? FORMAT_BADGE.ugc;
   return (
     <div className="group overflow-hidden rounded-xl border border-[var(--bg-border)] bg-[var(--bg-surface)] transition-colors hover:border-[var(--bg-border)]/80">
@@ -130,7 +205,9 @@ function DraftCell({ topic, onEdit }: { topic: TopicEntry; onEdit: () => void })
           )}
         </div>
         {/* Format badge */}
-        <span className={`absolute left-2 top-2 rounded-full px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide ${badge.className}`}>
+        <span
+          className={`absolute left-2 top-2 rounded-full px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide ${badge.className}`}
+        >
           {badge.label}
         </span>
         {/* Edited badge */}
@@ -174,16 +251,24 @@ function PipelineCard({
   const [playing, setPlaying] = useState(false);
   const outputUrl = video?.outputUrl;
   const canPlay = bucket !== "generating" && bucket !== "failed" && !!outputUrl;
-  const stage = video?.status ? getGeneratingStageLabel(video.status) : { label: "Queued", pct: 0 };
-  const postInfo = video && (bucket === "ready" || bucket === "posted")
-    ? postStatusLabel(video.postSchedule ?? null, planPostType)
-    : null;
+  const stage = video?.status
+    ? getGeneratingStageLabel(video.status)
+    : { label: "Queued", pct: 0 };
+  const postInfo =
+    video && (bucket === "ready" || bucket === "posted")
+      ? postStatusLabel(video.postSchedule ?? null, planPostType)
+      : null;
 
   function togglePlay() {
     const el = videoRef.current;
     if (!el) return;
-    if (el.paused) { void el.play(); setPlaying(true); }
-    else { el.pause(); setPlaying(false); }
+    if (el.paused) {
+      void el.play();
+      setPlaying(true);
+    } else {
+      el.pause();
+      setPlaying(false);
+    }
   }
 
   function handleDownload() {
@@ -195,13 +280,18 @@ function PipelineCard({
   }
 
   const borderClass =
-    bucket === "ready"   ? "border-[var(--accent-success)]/25" :
-    bucket === "posted"  ? "border-[var(--accent-secondary)]/25" :
-    bucket === "failed"  ? "border-[var(--accent-danger)]/30" :
-    "border-[var(--bg-border)]";
+    bucket === "ready"
+      ? "border-[var(--accent-success)]/25"
+      : bucket === "posted"
+        ? "border-[var(--accent-secondary)]/25"
+        : bucket === "failed"
+          ? "border-[var(--accent-danger)]/30"
+          : "border-[var(--bg-border)]";
 
   return (
-    <div className={`group overflow-hidden rounded-xl border ${borderClass} bg-[var(--bg-surface)] transition-colors`}>
+    <div
+      className={`group overflow-hidden rounded-xl border ${borderClass} bg-[var(--bg-surface)] transition-colors`}
+    >
       {/* Thumbnail area */}
       <div className="relative aspect-[9/16] overflow-hidden bg-[var(--bg-elevated)]">
         {canPlay ? (
@@ -220,8 +310,14 @@ function PipelineCard({
               onClick={togglePlay}
               className="absolute inset-0 flex items-center justify-center"
             >
-              <div className={`flex h-11 w-11 items-center justify-center rounded-full bg-black/50 backdrop-blur-sm transition-opacity ${playing ? "opacity-0 group-hover:opacity-100" : "opacity-100"}`}>
-                {playing ? <Pause className="h-5 w-5 text-white" /> : <Play className="h-5 w-5 translate-x-0.5 text-white" />}
+              <div
+                className={`flex h-11 w-11 items-center justify-center rounded-full bg-black/50 backdrop-blur-sm transition-opacity ${playing ? "opacity-0 group-hover:opacity-100" : "opacity-100"}`}
+              >
+                {playing ? (
+                  <Pause className="h-5 w-5 text-white" />
+                ) : (
+                  <Play className="h-5 w-5 translate-x-0.5 text-white" />
+                )}
               </div>
             </button>
           </>
@@ -252,7 +348,9 @@ function PipelineCard({
         )}
 
         {/* Format badge top-left */}
-        <span className={`absolute left-2 top-2 rounded-full px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide ${badge.className}`}>
+        <span
+          className={`absolute left-2 top-2 rounded-full px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide ${badge.className}`}
+        >
           {badge.label}
         </span>
 
@@ -275,7 +373,9 @@ function PipelineCard({
         {postInfo && (
           <div className={`mt-2 flex items-center gap-1 ${postInfo.color}`}>
             {postInfo.icon}
-            <span className="text-[10px] font-medium leading-none">{postInfo.label}</span>
+            <span className="text-[10px] font-medium leading-none">
+              {postInfo.label}
+            </span>
           </div>
         )}
         {bucket === "ready" && outputUrl && (
@@ -307,7 +407,10 @@ function PipelineView({
   videoByTitle: Map<string, VideoInfo>;
   planPostType: string;
 }) {
-  const buckets: Record<PipelineBucket, { topic: TopicEntry; video: VideoInfo | null }[]> = {
+  const buckets: Record<
+    PipelineBucket,
+    { topic: TopicEntry; video: VideoInfo | null }[]
+  > = {
     generating: [],
     ready: [],
     posted: [],
@@ -321,11 +424,36 @@ function PipelineView({
     buckets[b].push({ topic, video });
   }
 
-  const columnDefs: { key: PipelineBucket; label: string; tint: string; icon: React.ReactNode }[] = [
-    { key: "generating", label: "Generating", tint: "text-amber-400",                  icon: <Loader2 className="h-3.5 w-3.5" /> },
-    { key: "ready",      label: "Ready",      tint: "text-[var(--accent-success)]",    icon: <CheckCircle2 className="h-3.5 w-3.5" /> },
-    { key: "posted",     label: "Posted",     tint: "text-[var(--accent-secondary)]",  icon: <CalendarCheck className="h-3.5 w-3.5" /> },
-    { key: "failed",     label: "Failed",     tint: "text-[var(--accent-danger)]",     icon: <XCircle className="h-3.5 w-3.5" /> },
+  const columnDefs: {
+    key: PipelineBucket;
+    label: string;
+    tint: string;
+    icon: React.ReactNode;
+  }[] = [
+    {
+      key: "generating",
+      label: "Generating",
+      tint: "text-amber-400",
+      icon: <Loader2 className="h-3.5 w-3.5" />,
+    },
+    {
+      key: "ready",
+      label: "Ready",
+      tint: "text-[var(--accent-success)]",
+      icon: <CheckCircle2 className="h-3.5 w-3.5" />,
+    },
+    {
+      key: "posted",
+      label: "Posted",
+      tint: "text-[var(--accent-secondary)]",
+      icon: <CalendarCheck className="h-3.5 w-3.5" />,
+    },
+    {
+      key: "failed",
+      label: "Failed",
+      tint: "text-[var(--accent-danger)]",
+      icon: <XCircle className="h-3.5 w-3.5" />,
+    },
   ];
 
   return (
@@ -333,17 +461,26 @@ function PipelineView({
       {columnDefs.map((col) => {
         const items = buckets[col.key];
         return (
-          <div key={col.key} className="flex flex-col rounded-2xl border border-[var(--bg-border)] bg-[var(--bg-surface)]/40 p-3">
+          <div
+            key={col.key}
+            className="flex flex-col rounded-2xl border border-[var(--bg-border)] bg-[var(--bg-surface)]/40 p-3"
+          >
             <div className="mb-3 flex items-center justify-between px-1">
-              <div className={`flex items-center gap-1.5 text-xs font-semibold uppercase tracking-wide ${col.tint}`}>
+              <div
+                className={`flex items-center gap-1.5 text-xs font-semibold uppercase tracking-wide ${col.tint}`}
+              >
                 {col.icon}
                 {col.label}
               </div>
-              <span className="text-xs font-semibold text-[var(--text-muted)]">{items.length}</span>
+              <span className="text-xs font-semibold text-[var(--text-muted)]">
+                {items.length}
+              </span>
             </div>
             {items.length === 0 ? (
               <div className="flex h-24 items-center justify-center rounded-xl border border-dashed border-[var(--bg-border)]/60 px-3 text-center">
-                <p className="text-[10px] text-[var(--text-muted)]">Nothing here yet</p>
+                <p className="text-[10px] text-[var(--text-muted)]">
+                  Nothing here yet
+                </p>
               </div>
             ) : (
               <div className="space-y-3">
@@ -388,15 +525,26 @@ function CalendarView({
     <div className="overflow-x-auto">
       <div className="min-w-[700px]">
         {/* Day headers */}
-        <div className="mb-2 grid gap-2" style={{ gridTemplateColumns: `48px repeat(7, 1fr)` }}>
-          <div />
+        <div
+          className="mb-2 grid gap-2"
+          style={{ gridTemplateColumns: `48px repeat(7, 1fr)` }}
+        >
           {weekDates.map((date, i) => (
-            <div key={i} className="rounded-lg bg-[var(--bg-elevated)] px-2 py-2 text-center">
+            <div
+              key={i}
+              className="rounded-lg bg-[var(--bg-elevated)] px-2 py-2 text-center"
+            >
               <p className="text-[10px] font-semibold uppercase tracking-[0.08em] text-[var(--text-muted)]">
-                {date.toLocaleDateString("en-US", { weekday: "short", timeZone: "UTC" })}
+                {date.toLocaleDateString("en-US", {
+                  weekday: "short",
+                  timeZone: "UTC",
+                })}
               </p>
               <p className="text-sm font-medium text-[var(--text-secondary)]">
-                {date.toLocaleDateString("en-US", { day: "numeric", timeZone: "UTC" })}
+                {date.toLocaleDateString("en-US", {
+                  day: "numeric",
+                  timeZone: "UTC",
+                })}
               </p>
             </div>
           ))}
@@ -404,12 +552,16 @@ function CalendarView({
 
         {Array.from({ length: postsPerDay }, (_, slotIdx) => {
           return (
-            <div key={slotIdx} className="mb-2 grid gap-2" style={{ gridTemplateColumns: `48px repeat(7, 1fr)` }}>
-              <div />
-
+            <div
+              key={slotIdx}
+              className="mb-2 grid gap-2"
+              style={{ gridTemplateColumns: `48px repeat(7, 1fr)` }}
+            >
               {weekDates.map((_, dayIdx) => {
                 const dayNumber = dayIdx + 1;
-                const topic = topics.find((t) => t.day === dayNumber && t.slot === slotIdx + 1);
+                const topic = topics.find(
+                  (t) => t.day === dayNumber && t.slot === slotIdx + 1,
+                );
 
                 if (!topic) {
                   return (
@@ -467,21 +619,31 @@ function OverridePanelDrawer({
 }) {
   const [title, setTitle] = useState(panel.topic.title);
   const [hook, setHook] = useState(panel.topic.hook);
-  const [format, setFormat] = useState<ContentFormat>(panel.topic.format as ContentFormat);
+  const [format, setFormat] = useState<ContentFormat>(
+    panel.topic.format as ContentFormat,
+  );
   const [angle, setAngle] = useState(panel.topic.angle);
   const [scriptOutline, setScriptOutline] = useState(panel.topic.scriptOutline);
 
   return (
     <div className="fixed inset-y-0 right-0 z-50 flex w-full max-w-[360px] flex-col border-l border-[var(--bg-border)] bg-[var(--bg-surface)] shadow-2xl">
       <div className="flex items-center justify-between border-b border-[var(--bg-border)] px-5 py-4">
-        <h2 className="text-sm font-semibold text-[var(--text-primary)]">Edit Video Idea</h2>
-        <button type="button" onClick={onClose} className="rounded p-1 text-[var(--text-muted)] hover:text-[var(--text-primary)]">
+        <h2 className="text-sm font-semibold text-[var(--text-primary)]">
+          Edit Video Idea
+        </h2>
+        <button
+          type="button"
+          onClick={onClose}
+          className="rounded p-1 text-[var(--text-muted)] hover:text-[var(--text-primary)]"
+        >
           <X className="h-4 w-4" />
         </button>
       </div>
       <div className="flex-1 space-y-4 overflow-y-auto px-5 py-4">
         <label className="block">
-          <span className="text-xs font-medium text-[var(--text-muted)]">Title</span>
+          <span className="text-xs font-medium text-[var(--text-muted)]">
+            Title
+          </span>
           <input
             value={title}
             onChange={(e) => setTitle(e.target.value)}
@@ -489,7 +651,9 @@ function OverridePanelDrawer({
           />
         </label>
         <label className="block">
-          <span className="text-xs font-medium text-[var(--text-muted)]">Hook (opening line)</span>
+          <span className="text-xs font-medium text-[var(--text-muted)]">
+            Hook (opening line)
+          </span>
           <textarea
             value={hook}
             onChange={(e) => setHook(e.target.value)}
@@ -498,19 +662,25 @@ function OverridePanelDrawer({
           />
         </label>
         <label className="block">
-          <span className="text-xs font-medium text-[var(--text-muted)]">Format</span>
+          <span className="text-xs font-medium text-[var(--text-muted)]">
+            Format
+          </span>
           <select
             value={format}
             onChange={(e) => setFormat(e.target.value as ContentFormat)}
             className="mt-1 w-full rounded-lg border border-[var(--bg-border)] bg-[var(--bg-elevated)] px-3 py-2 text-sm text-[var(--text-primary)] focus:outline-none focus:ring-1 focus:ring-[var(--accent-primary)]"
           >
             {FORMAT_OPTIONS.map((f) => (
-              <option key={f} value={f}>{FORMAT_BADGE[f].label}</option>
+              <option key={f} value={f}>
+                {FORMAT_BADGE[f].label}
+              </option>
             ))}
           </select>
         </label>
         <label className="block">
-          <span className="text-xs font-medium text-[var(--text-muted)]">Angle</span>
+          <span className="text-xs font-medium text-[var(--text-muted)]">
+            Angle
+          </span>
           <input
             value={angle}
             onChange={(e) => setAngle(e.target.value)}
@@ -518,7 +688,9 @@ function OverridePanelDrawer({
           />
         </label>
         <label className="block">
-          <span className="text-xs font-medium text-[var(--text-muted)]">Script Outline</span>
+          <span className="text-xs font-medium text-[var(--text-muted)]">
+            Script Outline
+          </span>
           <textarea
             value={scriptOutline}
             onChange={(e) => setScriptOutline(e.target.value)}
@@ -528,13 +700,27 @@ function OverridePanelDrawer({
         </label>
       </div>
       <div className="flex gap-2 border-t border-[var(--bg-border)] px-5 py-4">
-        <Button variant="secondary" onClick={onClose} className="flex-1">Cancel</Button>
+        <Button variant="secondary" onClick={onClose} className="flex-1">
+          Cancel
+        </Button>
         <Button
-          onClick={() => onSave(panel.topicIndex, { title, hook, format, angle, scriptOutline })}
+          onClick={() =>
+            onSave(panel.topicIndex, {
+              title,
+              hook,
+              format,
+              angle,
+              scriptOutline,
+            })
+          }
           disabled={saving}
           className="flex-1 gap-2"
         >
-          {saving ? <Loader2 className="h-4 w-4 animate-spin" /> : "Save Override"}
+          {saving ? (
+            <Loader2 className="h-4 w-4 animate-spin" />
+          ) : (
+            "Save Override"
+          )}
         </Button>
       </div>
     </div>
@@ -564,8 +750,8 @@ function PlanSummaryStrip({
   const generating = Math.max(
     0,
     [...progress.videoStatuses.values()].filter(
-      (v) => v.status !== "COMPLETE" && v.status !== "FAILED"
-    ).length
+      (v) => v.status !== "COMPLETE" && v.status !== "FAILED",
+    ).length,
   );
   const pct = totalVideos > 0 ? Math.round((completed / totalVideos) * 100) : 0;
 
@@ -578,7 +764,10 @@ function PlanSummaryStrip({
   async function handleRetry() {
     setRetrying(true);
     setShowRetry(false);
-    await withToast(() => api.contentPlans.retryGeneration(planId), "Retry failed");
+    await withToast(
+      () => api.contentPlans.retryGeneration(planId),
+      "Retry failed",
+    );
     setRetrying(false);
     onRetry();
   }
@@ -593,11 +782,17 @@ function PlanSummaryStrip({
               All done — {completed} video{completed !== 1 ? "s" : ""} ready
             </p>
             {failed > 0 && (
-              <p className="mt-0.5 text-xs text-[var(--accent-danger)]">{failed} failed</p>
+              <p className="mt-0.5 text-xs text-[var(--accent-danger)]">
+                {failed} failed
+              </p>
             )}
           </div>
         </div>
-        <Button variant="secondary" onClick={() => router.push(`/library?plan=${planId}`)} className="gap-1.5">
+        <Button
+          variant="secondary"
+          onClick={() => router.push(`/library?plan=${planId}`)}
+          className="gap-1.5"
+        >
           View in Library
           <ChevronRight className="h-4 w-4" />
         </Button>
@@ -639,13 +834,23 @@ function PlanSummaryStrip({
         {pct === 0 ? (
           <div className="h-full w-1/4 animate-pulse rounded-full bg-[var(--accent-primary)]/40" />
         ) : (
-          <div className="h-full rounded-full bg-[var(--accent-primary)] transition-all duration-700" style={{ width: `${pct}%` }} />
+          <div
+            className="h-full rounded-full bg-[var(--accent-primary)] transition-all duration-700"
+            style={{ width: `${pct}%` }}
+          />
         )}
       </div>
       {showRetry && (
         <div className="mt-3 flex items-center gap-2">
-          <span className="flex-1 text-xs text-[var(--accent-warning)]">Seems stuck.</span>
-          <Button variant="secondary" onClick={handleRetry} disabled={retrying} className="h-7 px-3 text-xs">
+          <span className="flex-1 text-xs text-[var(--accent-warning)]">
+            Seems stuck.
+          </span>
+          <Button
+            variant="secondary"
+            onClick={handleRetry}
+            disabled={retrying}
+            className="h-7 px-3 text-xs"
+          >
             {retrying ? <Loader2 className="h-3 w-3 animate-spin" /> : "Retry"}
           </Button>
         </div>
@@ -664,7 +869,9 @@ export default function ContentPlanPage() {
   const [plan, setPlan] = useState<ContentPlan | null>(null);
   const [videos, setVideos] = useState<VideoInfo[]>([]);
   const [loading, setLoading] = useState(true);
-  const [overridePanel, setOverridePanel] = useState<OverridePanel | null>(null);
+  const [overridePanel, setOverridePanel] = useState<OverridePanel | null>(
+    null,
+  );
   const [savingOverride, setSavingOverride] = useState(false);
   const [regenerating, setRegenerating] = useState(false);
   const [approving, setApproving] = useState(false);
@@ -672,12 +879,20 @@ export default function ContentPlanPage() {
   const [viewMode, setViewMode] = useState<ViewMode>("pipeline");
 
   const totalVideos = plan ? plan.postsPerDay * 7 : 0;
-  const progress = usePlanProgress(plan?.status !== "draft" ? planId : "", totalVideos);
+  const progress = usePlanProgress(
+    plan?.status !== "draft" ? planId : "",
+    totalVideos,
+  );
 
   const loadPlan = useCallback(async () => {
-    const result = await withToast(() => api.contentPlans.get(planId), "Failed to load plan");
+    const result = await withToast(
+      () => api.contentPlans.get(planId),
+      "Failed to load plan",
+    );
     if (result?.data) {
-      const data = result.data as unknown as ContentPlan & { videos: VideoInfo[] };
+      const data = result.data as unknown as ContentPlan & {
+        videos: VideoInfo[];
+      };
       setPlan(data);
       setVideos(data.videos ?? []);
     }
@@ -696,7 +911,10 @@ export default function ContentPlanPage() {
 
   async function handleRegenerate() {
     setRegenerating(true);
-    const result = await withToast(() => api.contentPlans.regenerate(planId), "Regeneration failed");
+    const result = await withToast(
+      () => api.contentPlans.regenerate(planId),
+      "Regeneration failed",
+    );
     if (result?.data) {
       setPlan(result.data);
       toast.success("Plan regenerated");
@@ -707,8 +925,13 @@ export default function ContentPlanPage() {
   async function handleSaveOverride(index: number, data: Partial<TopicEntry>) {
     setSavingOverride(true);
     const result = await withToast(
-      () => api.contentPlans.overrideTopic(planId, index, data as Parameters<typeof api.contentPlans.overrideTopic>[2]),
-      "Failed to save override"
+      () =>
+        api.contentPlans.overrideTopic(
+          planId,
+          index,
+          data as Parameters<typeof api.contentPlans.overrideTopic>[2],
+        ),
+      "Failed to save override",
     );
     if (result?.data) {
       setPlan(result.data);
@@ -720,7 +943,10 @@ export default function ContentPlanPage() {
 
   async function handleApprove() {
     setApproving(true);
-    const result = await withToast(() => api.contentPlans.approve(planId, { postType }), "Failed to approve plan");
+    const result = await withToast(
+      () => api.contentPlans.approve(planId, { postType }),
+      "Failed to approve plan",
+    );
     if (result?.data?.ok) {
       toast.success("Plan approved — generation starting");
       setPlan((prev) => (prev ? { ...prev, status: "approved" } : prev));
@@ -744,7 +970,9 @@ export default function ContentPlanPage() {
     );
   }
 
-  const topics = Array.isArray(plan.topics) ? (plan.topics as TopicEntry[]) : [];
+  const topics = Array.isArray(plan.topics)
+    ? (plan.topics as TopicEntry[])
+    : [];
   const postsPerDay = plan.postsPerDay;
   const weekDates = getWeekDates(plan.weekStartDate);
   const isDraft = plan.status === "draft";
@@ -778,15 +1006,27 @@ export default function ContentPlanPage() {
       {/* Header */}
       <div className="mb-6 flex flex-wrap items-end justify-between gap-3">
         <div>
-          <h1 className="text-2xl font-bold text-[var(--text-primary)]">Content Plan</h1>
+          <h1 className="text-2xl font-bold text-[var(--text-primary)]">
+            Content Plan
+          </h1>
           <p className="mt-1 text-sm text-[var(--text-muted)]">
-            Week of {plan.weekStartDate} · {postsPerDay} post{postsPerDay > 1 ? "s" : ""}/day · {topics.length} videos
+            Week of {plan.weekStartDate} · {postsPerDay} post
+            {postsPerDay > 1 ? "s" : ""}/day · {topics.length} videos
           </p>
         </div>
         <div className="flex items-center gap-2">
           {isDraft && (
-            <Button onClick={handleRegenerate} disabled={regenerating} className="gap-2" variant="secondary">
-              {regenerating ? <Loader2 className="h-4 w-4 animate-spin" /> : <RefreshCw className="h-4 w-4" />}
+            <Button
+              onClick={handleRegenerate}
+              disabled={regenerating}
+              className="gap-2"
+              variant="secondary"
+            >
+              {regenerating ? (
+                <Loader2 className="h-4 w-4 animate-spin" />
+              ) : (
+                <RefreshCw className="h-4 w-4" />
+              )}
               Regenerate
             </Button>
           )}
@@ -840,7 +1080,9 @@ export default function ContentPlanPage() {
           weekDates={weekDates}
           postsPerDay={postsPerDay}
           isDraft={isDraft}
-          onEditTopic={(topic) => setOverridePanel({ topic, topicIndex: topic.index })}
+          onEditTopic={(topic) =>
+            setOverridePanel({ topic, topicIndex: topic.index })
+          }
           videoByTitle={videoByTitle}
           planPostType={planPostType}
         />
@@ -862,9 +1104,24 @@ export default function ContentPlanPage() {
             <div className="grid grid-cols-1 gap-2 sm:grid-cols-3">
               {(
                 [
-                  { value: "draft", label: "Save as Drafts", description: "Videos created as Facebook drafts — you publish manually" },
-                  { value: "scheduled", label: "Schedule Automatically", description: "Posts auto-scheduled at optimal slots throughout the week" },
-                  { value: "manual", label: "Download Only", description: "No Facebook posting — download the MP4s yourself" },
+                  {
+                    value: "draft",
+                    label: "Save as Drafts",
+                    description:
+                      "Videos created as Facebook drafts — you publish manually",
+                  },
+                  {
+                    value: "scheduled",
+                    label: "Schedule Automatically",
+                    description:
+                      "Posts auto-scheduled at optimal slots throughout the week",
+                  },
+                  {
+                    value: "manual",
+                    label: "Download Only",
+                    description:
+                      "No Facebook posting — download the MP4s yourself",
+                  },
                 ] as { value: PostType; label: string; description: string }[]
               ).map((opt) => (
                 <button
@@ -877,17 +1134,29 @@ export default function ContentPlanPage() {
                       : "border-[var(--bg-border)] hover:border-[var(--accent-primary)]/50"
                   }`}
                 >
-                  <p className={`text-xs font-semibold ${postType === opt.value ? "text-[var(--accent-primary)]" : "text-[var(--text-primary)]"}`}>
+                  <p
+                    className={`text-xs font-semibold ${postType === opt.value ? "text-[var(--accent-primary)]" : "text-[var(--text-primary)]"}`}
+                  >
                     {opt.label}
                   </p>
-                  <p className="mt-0.5 text-[10px] text-[var(--text-muted)]">{opt.description}</p>
+                  <p className="mt-0.5 text-[10px] text-[var(--text-muted)]">
+                    {opt.description}
+                  </p>
                 </button>
               ))}
             </div>
           </div>
 
-          <Button onClick={handleApprove} disabled={approving} className="w-full gap-2 py-3 text-base">
-            {approving ? <Loader2 className="h-5 w-5 animate-spin" /> : <CheckCircle2 className="h-5 w-5" />}
+          <Button
+            onClick={handleApprove}
+            disabled={approving}
+            className="w-full gap-2 py-3 text-base"
+          >
+            {approving ? (
+              <Loader2 className="h-5 w-5 animate-spin" />
+            ) : (
+              <CheckCircle2 className="h-5 w-5" />
+            )}
             Start Generating →
           </Button>
         </div>
