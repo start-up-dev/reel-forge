@@ -4,7 +4,7 @@ import { z } from "zod";
 import { db } from "../lib/db/index.js";
 import { brandProfiles, contentPlans, postSchedules, videos } from "../lib/db/schema.js";
 import { subscribeToPlan } from "../lib/plan-event-bus.js";
-import { startBatchGeneration } from "../services/batch-generator.js";
+import { postSingleVideoToFacebook, startBatchGeneration } from "../services/batch-generator.js";
 import { generateWeekPlan } from "../services/claude.js";
 import type { TopicEntry } from "../services/claude.js";
 
@@ -491,6 +491,63 @@ export async function contentPlansRoutes(fastify: FastifyInstance) {
           setTimeout(end, 200);
         }
       }
+    },
+  );
+
+  // POST /api/content-plans/:id/videos/:videoId/post — post a specific video using the plan's channel
+  // Used by the "Post to Facebook" per-video retry button on the plan calendar.
+  fastify.post<{ Params: { id: string; videoId: string } }>(
+    "/content-plans/:id/videos/:videoId/post",
+    async (request, reply) => {
+      const user = request.currentUser!;
+      const { id: planId, videoId } = request.params;
+
+      const [plan] = await db
+        .select()
+        .from(contentPlans)
+        .where(and(eq(contentPlans.id, planId), eq(contentPlans.userId, user.id)))
+        .limit(1);
+
+      if (!plan) return reply.status(404).send({ error: { message: "Plan not found." } });
+      if (plan.postType === "manual") {
+        return reply.status(400).send({ error: { message: "Plan is set to manual (download only) mode." } });
+      }
+
+      const [video] = await db
+        .select({ id: videos.id, userId: videos.userId, contentPlanId: videos.contentPlanId })
+        .from(videos)
+        .where(and(eq(videos.id, videoId), eq(videos.userId, user.id), eq(videos.contentPlanId, planId)))
+        .limit(1);
+
+      if (!video) return reply.status(404).send({ error: { message: "Video not found in this plan." } });
+
+      const [fullVideo] = await db
+        .select({ status: videos.status })
+        .from(videos)
+        .where(eq(videos.id, videoId))
+        .limit(1);
+
+      if (fullVideo?.status !== "COMPLETE") {
+        return reply.status(400).send({ error: { message: "Video is not complete yet." } });
+      }
+
+      await postSingleVideoToFacebook(planId, videoId);
+
+      const [schedule] = await db
+        .select()
+        .from(postSchedules)
+        .where(eq(postSchedules.videoId, videoId))
+        .orderBy(desc(postSchedules.updatedAt))
+        .limit(1);
+
+      if (schedule?.status === "failed") {
+        return reply.status(502).send({
+          error: { message: schedule.errorMessage ?? "Facebook posting failed." },
+          data: { postSchedule: schedule },
+        });
+      }
+
+      return reply.send({ data: { postSchedule: schedule ?? null } });
     },
   );
 

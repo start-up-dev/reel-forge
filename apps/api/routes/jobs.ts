@@ -1,8 +1,9 @@
 import type { FastifyInstance, FastifyReply, FastifyRequest } from "fastify";
-import { sql } from "drizzle-orm";
+import { and, eq, gt, ne, notExists, sql } from "drizzle-orm";
 import { db } from "../lib/db/index.js";
-import { users } from "../lib/db/schema.js";
+import { contentPlans, postSchedules, users, videos } from "../lib/db/schema.js";
 import { env } from "../lib/env.js";
+import { postSingleVideoToFacebook } from "../services/batch-generator.js";
 
 // Job endpoints are called by a cron scheduler — secured with the same
 // operator secret to avoid a second env var.
@@ -60,6 +61,46 @@ export async function jobsRoutes(fastify: FastifyInstance): Promise<void> {
     async (_request, reply) => {
       await db.update(users).set({ videosThisMonth: 0 });
       return reply.send({ data: { ok: true } });
+    },
+  );
+
+  // ── POST /api/jobs/post-unscheduled-videos ────────────────────────────────
+  // Catch-up layer: finds COMPLETE videos from non-manual plans (last 7 days)
+  // that have no successful postSchedules row and retries posting them.
+  // Cloud Scheduler: every 15 minutes.
+  fastify.post(
+    "/jobs/post-unscheduled-videos",
+    { preHandler: validateSecret },
+    async (_request, reply) => {
+      const sevenDaysAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000);
+
+      const unposted = await db
+        .select({ id: videos.id, contentPlanId: videos.contentPlanId })
+        .from(videos)
+        .innerJoin(contentPlans, eq(contentPlans.id, videos.contentPlanId))
+        .where(
+          and(
+            eq(videos.status, "COMPLETE"),
+            ne(contentPlans.postType, "manual"),
+            gt(videos.createdAt, sevenDaysAgo),
+            notExists(
+              db
+                .select({ id: postSchedules.id })
+                .from(postSchedules)
+                .where(and(eq(postSchedules.videoId, videos.id), eq(postSchedules.status, "posted"))),
+            ),
+          ),
+        )
+        .limit(50);
+
+      let attempted = 0;
+      for (const v of unposted) {
+        if (!v.contentPlanId) continue;
+        await postSingleVideoToFacebook(v.contentPlanId, v.id);
+        attempted++;
+      }
+
+      return reply.send({ data: { found: unposted.length, attempted } });
     },
   );
 }

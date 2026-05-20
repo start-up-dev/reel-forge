@@ -19,6 +19,7 @@ import {
   LayoutGrid,
   Columns3,
   ChevronRight,
+  Share2,
 } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@repo/ui/button";
@@ -240,15 +241,18 @@ function PipelineCard({
   video,
   bucket,
   planPostType,
+  onPost,
 }: {
   topic: TopicEntry;
   video: VideoInfo | null;
   bucket: PipelineBucket;
   planPostType: string;
+  onPost?: () => Promise<void>;
 }) {
   const badge = FORMAT_BADGE[topic.format as ContentFormat] ?? FORMAT_BADGE.ugc;
   const videoRef = useRef<HTMLVideoElement>(null);
   const [playing, setPlaying] = useState(false);
+  const [posting, setPosting] = useState(false);
   const outputUrl = video?.outputUrl;
   const canPlay = bucket !== "generating" && bucket !== "failed" && !!outputUrl;
   const stage = video?.status
@@ -277,6 +281,16 @@ function PipelineCard({
     a.href = outputUrl;
     a.download = `${topic.title.replace(/\s+/g, "_")}.mp4`;
     a.click();
+  }
+
+  async function handlePost() {
+    if (!onPost || posting) return;
+    setPosting(true);
+    try {
+      await onPost();
+    } finally {
+      setPosting(false);
+    }
   }
 
   const borderClass =
@@ -379,7 +393,23 @@ function PipelineCard({
           </div>
         )}
         {(bucket === "ready" || bucket === "posted") && outputUrl && (
-          <div className="mt-2 flex justify-end">
+          <div className="mt-2 flex items-center justify-end gap-1.5">
+            {bucket === "ready" && planPostType !== "manual" && onPost && (
+              <button
+                type="button"
+                onClick={handlePost}
+                disabled={posting}
+                className="flex h-7 items-center gap-1 rounded-md border border-[var(--accent-secondary)]/30 bg-[var(--bg-elevated)] px-2 text-[10px] font-medium text-[var(--accent-secondary)] transition-colors hover:border-[var(--accent-secondary)]/60 hover:bg-[var(--accent-secondary)]/10 disabled:opacity-50"
+                aria-label="Post to Facebook"
+              >
+                {posting ? (
+                  <Loader2 className="h-3 w-3 animate-spin" />
+                ) : (
+                  <Share2 className="h-3 w-3" />
+                )}
+                {posting ? "Posting…" : "Post"}
+              </button>
+            )}
             <button
               type="button"
               onClick={handleDownload}
@@ -402,10 +432,12 @@ function PipelineView({
   topics,
   videoByTitle,
   planPostType,
+  onPostVideo,
 }: {
   topics: TopicEntry[];
   videoByTitle: Map<string, VideoInfo>;
   planPostType: string;
+  onPostVideo?: (videoId: string) => Promise<void>;
 }) {
   const buckets: Record<
     PipelineBucket,
@@ -491,6 +523,7 @@ function PipelineView({
                     video={video}
                     bucket={col.key}
                     planPostType={planPostType}
+                    onPost={video && onPostVideo ? () => onPostVideo(video.id) : undefined}
                   />
                 ))}
               </div>
@@ -512,6 +545,7 @@ function CalendarView({
   onEditTopic,
   videoByTitle,
   planPostType,
+  onPostVideo,
 }: {
   topics: TopicEntry[];
   weekDates: Date[];
@@ -520,6 +554,7 @@ function CalendarView({
   onEditTopic: (topic: TopicEntry) => void;
   videoByTitle: Map<string, VideoInfo>;
   planPostType: string;
+  onPostVideo?: (videoId: string) => Promise<void>;
 }) {
   return (
     <div className="overflow-x-auto">
@@ -592,6 +627,7 @@ function CalendarView({
                       video={video}
                       bucket={bucket}
                       planPostType={planPostType}
+                      onPost={video && onPostVideo ? () => onPostVideo(video.id) : undefined}
                     />
                   </div>
                 );
@@ -939,6 +975,19 @@ export default function ContentPlanPage() {
     setSavingOverride(false);
   }
 
+  async function handlePostVideo(videoId: string) {
+    const result = await withToast(
+      () => api.contentPlans.postVideo(planId, videoId),
+      "Failed to post video",
+    );
+    // Always reload — a failed attempt also writes a postSchedule record that
+    // moves the card from "Ready" to "Failed" in the UI.
+    void loadPlan();
+    if (result) {
+      toast.success("Posted to Facebook");
+    }
+  }
+
   async function handleApprove() {
     setApproving(true);
     const result = await withToast(
@@ -1084,12 +1133,14 @@ export default function ContentPlanPage() {
           }
           videoByTitle={videoByTitle}
           planPostType={planPostType}
+          onPostVideo={!isDraft ? handlePostVideo : undefined}
         />
       ) : (
         <PipelineView
           topics={topics}
           videoByTitle={videoByTitle}
           planPostType={planPostType}
+          onPostVideo={handlePostVideo}
         />
       )}
 

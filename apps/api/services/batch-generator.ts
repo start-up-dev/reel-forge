@@ -1,4 +1,4 @@
-import { and, asc, eq, inArray, sql } from "drizzle-orm";
+import { and, asc, eq, sql } from "drizzle-orm";
 import { db } from "../lib/db/index.js";
 import { brandProfiles, clipRequests, contentPlans, postSchedules, scenes, socialAccounts, users, videos } from "../lib/db/schema.js";
 import { emitPlanEvent } from "../lib/plan-event-bus.js";
@@ -49,6 +49,154 @@ async function waitForCompletion(videoId: string, timeoutMs = 30 * 60 * 1000): P
   return "FAILED";
 }
 
+function computeScheduledAt(weekStartDate: string, day: number, slot: number): Date {
+  // weekStartDate is a Monday (YYYY-MM-DD). day 1=Mon…7=Sun, slot 1=9am, 2=14pm, 3=17pm UTC.
+  const slotHours = [9, 14, 17, 20];
+  const hour = slotHours[Math.min(slot - 1, slotHours.length - 1)] ?? 9;
+  const base = new Date(`${weekStartDate}T00:00:00Z`);
+  base.setUTCDate(base.getUTCDate() + (day - 1));
+  base.setUTCHours(hour, 0, 0, 0);
+  return base;
+}
+
+// Posts a single completed video to Facebook immediately.
+// Always writes a postSchedules row (posted or failed) so the UI never shows a
+// "Ready" ghost — the only exception is when the plan has no connected channel,
+// in which case we can't satisfy the NOT NULL socialAccountId FK.
+export async function postSingleVideoToFacebook(planId: string, videoId: string): Promise<void> {
+  try {
+    const [plan] = await db
+      .select()
+      .from(contentPlans)
+      .where(eq(contentPlans.id, planId))
+      .limit(1);
+
+    if (!plan || plan.postType === "manual") return;
+
+    // Skip if already posted successfully (idempotent on retry)
+    const [alreadyPosted] = await db
+      .select({ id: postSchedules.id })
+      .from(postSchedules)
+      .where(and(eq(postSchedules.videoId, videoId), eq(postSchedules.status, "posted")))
+      .limit(1);
+    if (alreadyPosted) return;
+
+    const [account] = await db
+      .select()
+      .from(socialAccounts)
+      .where(eq(socialAccounts.brandProfileId, plan.brandProfileId))
+      .limit(1);
+
+    if (!account) {
+      // No channel connected — can't insert postSchedule (NOT NULL FK). Log and bail.
+      console.warn(`[postSingleVideoToFacebook] no social account for brand ${plan.brandProfileId}, skipping video ${videoId}`);
+      return;
+    }
+
+    const [video] = await db
+      .select()
+      .from(videos)
+      .where(eq(videos.id, videoId))
+      .limit(1);
+
+    if (!video?.outputUrl) {
+      await db.insert(postSchedules).values({
+        videoId,
+        socialAccountId: account.id,
+        postType: plan.postType as "draft" | "scheduled",
+        scheduledAt: null,
+        platformPostId: null,
+        status: "failed",
+        errorMessage: "Video has no output URL after assembly",
+        updatedAt: new Date(),
+      });
+      return;
+    }
+
+    const topics = Array.isArray(plan.topics) ? (plan.topics as TopicEntry[]) : [];
+    const topic = topics.find((t) => t.title === video.title);
+    const scheduledAt = topic
+      ? computeScheduledAt(plan.weekStartDate, topic.day, topic.slot)
+      : undefined;
+
+    let videoUrl = video.outputUrl;
+    if (!videoUrl.startsWith("http")) {
+      videoUrl = await generateSignedReadUrl(videoUrl, 30);
+    }
+
+    let videoBuffer: Buffer;
+    try {
+      const videoRes = await fetch(videoUrl);
+      if (!videoRes.ok) {
+        throw new Error(`R2 download failed (HTTP ${videoRes.status})`);
+      }
+      videoBuffer = Buffer.from(await videoRes.arrayBuffer());
+    } catch (err) {
+      await db.insert(postSchedules).values({
+        videoId,
+        socialAccountId: account.id,
+        postType: plan.postType as "draft" | "scheduled",
+        scheduledAt: scheduledAt ?? null,
+        platformPostId: null,
+        status: "failed",
+        errorMessage: err instanceof Error ? err.message : "Failed to download video for posting",
+        updatedAt: new Date(),
+      });
+      return;
+    }
+
+    const [brandRow] = await db
+      .select()
+      .from(brandProfiles)
+      .where(eq(brandProfiles.id, plan.brandProfileId))
+      .limit(1);
+
+    let caption = video.title;
+    if (topic && video.script && brandRow) {
+      try {
+        caption = await generatePostCaption(brandRow, topic, video.script);
+      } catch {
+        // non-fatal — keep title as caption
+      }
+    }
+
+    let platformPostId: string | null = null;
+    let postError: string | null = null;
+    try {
+      platformPostId = await uploadReelToFacebook(
+        account.pageId,
+        account.accessToken,
+        videoBuffer,
+        caption,
+        {
+          draft: plan.postType === "draft",
+          scheduledAt: plan.postType === "scheduled" ? scheduledAt : undefined,
+        },
+      );
+    } catch (err) {
+      postError = err instanceof Error ? err.message : "Facebook upload failed";
+    }
+
+    await db.insert(postSchedules).values({
+      videoId,
+      socialAccountId: account.id,
+      postType: plan.postType as "draft" | "scheduled",
+      scheduledAt: scheduledAt ?? null,
+      platformPostId,
+      status: postError ? "failed" : "posted",
+      errorMessage: postError,
+      updatedAt: new Date(),
+    });
+
+    if (postError) {
+      console.error(`[postSingleVideoToFacebook] Facebook upload failed for video ${videoId}:`, postError);
+    }
+  } catch (err) {
+    // Non-fatal — posting failure must never crash the generation pipeline
+    console.error(`[postSingleVideoToFacebook] unexpected error for video ${videoId}:`, err);
+  }
+}
+
 async function processVideo(
   planId: string,
   videoId: string,
@@ -73,10 +221,6 @@ async function processVideo(
 
     if (!brand) throw new Error(`Brand profile not found for video ${videoId}`);
 
-    // hasCharacterSheet: the brand has a character sheet image that the operator extension
-    // attaches to Grok Imagine. When true, every visualPrompt's CHARACTER section defers to
-    // that image ("replicate from attached reference sheet") rather than describing the
-    // character in text. The characterNote is still passed for WORLD/SETTING context.
     const hasCharacterSheet = Boolean(brand.characterSheetGcsPath);
     const effectiveUgcVisualStyle = video.ugcVisualStyle
       ?? (video.videoType === "talking" ? (brand.visualStyle ?? null) : null);
@@ -200,125 +344,17 @@ async function processVideo(
       message: finalStatus === "COMPLETE" ? "Ready" : "Failed",
     });
 
+    // 6 — Post to Facebook immediately on completion (non-blocking on failure)
+    if (finalStatus === "COMPLETE") {
+      await postSingleVideoToFacebook(planId, videoId);
+    }
+
     return finalStatus === "COMPLETE" ? "COMPLETE" : "FAILED";
   } catch (err) {
     const msg = err instanceof Error ? err.message : "Unknown error";
     await db.update(videos).set({ status: "FAILED", error: msg, updatedAt: new Date() }).where(eq(videos.id, videoId));
     emitPlanEvent(planId, { type: "ERROR", videoId, message: msg });
     return "FAILED";
-  }
-}
-
-function computeScheduledAt(weekStartDate: string, day: number, slot: number): Date {
-  // weekStartDate is a Monday (YYYY-MM-DD). day 1=Mon…7=Sun, slot 1=9am, 2=14pm, 3=17pm UTC.
-  const slotHours = [9, 14, 17, 20];
-  const hour = slotHours[Math.min(slot - 1, slotHours.length - 1)] ?? 9;
-  const base = new Date(`${weekStartDate}T00:00:00Z`);
-  base.setUTCDate(base.getUTCDate() + (day - 1));
-  base.setUTCHours(hour, 0, 0, 0);
-  return base;
-}
-
-async function autoPostCompletedVideos(
-  planId: string,
-  allVideoIds: string[],
-): Promise<void> {
-  try {
-    const [plan] = await db
-      .select()
-      .from(contentPlans)
-      .where(eq(contentPlans.id, planId))
-      .limit(1);
-
-    if (!plan || plan.postType === "manual") return;
-
-    // Find the first channel connected to this brand
-    const [account] = await db
-      .select()
-      .from(socialAccounts)
-      .where(eq(socialAccounts.brandProfileId, plan.brandProfileId))
-      .limit(1);
-
-    if (!account) return;
-
-    const completeVideos = await db
-      .select()
-      .from(videos)
-      .where(and(
-        inArray(videos.id, allVideoIds),
-        eq(videos.status, "COMPLETE"),
-      ));
-
-    const topics = Array.isArray(plan.topics) ? (plan.topics as TopicEntry[]) : [];
-
-    const [brandRow] = await db
-      .select()
-      .from(brandProfiles)
-      .where(eq(brandProfiles.id, plan.brandProfileId))
-      .limit(1);
-
-    for (const video of completeVideos) {
-      try {
-        if (!video.outputUrl) continue;
-
-        const topic = topics.find((t) => t.title === video.title);
-        const scheduledAt = topic
-          ? computeScheduledAt(plan.weekStartDate, topic.day, topic.slot)
-          : undefined;
-
-        let videoUrl = video.outputUrl;
-        if (!videoUrl.startsWith("http")) {
-          videoUrl = await generateSignedReadUrl(videoUrl, 30);
-        }
-
-        const videoRes = await fetch(videoUrl);
-        if (!videoRes.ok) continue;
-        const videoBuffer = Buffer.from(await videoRes.arrayBuffer());
-
-        // Generate a rich caption with hashtags; fall back to title if it fails
-        let caption = video.title;
-        if (topic && video.script && brandRow) {
-          try {
-            caption = await generatePostCaption(brandRow, topic, video.script);
-          } catch {
-            // non-fatal — keep title as caption
-          }
-        }
-
-        let platformPostId: string | null = null;
-        let postError: string | null = null;
-
-        try {
-          platformPostId = await uploadReelToFacebook(
-            account.pageId,
-            account.accessToken,
-            videoBuffer,
-            caption,
-            {
-              draft: plan.postType === "draft",
-              scheduledAt: plan.postType === "scheduled" ? scheduledAt : undefined,
-            },
-          );
-        } catch (err) {
-          postError = err instanceof Error ? err.message : "Facebook upload failed";
-        }
-
-        await db.insert(postSchedules).values({
-          videoId: video.id,
-          socialAccountId: account.id,
-          postType: plan.postType as "draft" | "scheduled",
-          scheduledAt: scheduledAt ?? null,
-          platformPostId,
-          status: postError ? "failed" : "posted",
-          errorMessage: postError,
-          updatedAt: new Date(),
-        });
-      } catch {
-        // Non-fatal — continue with remaining videos
-      }
-    }
-  } catch {
-    // Non-fatal — auto-post failure should not crash the batch
   }
 }
 
@@ -389,16 +425,12 @@ export async function startBatchGeneration(planId: string, userId: string): Prom
       failCount,
     });
 
-    // Auto-post COMPLETE videos to Facebook if the plan's postType is not 'manual'
-    void autoPostCompletedVideos(planId, planVideos.map((v) => v.id));
-
     try {
       await sendBatchCompleteEmail(userId, planId, successCount, failCount);
     } catch {
       // non-fatal — email failure should not crash the batch
     }
   } catch (err) {
-    // Ensure plan never gets stuck in "approved"/"generating" on unexpected errors
     await db
       .update(contentPlans)
       .set({ status: "complete", updatedAt: new Date() })

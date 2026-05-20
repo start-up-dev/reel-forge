@@ -381,6 +381,12 @@ export function createApiClient(getToken: () => Promise<string | null>) {
       retryGeneration(id: string): Promise<ApiResponse<{ ok: boolean }>> {
         return authedRequest(`/api/content-plans/${id}/retry-generation`, { method: "POST" });
       },
+      postVideo(
+        planId: string,
+        videoId: string
+      ): Promise<ApiResponse<{ postSchedule: PostSchedule | null }>> {
+        return authedRequest(`/api/content-plans/${planId}/videos/${videoId}/post`, { method: "POST" });
+      },
       delete(id: string): Promise<ApiResponse<{ ok: boolean }>> {
         return authedRequest(`/api/content-plans/${id}`, { method: "DELETE" });
       },
