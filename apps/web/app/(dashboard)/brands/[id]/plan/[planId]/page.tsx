@@ -740,7 +740,6 @@ function PlanSummaryStrip({
   totalVideos: number;
   onRetry: () => void;
 }) {
-  const router = useRouter();
   const [retrying, setRetrying] = useState(false);
   const [showRetry, setShowRetry] = useState(false);
   const api = useApiClient();
@@ -770,34 +769,6 @@ function PlanSummaryStrip({
     );
     setRetrying(false);
     onRetry();
-  }
-
-  if (progress.isBatchComplete) {
-    return (
-      <div className="mb-6 flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-[var(--accent-success)]/30 bg-[var(--accent-success)]/8 px-5 py-4">
-        <div className="flex items-center gap-3">
-          <Sparkles className="h-5 w-5 text-[var(--accent-success)]" />
-          <div>
-            <p className="text-sm font-semibold text-[var(--accent-success)]">
-              All done — {completed} video{completed !== 1 ? "s" : ""} ready
-            </p>
-            {failed > 0 && (
-              <p className="mt-0.5 text-xs text-[var(--accent-danger)]">
-                {failed} failed
-              </p>
-            )}
-          </div>
-        </div>
-        <Button
-          variant="secondary"
-          onClick={() => router.push(`/library?plan=${planId}`)}
-          className="gap-1.5"
-        >
-          View in Library
-          <ChevronRight className="h-4 w-4" />
-        </Button>
-      </div>
-    );
   }
 
   return (
@@ -876,7 +847,7 @@ export default function ContentPlanPage() {
   const [regenerating, setRegenerating] = useState(false);
   const [approving, setApproving] = useState(false);
   const [postType, setPostType] = useState<PostType>("draft");
-  const [viewMode, setViewMode] = useState<ViewMode>("pipeline");
+  const [viewMode, setViewMode] = useState<ViewMode>("calendar");
 
   const totalVideos = plan ? plan.postsPerDay * 7 : 0;
   const progress = usePlanProgress(
