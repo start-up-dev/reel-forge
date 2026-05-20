@@ -10,7 +10,6 @@ import {
   X,
   XCircle,
   Download,
-  Clock,
   CalendarCheck,
   FileText,
   Sparkles,
@@ -27,10 +26,6 @@ import type { ContentPlan, ContentFormat, PostType, TopicEntry } from "@repo/typ
 import { useApiClient, withToast } from "@/lib/api-client";
 import { usePlanProgress, type PlanProgressState } from "@/hooks/usePlanProgress";
 
-const SLOT_TIMES: Record<number, string[]> = {
-  1: ["9:00 AM"],
-  3: ["9:00 AM", "2:00 PM", "6:00 PM"],
-};
 
 function getWeekDates(weekStartDate: string): Date[] {
   const parts = weekStartDate.split("-").map(Number);
@@ -101,7 +96,7 @@ function postStatusLabel(
   if (postSchedule?.status === "posted") {
     if (postSchedule.postType === "scheduled" && postSchedule.scheduledAt) {
       const d = new Date(postSchedule.scheduledAt);
-      const label = d.toLocaleDateString("en-US", { month: "short", day: "numeric", hour: "numeric", minute: "2-digit" });
+      const label = d.toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit" });
       return { label: `Scheduled ${label}`, icon: <CalendarCheck className="h-3 w-3" />, color: "text-[var(--accent-secondary)]" };
     }
     if (postSchedule.postType === "draft") {
@@ -120,28 +115,43 @@ function postStatusLabel(
 function DraftCell({ topic, onEdit }: { topic: TopicEntry; onEdit: () => void }) {
   const badge = FORMAT_BADGE[topic.format as ContentFormat] ?? FORMAT_BADGE.ugc;
   return (
-    <div className="relative flex h-full min-h-[120px] flex-col rounded-lg border border-[var(--bg-border)] bg-[var(--bg-elevated)] p-3">
-      <span className={`absolute left-0 top-0 h-full w-0.5 rounded-l-lg ${badge.accent}`} />
-      {topic.overridden && (
-        <span className="absolute right-2 top-2 rounded-full bg-[var(--accent-primary)]/15 px-1.5 py-0.5 text-[9px] font-semibold uppercase tracking-wide text-[var(--accent-primary)]">
-          edited
+    <div className="group overflow-hidden rounded-xl border border-[var(--bg-border)] bg-[var(--bg-surface)] transition-colors hover:border-[var(--bg-border)]/80">
+      {/* Thumbnail area — matches PipelineCard proportions */}
+      <div className="relative aspect-[9/16] overflow-hidden bg-[var(--bg-elevated)]">
+        <div className={`absolute inset-x-0 top-0 h-1 ${badge.accent}`} />
+        <div className="absolute inset-0 flex flex-col items-center justify-center gap-2.5 px-3">
+          <p className="line-clamp-4 text-center text-xs font-semibold leading-snug text-[var(--text-primary)]">
+            {topic.title}
+          </p>
+          {topic.hook && (
+            <p className="line-clamp-3 text-center text-[10px] italic leading-snug text-[var(--text-muted)]">
+              {topic.hook}
+            </p>
+          )}
+        </div>
+        {/* Format badge */}
+        <span className={`absolute left-2 top-2 rounded-full px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide ${badge.className}`}>
+          {badge.label}
         </span>
-      )}
-      <span className={`mb-1.5 self-start rounded-full px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide ${badge.className}`}>
-        {badge.label}
-      </span>
-      <p className="flex-1 pr-5 text-xs font-semibold leading-snug text-[var(--text-primary)] line-clamp-3">
-        {topic.title}
-      </p>
-      <p className="mt-1 line-clamp-2 text-[10px] italic text-[var(--text-muted)]">{topic.hook}</p>
-      <button
-        type="button"
-        onClick={onEdit}
-        className="absolute bottom-2 right-2 rounded p-1 text-[var(--text-muted)] transition-colors hover:text-[var(--text-primary)]"
-        aria-label="Edit topic"
-      >
-        <Pencil className="h-3 w-3" />
-      </button>
+        {/* Edited badge */}
+        {topic.overridden && (
+          <span className="absolute right-2 top-2 rounded-full bg-[var(--accent-primary)]/15 px-1.5 py-0.5 text-[9px] font-semibold uppercase tracking-wide text-[var(--accent-primary)]">
+            edited
+          </span>
+        )}
+      </div>
+      {/* Footer */}
+      <div className="flex items-center justify-end p-2">
+        <button
+          type="button"
+          onClick={onEdit}
+          className="flex items-center gap-1 rounded-md px-2 py-1 text-[10px] font-medium text-[var(--text-muted)] transition-colors hover:bg-[var(--bg-elevated)] hover:text-[var(--text-primary)]"
+          aria-label="Edit topic"
+        >
+          <Pencil className="h-3 w-3" />
+          Edit
+        </button>
+      </div>
     </div>
   );
 }
@@ -361,7 +371,6 @@ function CalendarView({
   topics,
   weekDates,
   postsPerDay,
-  slotTimes,
   isDraft,
   onEditTopic,
   videoByTitle,
@@ -370,7 +379,6 @@ function CalendarView({
   topics: TopicEntry[];
   weekDates: Date[];
   postsPerDay: number;
-  slotTimes: string[];
   isDraft: boolean;
   onEditTopic: (topic: TopicEntry) => void;
   videoByTitle: Map<string, VideoInfo>;
@@ -395,15 +403,9 @@ function CalendarView({
         </div>
 
         {Array.from({ length: postsPerDay }, (_, slotIdx) => {
-          const slotTime = slotTimes[slotIdx] ?? "";
           return (
             <div key={slotIdx} className="mb-2 grid gap-2" style={{ gridTemplateColumns: `48px repeat(7, 1fr)` }}>
-              <div className="flex items-start justify-end pt-3 pr-1">
-                <span className="flex items-center gap-0.5 text-[10px] font-medium leading-tight text-[var(--text-muted)]">
-                  <Clock className="h-2.5 w-2.5" />
-                  {slotTime}
-                </span>
-              </div>
+              <div />
 
               {weekDates.map((_, dayIdx) => {
                 const dayNumber = dayIdx + 1;
@@ -745,7 +747,6 @@ export default function ContentPlanPage() {
   const topics = Array.isArray(plan.topics) ? (plan.topics as TopicEntry[]) : [];
   const postsPerDay = plan.postsPerDay;
   const weekDates = getWeekDates(plan.weekStartDate);
-  const slotTimes = SLOT_TIMES[postsPerDay] ?? SLOT_TIMES[1] ?? ["9:00 AM"];
   const isDraft = plan.status === "draft";
   const planPostType = plan.postType ?? "manual";
 
@@ -838,7 +839,6 @@ export default function ContentPlanPage() {
           topics={topics}
           weekDates={weekDates}
           postsPerDay={postsPerDay}
-          slotTimes={slotTimes}
           isDraft={isDraft}
           onEditTopic={(topic) => setOverridePanel({ topic, topicIndex: topic.index })}
           videoByTitle={videoByTitle}
