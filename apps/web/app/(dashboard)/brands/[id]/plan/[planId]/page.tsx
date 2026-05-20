@@ -527,7 +527,7 @@ function CalendarView({
         {/* Day headers */}
         <div
           className="mb-2 grid gap-2"
-          style={{ gridTemplateColumns: `48px repeat(7, 1fr)` }}
+          style={{ gridTemplateColumns: `repeat(7, 1fr)` }}
         >
           {weekDates.map((date, i) => (
             <div
@@ -555,7 +555,7 @@ function CalendarView({
             <div
               key={slotIdx}
               className="mb-2 grid gap-2"
-              style={{ gridTemplateColumns: `48px repeat(7, 1fr)` }}
+              style={{ gridTemplateColumns: `repeat(7, 1fr)` }}
             >
               {weekDates.map((_, dayIdx) => {
                 const dayNumber = dayIdx + 1;
