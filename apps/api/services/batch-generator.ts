@@ -358,10 +358,9 @@ async function processVideo(
   }
 }
 
-function mapFormatToVideoType(format: string): "generated" | "talking" | "action_reel" {
-  if (format === "tutorial") return "generated";
-  if (format === "ugc") return "talking";
-  return "generated";
+function mapFormatToVideoType(format: string): "talking" | "action_reel" {
+  if (format === "ugc" || format === "tutorial" || format === "montage" || format === "story") return "talking";
+  return "talking";
 }
 
 export async function startBatchGeneration(planId: string, userId: string): Promise<void> {

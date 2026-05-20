@@ -162,7 +162,7 @@ export async function videosRoutes(fastify: FastifyInstance): Promise<void> {
           .enum(["mascot", "cartoon", "animation_2d", "motion_graphics", "cinematic", "stock_footage", "whiteboard"])
           .nullable()
           .optional(),
-        videoType: z.enum(["generated", "talking", "action_reel"]).optional(),
+        videoType: z.enum(["talking", "action_reel"]).optional(),
         ugcVisualStyle: z.string().nullable().optional(),
         actionReelStyle: z.string().nullable().optional(),
         voiceSpeed: z.number().min(0.5).max(2.0).optional(),
