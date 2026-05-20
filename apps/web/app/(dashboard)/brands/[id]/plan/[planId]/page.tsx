@@ -378,7 +378,7 @@ function PipelineCard({
             </span>
           </div>
         )}
-        {bucket === "ready" && outputUrl && (
+        {(bucket === "ready" || bucket === "posted") && outputUrl && (
           <div className="mt-2 flex justify-end">
             <button
               type="button"
@@ -733,11 +733,13 @@ function PlanSummaryStrip({
   planId,
   progress,
   totalVideos,
+  videos,
   onRetry,
 }: {
   planId: string;
   progress: PlanProgressState;
   totalVideos: number;
+  videos: VideoInfo[];
   onRetry: () => void;
 }) {
   const [retrying, setRetrying] = useState(false);
@@ -754,6 +756,13 @@ function PlanSummaryStrip({
   );
   const pct = totalVideos > 0 ? Math.round((completed / totalVideos) * 100) : 0;
 
+  // All done when SSE says so, or when all loaded videos are in a terminal state
+  const videosAllDone =
+    videos.length > 0 &&
+    videos.every((v) => v.status === "COMPLETE" || v.status === "FAILED");
+  const allDone = progress.isBatchComplete || (videosAllDone && generating === 0);
+  const readyCount = videos.filter((v) => v.status === "COMPLETE").length;
+
   useEffect(() => {
     if (progress.videoStatuses.size > 0 || progress.isBatchComplete) return;
     const t = setTimeout(() => setShowRetry(true), 15_000);
@@ -769,6 +778,24 @@ function PlanSummaryStrip({
     );
     setRetrying(false);
     onRetry();
+  }
+
+  if (allDone) {
+    return (
+      <div className="mb-6 flex items-center justify-between rounded-2xl border border-[var(--accent-success)]/20 bg-[var(--accent-success)]/5 px-5 py-3">
+        <div className="flex items-center gap-2 text-sm font-semibold text-[var(--accent-success)]">
+          <Sparkles className="h-4 w-4" />
+          All done — {readyCount} video{readyCount !== 1 ? "s" : ""} ready
+        </div>
+        <a
+          href="/library"
+          className="flex items-center gap-1 text-xs font-medium text-[var(--accent-success)] hover:underline"
+        >
+          View in Library
+          <ChevronRight className="h-3.5 w-3.5" />
+        </a>
+      </div>
+    );
   }
 
   return (
@@ -1040,6 +1067,7 @@ export default function ContentPlanPage() {
           planId={planId}
           progress={progress}
           totalVideos={totalVideos}
+          videos={videos}
           onRetry={loadPlan}
         />
       )}
