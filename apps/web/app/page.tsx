@@ -227,7 +227,7 @@ function HeroSection() {
         </FadeIn>
 
         <FadeIn delay={0.2}>
-          <h1 className="mb-6 md:mb-8 text-[40px] sm:text-[56px] font-[1000] leading-[0.95] md:leading-[0.9] tracking-[-0.04em] text-[var(--text-primary)] md:text-[68px] lg:text-[80px]">
+          <h1 className="mb-6 md:mb-8 text-[34px] sm:text-[46px] font-[1000] leading-[0.95] md:leading-[0.9] tracking-[-0.04em] text-[var(--text-primary)] md:text-[56px] lg:text-[64px]">
             {HERO.headlineLine1}
             <br />
             <span className="pb-4 text-transparent bg-clip-text bg-gradient-to-r from-[var(--accent-primary)] to-[var(--accent-secondary)] relative inline-block italic">
