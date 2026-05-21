@@ -330,14 +330,15 @@ function PipelineCard({
           ? "border-[var(--accent-danger)]/30"
           : "border-[var(--bg-border)]";
 
-  // Compact layout for calendar view — no portrait aspect ratio for non-video states
-  if (compact && !canPlay) {
+  // Compact layout for calendar view — handles ALL states, no portrait aspect ratio
+  if (compact) {
     return (
       <div
         className={`group flex flex-col overflow-hidden rounded-xl border ${borderClass} bg-[var(--bg-surface)] transition-colors`}
       >
         <div className={`h-0.5 w-full flex-none ${badge.accent}`} />
         <div className="flex flex-1 flex-col gap-2 p-3">
+          {/* Time + format badge */}
           <div className="flex items-center justify-between">
             <span className="text-[10px] font-semibold text-[var(--text-muted)]">
               {time}
@@ -348,9 +349,13 @@ function PipelineCard({
               {badge.label}
             </span>
           </div>
+
+          {/* Title */}
           <p className="line-clamp-3 text-xs font-semibold leading-snug text-[var(--text-primary)]">
             {topic.title}
           </p>
+
+          {/* Status indicator */}
           <div className="flex items-center gap-1.5">
             {bucket === "generating" ? (
               <>
@@ -366,8 +371,15 @@ function PipelineCard({
                   Failed
                 </span>
               </>
+            ) : postInfo ? (
+              <div className={`flex items-center gap-1 ${postInfo.color}`}>
+                {postInfo.icon}
+                <span className="text-[10px] font-medium">{postInfo.label}</span>
+              </div>
             ) : null}
           </div>
+
+          {/* Generating progress bar */}
           {bucket === "generating" && (
             <div className="h-1 w-full overflow-hidden rounded-full bg-[var(--bg-elevated)]">
               <div
@@ -377,6 +389,37 @@ function PipelineCard({
             </div>
           )}
         </div>
+
+        {/* Download + post actions for ready/posted */}
+        {(bucket === "ready" || bucket === "posted") && outputUrl && (
+          <div className="flex items-center justify-end gap-1.5 border-t border-[var(--bg-border)]/50 px-3 py-2">
+            {bucket === "ready" && planPostType !== "manual" && onPost && (
+              <button
+                type="button"
+                onClick={handlePost}
+                disabled={posting}
+                className="flex h-7 items-center gap-1 rounded-md border border-[var(--accent-secondary)]/30 bg-[var(--bg-elevated)] px-2 text-[10px] font-medium text-[var(--accent-secondary)] transition-colors hover:border-[var(--accent-secondary)]/60 hover:bg-[var(--accent-secondary)]/10 disabled:opacity-50"
+                aria-label="Post to Facebook"
+              >
+                {posting ? (
+                  <Loader2 className="h-3 w-3 animate-spin" />
+                ) : (
+                  <Share2 className="h-3 w-3" />
+                )}
+                {posting ? "Posting…" : "Post"}
+              </button>
+            )}
+            <button
+              type="button"
+              onClick={handleDownload}
+              className="flex h-7 items-center gap-1 rounded-md border border-[var(--bg-border)] bg-[var(--bg-elevated)] px-2 text-[10px] font-medium text-[var(--text-secondary)] transition-colors hover:border-[var(--accent-primary)]/40 hover:text-[var(--accent-primary)]"
+              aria-label="Download video"
+            >
+              <Download className="h-3 w-3" />
+              Download
+            </button>
+          </div>
+        )}
       </div>
     );
   }
