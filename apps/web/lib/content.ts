@@ -29,8 +29,8 @@ export const NAV_CTA = {
 
 export const HERO = {
   eyebrow: "7 Facebook videos. Auto-posted. You approved once.",
-  headlineLine1: "Your Facebook page,",
-  headlineLine2: "fully managed.",
+  headlineLine1: "Your Facebook Page,",
+  headlineLine2: "On Autopilot.",
   subheadline:
     "A full week of Facebook videos — planned, produced, and posted for you. Built for creators who'd rather not film or edit a thing.",
   primaryCta: {
@@ -448,9 +448,9 @@ export const FAQ = {
 // ─── Final CTA ────────────────────────────────────────────────────────────────
 
 export const FINAL_CTA = {
-  headlineLine1: "Your competitors",
-  headlineLine2: "are still doing",
-  headlineAccent: "it by hand.",
+  headlineLine1: "Stop posting content",
+  headlineLine2: "the slow,",
+  headlineAccent: "manual way.",
   headlineLine3: "Start the machine.",
   body: [
     "Ten minutes this Sunday.",

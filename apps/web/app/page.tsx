@@ -227,7 +227,7 @@ function HeroSection() {
         </FadeIn>
 
         <FadeIn delay={0.2}>
-          <h1 className="mb-6 md:mb-8 text-[34px] sm:text-[46px] font-[1000] leading-[0.95] md:leading-[0.9] tracking-[-0.04em] text-[var(--text-primary)] md:text-[56px] lg:text-[64px]">
+          <h1 className="mb-6 md:mb-8 text-[40px] sm:text-[56px] font-[1000] leading-[0.95] md:leading-[0.9] tracking-[-0.04em] text-[var(--text-primary)] md:text-[68px] lg:text-[80px]">
             {HERO.headlineLine1}
             <br />
             <span className="pb-4 text-transparent bg-clip-text bg-gradient-to-r from-[var(--accent-primary)] to-[var(--accent-secondary)] relative inline-block italic">
@@ -1012,7 +1012,7 @@ function FinalCTASection() {
           <div className="inline-flex h-16 w-16 md:h-20 md:w-20 items-center justify-center rounded-xl md:rounded-2xl bg-gradient-to-br from-[var(--accent-primary)] to-[var(--accent-secondary)] mb-8 md:mb-10 shadow-[0_20px_50px_rgba(245,92,42,0.3)] rotate-3">
             <Rocket className="h-8 w-8 md:h-10 md:w-10 text-white" />
           </div>
-          <h2 className="mb-6 md:mb-8 text-[36px] sm:text-[48px] md:text-[84px] lg:text-[96px] font-[1000] leading-[1] md:leading-[0.95] tracking-[-0.04em] text-[var(--text-primary)]">
+          <h2 className="mb-6 md:mb-8 text-[28px] sm:text-[36px] md:text-[56px] lg:text-[64px] font-[1000] leading-[1.05] tracking-[-0.04em] text-[var(--text-primary)]">
             {FINAL_CTA.headlineLine1}
             <br />
             {FINAL_CTA.headlineLine2}{" "}
