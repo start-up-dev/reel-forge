@@ -581,7 +581,14 @@ Stripe price IDs from env: `STRIPE_TRIAL_PRICE_ID`, `STRIPE_STARTER_PRICE_ID`, `
 2. `trialPaid === true` → check `trialVideoRemaining > 0`
 3. No paid access → redirect to `"trial_checkout"`
 
-Counters incremented in `batch-generator.ts` atomically with SQL: `videosToday + 1`, `videosThisMonth + 1`. Trial: decrement `trialVideoRemaining - 1` in videos route handler.
+Counters incremented in `batch-generator.ts → processVideo()` atomically with SQL: `videosToday + 1`, `videosThisMonth + 1`, and `GREATEST(trialVideoRemaining - 1, 0)` (trial users only, floored at 0).
+
+**Plan approval pre-flight** (`POST /api/content-plans/:id/approve`): performs a fresh DB read of the user row and enforces:
+- Trial users: `trialVideoRemaining >= topicCount` — else 403 INSUFFICIENT_CREDITS
+- Starter/Pro users: `videosThisMonth + topicCount <= monthlyLimit` — else 403 QUOTA_EXCEEDED
+- No paid access: 403 NO_PLAN
+
+Note: `checkQuota()` in `lib/quota.ts` is a helper used for UI status checks; quota enforcement for batch generation is done via the approval pre-flight + per-video counter decrement described above.
 
 ### 12.3 Stripe Webhook Events
 

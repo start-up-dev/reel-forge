@@ -348,6 +348,7 @@ async function processVideo(
       await db.update(users).set({
         videosToday: sql`${users.videosToday} + 1`,
         videosThisMonth: sql`${users.videosThisMonth} + 1`,
+        trialVideoRemaining: sql`GREATEST(${users.trialVideoRemaining} - 1, 0)`,
         updatedAt: new Date(),
       }).where(eq(users.id, userId));
     }

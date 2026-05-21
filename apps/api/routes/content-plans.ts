@@ -1,8 +1,8 @@
-import { and, asc, desc, eq, inArray } from "drizzle-orm";
+import { and, asc, desc, eq, inArray, sql } from "drizzle-orm";
 import type { FastifyInstance } from "fastify";
 import { z } from "zod";
 import { db } from "../lib/db/index.js";
-import { brandProfiles, contentPlans, postSchedules, videos } from "../lib/db/schema.js";
+import { brandProfiles, contentPlans, postSchedules, users, videos } from "../lib/db/schema.js";
 import { subscribeToPlan } from "../lib/plan-event-bus.js";
 import { postSingleVideoToFacebook, startBatchGeneration } from "../services/batch-generator.js";
 import { generateWeekPlan } from "../services/claude.js";
@@ -301,6 +301,58 @@ export async function contentPlansRoutes(fastify: FastifyInstance) {
       const topics = Array.isArray(plan.topics) ? (plan.topics as TopicEntry[]) : [];
       if (topics.length === 0) {
         return reply.status(400).send({ error: { message: "Plan has no topics to approve." } });
+      }
+
+      // Quota pre-flight: re-read the user row so we always act on the latest
+      // counter values, not the potentially-stale snapshot from requireAuth.
+      const [freshUser] = await db
+        .select({
+          plan: users.plan,
+          trialPaid: users.trialPaid,
+          trialVideoRemaining: users.trialVideoRemaining,
+          videosThisMonth: users.videosThisMonth,
+          monthlyLimit: users.monthlyLimit,
+        })
+        .from(users)
+        .where(eq(users.id, user.id))
+        .limit(1);
+
+      if (!freshUser) {
+        return reply.status(401).send({ error: { message: "User not found." } });
+      }
+
+      const topicCount = topics.length;
+
+      if (freshUser.trialPaid && freshUser.plan !== "starter" && freshUser.plan !== "pro") {
+        // Trial users: enforce remaining one-time credit balance
+        if ((freshUser.trialVideoRemaining ?? 0) < topicCount) {
+          return reply.status(403).send({
+            error: {
+              code: "INSUFFICIENT_CREDITS",
+              message: `Not enough trial credits. You have ${freshUser.trialVideoRemaining} credit(s) remaining but this plan needs ${topicCount}. Upgrade to continue.`,
+              redirect: "billing",
+            },
+          });
+        }
+      } else if (freshUser.plan === "starter" || freshUser.plan === "pro") {
+        // Subscription users: enforce monthly video quota
+        if (
+          freshUser.monthlyLimit > 0 &&
+          freshUser.videosThisMonth + topicCount > freshUser.monthlyLimit
+        ) {
+          const remaining = freshUser.monthlyLimit - freshUser.videosThisMonth;
+          return reply.status(403).send({
+            error: {
+              code: "QUOTA_EXCEEDED",
+              message: `Monthly limit reached. You have ${remaining} video(s) remaining this month (plan needs ${topicCount}).`,
+              redirect: "billing",
+            },
+          });
+        }
+      } else if (!freshUser.trialPaid) {
+        return reply.status(403).send({
+          error: { code: "NO_PLAN", message: "Upgrade required to approve a content plan.", redirect: "billing" },
+        });
       }
 
       // Approve + create videos atomically so we never leave the plan as "approved"
