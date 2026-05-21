@@ -221,6 +221,8 @@ DRAFT
 | primary_color | text nullable | hex |
 | secondary_color | text nullable | hex |
 | reference_video_url | text nullable | TikTok/Reels vibe reference |
+| website_url | text nullable | user's brand website URL |
+| website_context | text nullable | Claude-extracted brand facts from the website |
 | onboarding_complete | bool default false | |
 | character_sheet_generation_count | int default 0 | capped at 10 |
 
@@ -313,7 +315,8 @@ All routes require Clerk auth (`Authorization: Bearer <session_token>`) except:
 | GET | `/api/brand-profiles/:id` | Single brand with channels array and signed characterSheetUrl. |
 | PATCH | `/api/brand-profiles/:id` | Partial update any fields. |
 | DELETE | `/api/brand-profiles/:id` | Delete brand. |
-| POST | `/api/brand-profiles/:id/suggest` | Claude analyzes channel info and suggests brand profile values. Body: `{ feedback? }`. Returns `BrandSuggestion`. |
+| POST | `/api/brand-profiles/:id/suggest` | Claude analyzes channel info (+ website context if ingested) and suggests brand profile values. Body: `{ feedback? }`. Returns `BrandSuggestion`. |
+| POST | `/api/brand-profiles/:id/ingest-website` | Fetch website, extract brand facts with Claude, save to `website_context`. Body: `{ websiteUrl }`. Returns `{ websiteContext }`. |
 | POST | `/api/brand-profiles/:id/logo-upload-url` | Get R2 signed PUT URL for logo. Body: `{ contentType }`. Returns `{ uploadUrl, gcsPath }`. |
 | POST | `/api/brand-profiles/:id/complete-onboarding` | Set `onboardingComplete = true`. |
 | POST | `/api/brand-profiles/:id/generate-character-sheet` | Generate character sheet via GPT-image-2. Rate-limited: max 10 per brand. Returns `{ characterSheetUrl }`. |
@@ -392,7 +395,8 @@ All calls use `claude-sonnet-4-6`. Title generation uses `claude-haiku-4-5-20251
 | `generateDialogueSegments(script, sceneCount)` | Splits script into N segments: `[{ sceneIndex, dialogue }]`. Best-effort, non-fatal if fails. |
 | `splitScenes(script, audioDurationSeconds, videoType, renderStyle?, ugcVisualStyle?, characterNote?, actionReelStyle?, hasCharacterSheet?)` | Returns `[{ sceneIndex, textExcerpt, visualPrompt, motionPrompt, durationHintSeconds }]`. Retry loop 3× on parse failure. Talking/action_reel: always 6s per clip. |
 | `generateWeekPlan(brand, postsPerDay, weekStartDate)` | Returns `TopicEntry[]` (postsPerDay × 7). Uses jsonrepair for malformed JSON. |
-| `suggestBrandProfile(channelInfo)` | Returns `BrandSuggestion` from channel name/avatar analysis. |
+| `suggestBrandProfile(channelInfo)` | Returns `BrandSuggestion` from channel name/avatar + optional `websiteContext`. |
+| `extractWebsiteContext(url, pageText)` | Claude (Haiku) extracts brand facts from stripped website text. Returns a compact key-value summary. |
 | `generateIdeas(brand, topic, videoType?, actionReelStyle?)` | Returns 3 `IdeaCard[]`. |
 
 ### 7.2 Batch Generator (`apps/api/services/batch-generator.ts`)

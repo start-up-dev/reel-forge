@@ -451,10 +451,36 @@ export interface BrandSuggestion {
   reasoning: string;
 }
 
+export async function extractWebsiteContext(url: string, pageText: string): Promise<string> {
+  const message = await client.messages.create({
+    model: "claude-haiku-4-5-20251001",
+    max_tokens: 512,
+    system: "You extract brand facts from website text. Be concise and specific — no filler, no preamble.",
+    messages: [{
+      role: "user",
+      content: `Website: ${url}
+
+Page text:
+${pageText}
+
+Extract these facts as "Label: value" lines:
+- Business name
+- Products/services (list main offerings, be specific)
+- Key offer or value proposition
+- Target customer
+- Brand tone/voice
+
+Return only the extracted lines.`,
+    }],
+  });
+  return message.content[0]?.type === "text" ? message.content[0].text.trim() : "";
+}
+
 export async function suggestBrandProfile(channelInfo: {
   pageName: string;
   platform: string;
   pageAvatarUrl?: string | null;
+  websiteContext?: string;
   feedback?: string;
 }): Promise<BrandSuggestion> {
   const systemPrompt = `You are a brand strategist helping creators build their content identity.
@@ -464,9 +490,10 @@ For colors, suggest hex codes that match the brand vibe.
 For characterDescription, be vivid and specific (2-3 sentences on appearance, personality, style).`;
 
   const userContent = `Channel: "${channelInfo.pageName}" on ${channelInfo.platform}.
+${channelInfo.websiteContext ? `\nWebsite brand context:\n${channelInfo.websiteContext}\n` : ""}
 ${channelInfo.feedback ? `\nUser feedback on previous suggestion: "${channelInfo.feedback}"\nAdjust your suggestions accordingly.` : ""}
 
-Based on this channel, suggest a brand profile. Be specific and creative.`;
+Based on this channel${channelInfo.websiteContext ? " and website content" : ""}, suggest a brand profile. Be specific and creative.`;
 
   const message = await client.messages.create({
     model: "claude-sonnet-4-6",

@@ -50,22 +50,22 @@
 If even you get confused, a cold visitor bounces in 8 seconds.
 
 ### Hero section
-- [ ] Rewrite the H1 to sell the **outcome**, not the process: "A full week of Facebook videos — written, made, and posted for you."
-- [ ] Add a sub-headline naming the audience: "For small business owners who want to stay active on Facebook without touching a camera or editor."
-- [ ] Single primary CTA button — "Get your first week for $5" — remove competing buttons like "Sign Up" / "Get Started." (Don't say "Free" — the trial costs $5.)
-- [ ] Remove all process jargon from the landing page (no "agentic pipeline," "Claude," "FFmpeg" — users don't care).
+- [x] Rewrite the H1 to sell the **outcome**, not the process: "A full week of Facebook videos — written, made, and posted for you."
+- [x] Add a sub-headline naming the audience: "For small business owners who want to stay active on Facebook without touching a camera or editor."
+- [x] Single primary CTA button — "Get your first week for $5" — remove competing buttons like "Sign Up" / "Get Started." (Don't say "Free" — the trial costs $5.)
+- [x] Remove all process jargon from the landing page (no "agentic pipeline," "Claude," "FFmpeg" — users don't care).
 
 ### Show the output
-- [ ] Embed 2–3 real ReelForge output videos in the first scroll. Caption: "Real output. Made by ReelForge."
-- [ ] Add a "human-reviewed" trust badge near the videos: "Every clip personally reviewed by our team."
+- [x] Embed 2–3 real ReelForge output videos in the first scroll. Caption: "Real output. Made by ReelForge."
+- [x] Add a "human-reviewed" trust badge near the videos: "Every clip personally reviewed by our team."
 
 ### Explain the flow honestly
-- [ ] Add a simple 3-step "How it works" section: 1) Connect your Facebook page and add your website — we analyze both and build your brand profile · 2) Approve your weekly plan · 3) We produce and post your week — you get an email each time a video is ready.
-- [ ] Surface website analysis as a quality selling point in the hero/how-it-works copy: "We study your Facebook page and your website so every script is accurate and on-brand — not generic AI filler." (Depends on the Board 2 website-ingestion feature.)
-- [ ] Make clear the videos are delivered (not instant) — set the expectation so no one feels misled.
+- [x] Add a simple 3-step "How it works" section: 1) Connect your Facebook page and add your website — we analyze both and build your brand profile · 2) Approve your weekly plan · 3) We produce and post your week — you get an email each time a video is ready.
+- [x] Surface website analysis as a quality selling point in the hero/how-it-works copy: "We study your Facebook page and your website so every script is accurate and on-brand — not generic AI filler." (Depends on the Board 2 website-ingestion feature.)
+- [x] Make clear the videos are delivered (not instant) — set the expectation so no one feels misled.
 
 ### FAQ page
-- [ ] Build an FAQ page with at least these 8 questions:
+- [x] Build an FAQ page with at least these 8 questions:
   1. What kind of videos does ReelForge create?
   2. Do I need to be on camera or film anything? (No.)
   3. Who actually makes the videos? (AI drafts them; our team reviews and produces every clip.)
@@ -81,9 +81,9 @@ If even you get confused, a cold visitor bounces in 8 seconds.
 
 ### Prerequisite — website ingestion for richer brand context (feature in progress)
 Lets users add their brand website during onboarding so Claude has real, specific brand info — products, offers, tone, customer — and produces accurate, on-brand scripts instead of generic filler. This directly raises the quality of every sample video and demo below, so ship it before producing them.
-- [ ] Add a website URL field to brand onboarding (`/brands/[id]/onboard`).
-- [ ] Fetch and parse the site — extract products/services, value props, offers, tone, and target customer.
-- [ ] Feed the extracted context into both the brand-profile suggestion and the script-generation prompt.
+- [x] Add a website URL field to brand onboarding (`/brands/[id]/onboard`).
+- [x] Fetch and parse the site — extract products/services, value props, offers, tone, and target customer.
+- [x] Feed the extracted context into both the brand-profile suggestion and the script-generation prompt.
 - [ ] Verify a generated script references real, specific brand details (not generic filler).
 
 ### Video assets (non-negotiable)

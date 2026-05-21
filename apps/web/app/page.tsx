@@ -363,20 +363,13 @@ function ShowcaseSection() {
       </div>
 
       <FadeIn delay={0.2} className="mt-8 text-center px-6">
-        <div className="inline-flex items-center gap-3 px-6 py-3 rounded-full bg-white/[0.03] border border-white/10 backdrop-blur-md">
-          <div className="flex -space-x-2">
-            {[1, 2, 3].map((i) => (
-              <div
-                key={i}
-                className="w-5 h-5 md:w-6 md:h-6 rounded-full border border-[var(--bg-base)] bg-[var(--accent-primary)] flex items-center justify-center"
-              >
-                <Play className="w-1.5 h-1.5 md:w-2 md:h-2 fill-white text-white" />
-              </div>
-            ))}
+        <div className="flex flex-col sm:flex-row items-center justify-center gap-3">
+          <div className="inline-flex items-center gap-2 px-5 py-3 rounded-full bg-[var(--accent-success)]/5 border border-[var(--accent-success)]/20 backdrop-blur-md">
+            <ShieldCheck className="w-4 h-4 text-[var(--accent-success)] shrink-0" />
+            <p className="text-[12px] md:text-[13px] font-bold text-[var(--accent-success)]">
+              {SHOWCASE.trustBadge}
+            </p>
           </div>
-          <p className="text-[12px] md:text-[13px] font-bold text-[var(--text-primary)] tracking-wide">
-            Hover any phone to pause · {SHOWCASE.videos.length} real ReelForge outputs
-          </p>
         </div>
       </FadeIn>
     </section>

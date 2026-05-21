@@ -327,6 +327,8 @@ export interface BrandProfile {
   primaryColor: string | null;
   secondaryColor: string | null;
   referenceVideoUrl: string | null;
+  websiteUrl: string | null;
+  websiteContext: string | null;
   onboardingComplete: boolean;
   characterSheetGenerationCount: number;
   channels: SocialAccount[];

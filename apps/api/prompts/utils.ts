@@ -12,6 +12,7 @@ export function brandContext(brand: BrandProfileRow): string {
       : null,
     brand.characterDescription ? `Character: ${brand.characterDescription}` : null,
     brand.primaryColor ? `Brand colour: ${brand.primaryColor}` : null,
+    brand.websiteContext ? `Website brand context:\n${brand.websiteContext}` : null,
   ]
     .filter(Boolean)
     .join("\n");

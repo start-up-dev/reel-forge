@@ -309,6 +309,8 @@ export const brandProfiles = pgTable(
     primaryColor: text("primary_color"),
     secondaryColor: text("secondary_color"),
     referenceVideoUrl: text("reference_video_url"),
+    websiteUrl: text("website_url"),
+    websiteContext: text("website_context"),
     onboardingComplete: boolean("onboarding_complete").notNull().default(false),
     characterSheetGenerationCount: integer("character_sheet_generation_count")
       .notNull()

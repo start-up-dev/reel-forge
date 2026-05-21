@@ -324,6 +324,15 @@ export function createApiClient(getToken: () => Promise<string | null>) {
           body: JSON.stringify({ contentType }),
         });
       },
+      ingestWebsite(
+        id: string,
+        websiteUrl: string
+      ): Promise<ApiResponse<{ websiteContext: string }>> {
+        return authedRequest(`/api/brand-profiles/${id}/ingest-website`, {
+          method: "POST",
+          body: JSON.stringify({ websiteUrl }),
+        });
+      },
       completeOnboarding(id: string): Promise<ApiResponse<{ ok: boolean }>> {
         return authedRequest(`/api/brand-profiles/${id}/complete-onboarding`, {
           method: "POST",

@@ -11,7 +11,26 @@ import {
 } from "../lib/storage.js";
 import { buildCharacterSheetPrompt } from "../prompts/character-sheet.js";
 import { generateCharacterSheet } from "../services/openai-image.js";
-import { suggestBrandProfile } from "../services/claude.js";
+import { extractWebsiteContext, suggestBrandProfile } from "../services/claude.js";
+
+function stripHtml(html: string): string {
+  return html
+    .replace(/<script[\s\S]*?<\/script>/gi, " ")
+    .replace(/<style[\s\S]*?<\/style>/gi, " ")
+    .replace(/<[^>]+>/g, " ")
+    .replace(/&nbsp;/g, " ")
+    .replace(/&amp;/g, "&")
+    .replace(/&lt;/g, "<")
+    .replace(/&gt;/g, ">")
+    .replace(/&quot;/g, '"')
+    .replace(/\s+/g, " ")
+    .trim()
+    .slice(0, 8000);
+}
+
+const ingestWebsiteBody = z.object({
+  websiteUrl: z.string().url().max(500),
+});
 
 const createBody = z.object({
   name: z.string().min(1).max(200),
@@ -30,6 +49,7 @@ const createBody = z.object({
 
 const updateBody = createBody.partial().extend({
   logoGcsPath: z.string().max(500).optional(),
+  websiteUrl: z.string().url().max(500).nullable().optional(),
 });
 
 const logoUploadBody = z.object({
@@ -178,6 +198,7 @@ export async function brandsRoutes(fastify: FastifyInstance) {
     if (d.secondaryColor !== undefined) patch.secondaryColor = d.secondaryColor;
     if (d.referenceVideoUrl !== undefined) patch.referenceVideoUrl = d.referenceVideoUrl;
     if (d.logoGcsPath !== undefined) patch.logoGcsPath = d.logoGcsPath;
+    if (d.websiteUrl !== undefined) patch.websiteUrl = d.websiteUrl;
 
     const [updated] = await db
       .update(brandProfiles)
@@ -239,10 +260,67 @@ export async function brandsRoutes(fastify: FastifyInstance) {
         pageName: channel?.pageName ?? row.name,
         platform: channel?.platform ?? "facebook",
         pageAvatarUrl: channel?.pageAvatarUrl,
+        websiteContext: row.websiteContext ?? undefined,
         feedback: feedback ?? undefined,
       });
 
       return reply.send({ data: suggestion });
+    },
+  );
+
+  // POST /api/brand-profiles/:id/ingest-website — fetch & analyse a brand website
+  fastify.post<{ Params: { id: string } }>(
+    "/brand-profiles/:id/ingest-website",
+    async (request, reply) => {
+      const user = request.currentUser!;
+      const { id } = request.params;
+
+      const parsed = ingestWebsiteBody.safeParse(request.body);
+      if (!parsed.success) {
+        return reply.status(400).send({ error: { message: parsed.error.message } });
+      }
+
+      const [row] = await db
+        .select({ id: brandProfiles.id })
+        .from(brandProfiles)
+        .where(and(eq(brandProfiles.id, id), eq(brandProfiles.userId, user.id)))
+        .limit(1);
+      if (!row) {
+        return reply.status(404).send({ error: { message: "Brand profile not found." } });
+      }
+
+      const { websiteUrl } = parsed.data;
+
+      let pageText: string;
+      try {
+        const controller = new AbortController();
+        const timer = setTimeout(() => controller.abort(), 10000);
+        const res = await fetch(websiteUrl, {
+          signal: controller.signal,
+          headers: { "User-Agent": "Mozilla/5.0 (compatible; ReelForge/1.0; +https://aireelforge.com)" },
+        });
+        clearTimeout(timer);
+        if (!res.ok) {
+          return reply.status(422).send({ error: { message: `Website returned ${res.status}. Check the URL and try again.` } });
+        }
+        const html = await res.text();
+        pageText = stripHtml(html);
+      } catch {
+        return reply.status(422).send({ error: { message: "Could not reach the website. Check the URL and try again." } });
+      }
+
+      if (pageText.length < 50) {
+        return reply.status(422).send({ error: { message: "Not enough content found on the page. Try a different URL (e.g. your homepage or about page)." } });
+      }
+
+      const websiteContext = await extractWebsiteContext(websiteUrl, pageText);
+
+      await db
+        .update(brandProfiles)
+        .set({ websiteUrl, websiteContext, updatedAt: new Date() })
+        .where(and(eq(brandProfiles.id, id), eq(brandProfiles.userId, user.id)));
+
+      return reply.send({ data: { websiteContext } });
     },
   );
 

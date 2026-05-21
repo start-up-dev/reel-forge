@@ -54,6 +54,7 @@ export const SHOWCASE = {
   headline: "Real videos. Real niches.\nZero editing.",
   subheadline:
     "Every video below was produced by ReelForge — scripted by AI, built scene by scene, assembled automatically, and personally reviewed by our team before it's ready to post.",
+  trustBadge: "Every clip personally reviewed by our team before it posts.",
   videos: [
     {
       style: "Cinematic",
@@ -255,7 +256,9 @@ export const PIPELINE = {
     {
       num: "01",
       title: "Set your brand once. Use it forever.",
-      body: "Connect your Facebook page. ReelForge reads it and proposes your whole brand — niche, tone, visual style, and a consistent AI character. Review, tweak, done.",
+      body: "Connect your Facebook page and add your website. We study both so every script is accurate and on-brand — not generic AI filler. ReelForge proposes your niche, tone, visual style, and AI character. Review, tweak, done.",
+      pill: "We analyze your page + website for you",
+      pillVariant: "primary" as const,
     },
     {
       num: "02",
@@ -397,6 +400,26 @@ export const FAQ = {
   label: "Common Questions",
   headline: "Honest answers.",
   items: [
+    {
+      question: "What kind of videos does ReelForge create?",
+      answer:
+        "ReelForge creates short-form vertical videos (1080×1920) formatted for Facebook Reels and video posts. Each video is scripted with a hook, body content, and a call to action — tailored to your niche. Styles include cinematic, UGC-style, tutorial, and story formats. Every video comes with burned-in subtitles and is assembled as a finished MP4, ready to post.",
+    },
+    {
+      question: "Will the videos look obviously AI-generated?",
+      answer:
+        "Not if you use the brand profile properly. ReelForge builds you a consistent AI brand character — a visual identity that carries across every scene, week after week. Scripts are written for your specific niche, tone, and audience. And every video is personally reviewed by our team before it's marked ready. You get finished, human-checked content — not raw AI output you'd be embarrassed to put your name on.",
+    },
+    {
+      question: "What Facebook pages can I connect?",
+      answer:
+        "Any Facebook page you administer — business pages, creator pages, and brand pages all work. You connect via secure Facebook OAuth, so we never see or store your password. You can connect multiple pages and manage each as a separate brand profile.",
+    },
+    {
+      question: "What happens if I cancel?",
+      answer:
+        "Nothing bad. The $5 Try Out plan is a one-time purchase with no subscription to cancel — your 7 credits stay available until you use them. On monthly plans, you can cancel any time from your billing page. You keep access until the end of your current billing period. No fees, no penalties.",
+    },
     {
       question: "Do I need to film anything or be on camera?",
       answer:

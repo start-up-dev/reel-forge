@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useCallback } from "react";
 import { useParams, useRouter } from "next/navigation";
-import { Loader2, Pencil, Check, RefreshCw, Globe, ChevronRight } from "lucide-react";
+import { Loader2, Pencil, Check, RefreshCw, Globe, ChevronRight, ExternalLink } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@repo/ui/button";
 import type { BrandSuggestion, ContentTone, VisualStyle, CharacterType, TargetAudienceAge, TargetAudienceVibe } from "@repo/types";
@@ -157,21 +157,25 @@ function FieldEditor<T extends string>({
 
 // ─── Main page ────────────────────────────────────────────────────────────────
 
+type Phase = "url-input" | "loading" | "suggestion";
+
 export default function BrandOnboardPage() {
   const { id } = useParams<{ id: string }>();
   const router = useRouter();
   const api = useApiClient();
 
+  const [phase, setPhase] = useState<Phase>("url-input");
+  const [websiteUrl, setWebsiteUrl] = useState("");
+  const [websiteAnalyzed, setWebsiteAnalyzed] = useState(false);
+  const [analyzingWebsite, setAnalyzingWebsite] = useState(false);
   const [channel, setChannel] = useState<{ pageName: string; pageAvatarUrl: string | null; platform: string } | null>(null);
   const [suggestion, setSuggestion] = useState<BrandSuggestion | null>(null);
-  const [loading, setLoading] = useState(true);
   const [editingField, setEditingField] = useState<string | null>(null);
   const [feedback, setFeedback] = useState("");
   const [regenerating, setRegenerating] = useState(false);
   const [saving, setSaving] = useState(false);
 
   const loadAndSuggest = useCallback(async (feedbackText?: string) => {
-    // Load brand to get the connected channel name
     const brandResult = await withToast(() => api.brands.get(id), "Failed to load brand");
     if (brandResult?.data?.channels?.[0]) {
       const ch = brandResult.data.channels[0];
@@ -185,13 +189,28 @@ export default function BrandOnboardPage() {
     if (suggestResult?.data) {
       setSuggestion(suggestResult.data);
     }
-    setLoading(false);
+    setPhase("suggestion");
     setRegenerating(false);
   }, [api, id]);
 
-  useEffect(() => {
-    void loadAndSuggest();
-  }, [loadAndSuggest]);
+  async function handleContinue() {
+    setPhase("loading");
+
+    if (websiteUrl.trim()) {
+      setAnalyzingWebsite(true);
+      const result = await withToast(
+        () => api.brands.ingestWebsite(id, websiteUrl.trim()),
+        "Could not analyze website — continuing without it"
+      );
+      if (result?.data) {
+        setWebsiteAnalyzed(true);
+        toast.success("Website analyzed — Claude will use it for your brand profile.");
+      }
+      setAnalyzingWebsite(false);
+    }
+
+    await loadAndSuggest();
+  }
 
   function updateField<K extends keyof BrandSuggestion>(key: K, value: BrandSuggestion[K]) {
     setSuggestion((prev) => prev ? { ...prev, [key]: value } : prev);
@@ -238,22 +257,100 @@ export default function BrandOnboardPage() {
     }
   }
 
-  if (loading) {
+  // ── URL input phase ────────────────────────────────────────────────────────
+
+  if (phase === "url-input") {
+    const trimmed = websiteUrl.trim();
+    const isValidUrl = trimmed === "" || (() => {
+      try {
+        const u = new URL(trimmed);
+        return u.protocol === "http:" || u.protocol === "https:";
+      } catch {
+        return false;
+      }
+    })();
     return (
-      <div className="flex min-h-[60vh] flex-col items-center justify-center gap-4">
-        <Loader2 className="h-8 w-8 animate-spin text-[var(--accent-primary)]" />
-        <p className="text-sm text-[var(--text-muted)]">Claude is analysing your channel…</p>
+      <div className="mx-auto max-w-lg px-4 py-10">
+        <div className="mb-8">
+          <h1 className="text-xl font-bold text-[var(--text-primary)]">Add your website</h1>
+          <p className="mt-1 text-sm text-[var(--text-muted)]">
+            Claude will read your site to build a more accurate brand profile — specific products, offers, and tone, not generic guesses. Optional, but recommended.
+          </p>
+        </div>
+
+        <div className="rounded-xl border border-[var(--bg-border)] bg-[var(--bg-elevated)] p-4">
+          <label className="mb-2 block text-[10px] font-semibold uppercase tracking-wider text-[var(--text-muted)]">
+            Website URL
+          </label>
+          <div className="relative">
+            <Globe className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-[var(--text-muted)]" />
+            <input
+              type="url"
+              value={websiteUrl}
+              onChange={(e) => setWebsiteUrl(e.target.value)}
+              onKeyDown={(e) => { if (e.key === "Enter") void handleContinue(); }}
+              placeholder="https://yourbusiness.com"
+              className="w-full rounded-lg border border-[var(--bg-border)] bg-[var(--bg-surface)] py-2.5 pl-9 pr-3 text-sm text-[var(--text-primary)] placeholder:text-[var(--text-muted)] focus:border-[var(--accent-primary)] focus:outline-none"
+            />
+          </div>
+          {trimmed && !isValidUrl && (
+            <p className="mt-1.5 text-xs text-[var(--accent-danger)]">Enter a valid URL starting with https:// or http://</p>
+          )}
+          <p className="mt-2 text-[11px] text-[var(--text-muted)]">
+            We read your homepage or about page — nothing is stored except the extracted brand summary.
+          </p>
+        </div>
+
+        <div className="mt-6 flex gap-3">
+          <button
+            type="button"
+            onClick={() => { setWebsiteUrl(""); void handleContinue(); }}
+            className="flex-shrink-0 rounded-lg border border-[var(--bg-border)] px-4 py-2.5 text-sm text-[var(--text-muted)] transition-colors hover:text-[var(--text-secondary)]"
+          >
+            Skip
+          </button>
+          <Button
+            onClick={() => void handleContinue()}
+            disabled={!isValidUrl}
+            className="flex-1 gap-2"
+          >
+            {trimmed ? "Analyze & Continue" : "Continue"}
+            <ChevronRight className="h-4 w-4" />
+          </Button>
+        </div>
       </div>
     );
   }
 
-  if (!suggestion) {
+  // ── Loading phase ──────────────────────────────────────────────────────────
+
+  if (phase === "loading") {
     return (
-      <div className="mx-auto max-w-lg px-4 py-10 text-center text-sm text-[var(--text-muted)]">
-        Failed to generate suggestions. <button type="button" className="underline" onClick={() => { setLoading(true); void loadAndSuggest(); }}>Try again</button>
+      <div className="flex min-h-[60vh] flex-col items-center justify-center gap-4">
+        <Loader2 className="h-8 w-8 animate-spin text-[var(--accent-primary)]" />
+        <p className="text-sm text-[var(--text-muted)]">
+          {analyzingWebsite
+            ? "Reading your website…"
+            : "Claude is analysing your channel…"}
+        </p>
       </div>
     );
   }
+
+  // ── Suggestion not loaded yet ──────────────────────────────────────────────
+
+  if (!suggestion) {
+    return (
+      <div className="mx-auto max-w-lg px-4 py-10 text-center text-sm text-[var(--text-muted)]">
+        Failed to generate suggestions.{" "}
+        <button type="button" className="underline" onClick={() => { setPhase("loading"); void loadAndSuggest(); }}>
+          Try again
+        </button>
+      </div>
+    );
+  }
+
+  // ── Suggestion phase ───────────────────────────────────────────────────────
 
   return (
     <div className="mx-auto max-w-lg px-4 py-10">
@@ -268,10 +365,16 @@ export default function BrandOnboardPage() {
               <Globe className="h-5 w-5 text-[var(--text-muted)]" />
             </div>
           )}
-          <div>
+          <div className="flex-1 min-w-0">
             <p className="text-sm font-semibold text-[var(--text-primary)]">{channel.pageName}</p>
             <p className="text-xs text-[var(--text-muted)] capitalize">{channel.platform}</p>
           </div>
+          {websiteAnalyzed && (
+            <div className="flex items-center gap-1.5 rounded-full bg-[var(--accent-success)]/10 border border-[var(--accent-success)]/20 px-2.5 py-1">
+              <ExternalLink className="h-3 w-3 text-[var(--accent-success)]" />
+              <span className="text-[10px] font-semibold text-[var(--accent-success)]">Website analyzed</span>
+            </div>
+          )}
         </div>
       )}
 

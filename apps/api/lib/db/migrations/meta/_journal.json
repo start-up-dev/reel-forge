@@ -197,6 +197,13 @@
       "when": 1748044800000,
       "tag": "0027_channel_brand_restructure",
       "breakpoints": true
+    },
+    {
+      "idx": 28,
+      "version": "7",
+      "when": 1748131200000,
+      "tag": "0028_website_ingestion",
+      "breakpoints": true
     }
   ]
 }
