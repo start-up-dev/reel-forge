@@ -222,16 +222,28 @@ function DraftCell({
 
         {/* Hook */}
         {topic.hook && (
-          <p className="line-clamp-2 text-[10px] italic leading-snug text-[var(--text-muted)]">
+          <p className="text-[10px] italic leading-snug text-[var(--text-muted)]">
             &ldquo;{topic.hook}&rdquo;
           </p>
         )}
 
         {/* Angle */}
         {topic.angle && (
-          <p className="line-clamp-1 text-[10px] leading-snug text-[var(--text-secondary)]">
+          <p className="text-[10px] leading-snug text-[var(--text-secondary)]">
             {topic.angle}
           </p>
+        )}
+
+        {/* Script outline */}
+        {topic.scriptOutline && (
+          <div className="mt-1 rounded-lg border border-[var(--bg-border)]/60 bg-[var(--bg-elevated)] px-2.5 py-2">
+            <p className="mb-1 text-[9px] font-semibold uppercase tracking-wide text-[var(--text-muted)]">
+              Outline
+            </p>
+            <p className="text-[10px] leading-relaxed text-[var(--text-secondary)]">
+              {topic.scriptOutline}
+            </p>
+          </div>
         )}
       </div>
 
