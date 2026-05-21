@@ -393,6 +393,7 @@ type EditField =
   | "audience"
   | "colors"
   | "referenceVideoUrl"
+  | "websiteUrl"
   | null;
 
 export default function BrandHubPage() {
@@ -407,6 +408,7 @@ export default function BrandHubPage() {
   const [addingChannel, setAddingChannel] = useState(false);
   const [editingField, setEditingField] = useState<EditField>(null);
   const [savingField, setSavingField] = useState(false);
+  const [websiteIngesting, setWebsiteIngesting] = useState(false);
   const [confirmDelete, setConfirmDelete] = useState(false);
   const [deleting, setDeleting] = useState(false);
 
@@ -449,6 +451,21 @@ export default function BrandHubPage() {
       setBrand((prev) => ({ ...res.data, channels: prev?.channels ?? [] }));
       setEditingField(null);
       toast.success("Saved");
+    }
+  }
+
+  async function handleWebsiteUpdate(url: string) {
+    if (!brand) return;
+    setWebsiteIngesting(true);
+    const res = await withToast(
+      () => api.brands.ingestWebsite(brand.id, url),
+      "Failed to analyze website"
+    );
+    setWebsiteIngesting(false);
+    if (res?.data) {
+      setBrand((prev) => prev ? { ...prev, websiteUrl: url, websiteContext: res.data.websiteContext } : prev);
+      setEditingField(null);
+      toast.success("Website analyzed — scripts will now use your brand details");
     }
   }
 
@@ -681,6 +698,29 @@ export default function BrandHubPage() {
                   label="Reference video"
                   value={brand.referenceVideoUrl || "—"}
                   onEdit={() => setEditingField("referenceVideoUrl")}
+                />
+              )}
+
+              {editingField === "websiteUrl" ? (
+                <FieldEditor
+                  label="Brand website URL"
+                  value={brand.websiteUrl ?? ""}
+                  onSave={(v) => void handleWebsiteUpdate(v)}
+                  onCancel={() => setEditingField(null)}
+                  saving={websiteIngesting}
+                />
+              ) : (
+                <IdentityCard
+                  label="Website"
+                  value={brand.websiteUrl || "—"}
+                  onEdit={() => setEditingField("websiteUrl")}
+                  extra={
+                    brand.websiteContext ? (
+                      <p className="mt-1 text-[10px] text-[var(--accent-success)]">
+                        Analyzed — scripts reference your real brand details
+                      </p>
+                    ) : null
+                  }
                 />
               )}
             </div>
