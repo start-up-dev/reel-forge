@@ -234,17 +234,6 @@ function DraftCell({
           </p>
         )}
 
-        {/* Script outline */}
-        {topic.scriptOutline && (
-          <div className="mt-1 rounded-lg border border-[var(--bg-border)]/60 bg-[var(--bg-elevated)] px-2.5 py-2">
-            <p className="mb-1 text-[9px] font-semibold uppercase tracking-wide text-[var(--text-muted)]">
-              Outline
-            </p>
-            <p className="text-[10px] leading-relaxed text-[var(--text-secondary)]">
-              {topic.scriptOutline}
-            </p>
-          </div>
-        )}
       </div>
 
       {/* Footer */}
