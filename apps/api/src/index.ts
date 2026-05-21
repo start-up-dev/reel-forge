@@ -2,6 +2,7 @@
 // env.ts calls process.exit(1) if any required var is missing.
 import "../lib/env.js";
 
+import { inArray } from "drizzle-orm";
 import { clerkPlugin } from "@clerk/fastify";
 import cors from "@fastify/cors";
 import helmet from "@fastify/helmet";
@@ -9,6 +10,9 @@ import multipart from "@fastify/multipart";
 import sensible from "@fastify/sensible";
 import Fastify from "fastify";
 import { env } from "../lib/env.js";
+import { db } from "../lib/db/index.js";
+import { contentPlans } from "../lib/db/schema.js";
+import { startBatchGeneration } from "../services/batch-generator.js";
 import { requireAuth } from "../lib/auth.js";
 import { adminRoutes } from "../routes/admin.js";
 import { assetsRoutes } from "../routes/assets.js";
@@ -134,3 +138,22 @@ try {
   app.log.error(err);
   process.exit(1);
 }
+
+// Resume any content plans that were left mid-generation by a previous server instance.
+// processVideo is idempotent: COMPLETE videos are skipped, CLIPS_QUEUED+ videos skip
+// straight to the assembly wait, so this is safe to call even on partial completions.
+void (async () => {
+  try {
+    const stuck = await db
+      .select({ id: contentPlans.id, userId: contentPlans.userId })
+      .from(contentPlans)
+      .where(inArray(contentPlans.status, ["approved", "generating"]));
+
+    for (const plan of stuck) {
+      app.log.info({ planId: plan.id }, "Resuming stuck plan on startup");
+      void startBatchGeneration(plan.id, plan.userId);
+    }
+  } catch (err) {
+    app.log.error({ err }, "Startup plan recovery failed");
+  }
+})();

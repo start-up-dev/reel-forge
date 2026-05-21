@@ -221,118 +221,145 @@ async function processVideo(
 
     if (!brand) throw new Error(`Brand profile not found for video ${videoId}`);
 
+    // Idempotent: already done, nothing to do.
+    if (video.status === "COMPLETE") return "COMPLETE";
+
     const hasCharacterSheet = Boolean(brand.characterSheetGcsPath);
     const effectiveUgcVisualStyle = video.ugcVisualStyle
       ?? (video.videoType === "talking" ? (brand.visualStyle ?? null) : null);
     const characterNote = brand.characterDescription ?? null;
 
-    // 1 — Generate script
-    emitPlanEvent(planId, { type: "VIDEO_UPDATE", videoId, title: video.title, status: "SCRIPT_PENDING", message: "Scripting…" });
-
-    await db.update(videos).set({ status: "SCRIPT_PENDING", updatedAt: new Date() }).where(eq(videos.id, videoId));
-
-    const needsTitle = !video.title || video.title === "Untitled Video";
-    const idea = video.idea ?? video.title;
-    const [script, autoTitle] = await Promise.all([
-      generateScript(brand, idea, video.targetDurationSeconds, video.renderStyle ?? undefined, video.videoType, video.actionReelStyle ?? undefined),
-      needsTitle ? generateTitle(idea) : Promise.resolve(null),
-    ]);
-
-    await db.update(videos).set({
-      script,
-      status: "SCRIPT_READY",
-      ...(autoTitle ? { title: autoTitle } : {}),
-      updatedAt: new Date(),
-    }).where(eq(videos.id, videoId));
-
-    // 2 — Generate scenes
-    emitPlanEvent(planId, { type: "VIDEO_UPDATE", videoId, title: autoTitle ?? video.title, status: "SCENES_PENDING", message: "Planning scenes…" });
-
-    await db.update(videos).set({ status: "SCENES_PENDING", updatedAt: new Date() }).where(eq(videos.id, videoId));
-
-    const sceneList = await splitScenes(
-      script,
-      video.targetDurationSeconds,
-      video.videoType,
-      video.renderStyle ?? null,
-      effectiveUgcVisualStyle,
-      characterNote,
-      video.actionReelStyle ?? null,
-      hasCharacterSheet,
+    // If clip requests are already in the queue or assembly is running, skip
+    // script/scenes regeneration and go straight to waiting for completion.
+    // This handles resuming after a server restart mid-pipeline.
+    const resumeFromAssembly = (
+      video.status === "CLIPS_QUEUED" ||
+      video.status === "CLIPS_PROCESSING" ||
+      video.status === "CLIPS_NEEDS_REVIEW" ||
+      video.status === "ASSEMBLY_PENDING" ||
+      video.status === "ASSEMBLY_PROCESSING"
     );
 
-    await db.delete(scenes).where(eq(scenes.videoId, videoId));
-    const inserted = await db.insert(scenes).values(
-      sceneList.map((s) => ({
-        videoId,
-        sceneIndex: s.sceneIndex,
-        textExcerpt: s.textExcerpt,
-        visualPrompt: s.visualPrompt,
-        motionPrompt: s.motionPrompt,
-        durationHintSeconds: (video.videoType === "talking" || video.videoType === "action_reel") ? 6 : Math.max(1, Math.min(6, Math.round(s.durationHintSeconds))),
-        approved: true,
-      })),
-    ).returning();
+    let autoTitle: string | null = null;
 
-    await db.update(videos).set({ sceneCount: inserted.length, updatedAt: new Date() }).where(eq(videos.id, videoId));
+    if (!resumeFromAssembly) {
+      // 1 — Generate script
+      emitPlanEvent(planId, { type: "VIDEO_UPDATE", videoId, title: video.title, status: "SCRIPT_PENDING", message: "Scripting…" });
 
-    // 3 — Dialogue segments (best-effort)
-    if (inserted.length > 0 && video.videoType !== "action_reel") {
-      try {
-        const segments = await generateDialogueSegments(script, inserted.length);
-        if (segments.length > 0) {
-          await db.update(videos).set({ dialogueSegments: segments, updatedAt: new Date() }).where(eq(videos.id, videoId));
+      await db.update(videos).set({ status: "SCRIPT_PENDING", updatedAt: new Date() }).where(eq(videos.id, videoId));
+
+      const needsTitle = !video.title || video.title === "Untitled Video";
+      const idea = video.idea ?? video.title;
+      const [script, autoTitleResult] = await Promise.all([
+        generateScript(brand, idea, video.targetDurationSeconds, video.renderStyle ?? undefined, video.videoType, video.actionReelStyle ?? undefined),
+        needsTitle ? generateTitle(idea) : Promise.resolve(null),
+      ]);
+      autoTitle = autoTitleResult;
+
+      await db.update(videos).set({
+        script,
+        status: "SCRIPT_READY",
+        ...(autoTitle ? { title: autoTitle } : {}),
+        updatedAt: new Date(),
+      }).where(eq(videos.id, videoId));
+
+      // 2 — Generate scenes
+      emitPlanEvent(planId, { type: "VIDEO_UPDATE", videoId, title: autoTitle ?? video.title, status: "SCENES_PENDING", message: "Planning scenes…" });
+
+      await db.update(videos).set({ status: "SCENES_PENDING", updatedAt: new Date() }).where(eq(videos.id, videoId));
+
+      const sceneList = await splitScenes(
+        script,
+        video.targetDurationSeconds,
+        video.videoType,
+        video.renderStyle ?? null,
+        effectiveUgcVisualStyle,
+        characterNote,
+        video.actionReelStyle ?? null,
+        hasCharacterSheet,
+      );
+
+      await db.delete(scenes).where(eq(scenes.videoId, videoId));
+      const inserted = await db.insert(scenes).values(
+        sceneList.map((s) => ({
+          videoId,
+          sceneIndex: s.sceneIndex,
+          textExcerpt: s.textExcerpt,
+          visualPrompt: s.visualPrompt,
+          motionPrompt: s.motionPrompt,
+          durationHintSeconds: (video.videoType === "talking" || video.videoType === "action_reel") ? 6 : Math.max(1, Math.min(6, Math.round(s.durationHintSeconds))),
+          approved: true,
+        })),
+      ).returning();
+
+      await db.update(videos).set({ sceneCount: inserted.length, updatedAt: new Date() }).where(eq(videos.id, videoId));
+
+      // 3 — Dialogue segments (best-effort)
+      if (inserted.length > 0 && video.videoType !== "action_reel") {
+        try {
+          const segments = await generateDialogueSegments(script, inserted.length);
+          if (segments.length > 0) {
+            await db.update(videos).set({ dialogueSegments: segments, updatedAt: new Date() }).where(eq(videos.id, videoId));
+          }
+        } catch {
+          // non-fatal
         }
-      } catch {
-        // non-fatal
       }
+
+      await db.update(videos).set({ status: "SCENES_READY", updatedAt: new Date() }).where(eq(videos.id, videoId));
+
+      // 4 — Submit for clip generation
+      emitPlanEvent(planId, { type: "VIDEO_UPDATE", videoId, title: autoTitle ?? video.title, status: "CLIPS_QUEUED", message: "In Grok queue…" });
+
+      const dialogueMap = new Map<number, string>();
+      const videoRow = await db.select({ dialogueSegments: videos.dialogueSegments }).from(videos).where(eq(videos.id, videoId)).limit(1);
+      const segs = videoRow[0]?.dialogueSegments as Array<{ sceneIndex: number; dialogue: string }> | null;
+      if (segs) {
+        for (const seg of segs) dialogueMap.set(seg.sceneIndex, seg.dialogue);
+      }
+
+      const approvedScenes = await db
+        .select()
+        .from(scenes)
+        .where(and(eq(scenes.videoId, videoId), eq(scenes.approved, true)))
+        .orderBy(asc(scenes.sceneIndex));
+
+      const clipValues = approvedScenes.map((scene) => {
+        const dialogue = dialogueMap.get(scene.sceneIndex);
+        const motionPrompt = dialogue
+          ? `The character speaks these exact words directly to camera: "${dialogue}"\n\n${scene.motionPrompt}`
+          : scene.motionPrompt;
+        return {
+          videoId,
+          userId,
+          sceneIndex: scene.sceneIndex,
+          visualPrompt: scene.visualPrompt,
+          motionPrompt,
+          status: "queued" as const,
+          queuedAt: new Date(),
+        };
+      });
+
+      // Remove any stale clip requests from a previous failed attempt before inserting.
+      await db.delete(clipRequests).where(eq(clipRequests.videoId, videoId));
+      await db.insert(clipRequests).values(clipValues);
+      await db.update(videos).set({ status: "CLIPS_QUEUED", updatedAt: new Date() }).where(eq(videos.id, videoId));
+
+      await db.update(users).set({
+        videosToday: sql`${users.videosToday} + 1`,
+        videosThisMonth: sql`${users.videosThisMonth} + 1`,
+        updatedAt: new Date(),
+      }).where(eq(users.id, userId));
     }
-
-    await db.update(videos).set({ status: "SCENES_READY", updatedAt: new Date() }).where(eq(videos.id, videoId));
-
-    // 4 — Submit for clip generation
-    emitPlanEvent(planId, { type: "VIDEO_UPDATE", videoId, title: autoTitle ?? video.title, status: "CLIPS_QUEUED", message: "In Grok queue…" });
-
-    const dialogueMap = new Map<number, string>();
-    const videoRow = await db.select({ dialogueSegments: videos.dialogueSegments }).from(videos).where(eq(videos.id, videoId)).limit(1);
-    const segs = videoRow[0]?.dialogueSegments as Array<{ sceneIndex: number; dialogue: string }> | null;
-    if (segs) {
-      for (const seg of segs) dialogueMap.set(seg.sceneIndex, seg.dialogue);
-    }
-
-    const approvedScenes = await db
-      .select()
-      .from(scenes)
-      .where(and(eq(scenes.videoId, videoId), eq(scenes.approved, true)))
-      .orderBy(asc(scenes.sceneIndex));
-
-    const clipValues = approvedScenes.map((scene) => {
-      const dialogue = dialogueMap.get(scene.sceneIndex);
-      const motionPrompt = dialogue
-        ? `The character speaks these exact words directly to camera: "${dialogue}"\n\n${scene.motionPrompt}`
-        : scene.motionPrompt;
-      return {
-        videoId,
-        userId,
-        sceneIndex: scene.sceneIndex,
-        visualPrompt: scene.visualPrompt,
-        motionPrompt,
-        status: "queued" as const,
-        queuedAt: new Date(),
-      };
-    });
-
-    await db.insert(clipRequests).values(clipValues);
-    await db.update(videos).set({ status: "CLIPS_QUEUED", updatedAt: new Date() }).where(eq(videos.id, videoId));
-
-    await db.update(users).set({
-      videosToday: sql`${users.videosToday} + 1`,
-      videosThisMonth: sql`${users.videosThisMonth} + 1`,
-      updatedAt: new Date(),
-    }).where(eq(users.id, userId));
 
     // 5 — Wait for assembly to complete
-    emitPlanEvent(planId, { type: "VIDEO_UPDATE", videoId, title: autoTitle ?? video.title, status: "ASSEMBLY_PENDING", message: "Assembling…" });
+    emitPlanEvent(planId, {
+      type: "VIDEO_UPDATE",
+      videoId,
+      title: autoTitle ?? video.title,
+      status: resumeFromAssembly ? video.status : "ASSEMBLY_PENDING",
+      message: resumeFromAssembly ? "Resuming…" : "Assembling…",
+    });
 
     const finalStatus = await waitForCompletion(videoId);
 
@@ -366,7 +393,7 @@ function mapFormatToVideoType(format: string): "talking" | "action_reel" {
 export async function startBatchGeneration(planId: string, userId: string): Promise<void> {
   try {
     let planVideos = await db
-      .select({ id: videos.id })
+      .select({ id: videos.id, status: videos.status })
       .from(videos)
       .where(eq(videos.contentPlanId, planId))
       .orderBy(asc(videos.createdAt));
@@ -402,17 +429,21 @@ export async function startBatchGeneration(planId: string, userId: string): Prom
         )
         .returning({ id: videos.id });
 
-      planVideos = inserted;
+      planVideos = inserted.map((v) => ({ id: v.id, status: "DRAFT" as const }));
     }
 
     await db.update(contentPlans).set({ status: "generating", updatedAt: new Date() }).where(eq(contentPlans.id, planId));
 
+    // Don't reprocess videos that already completed (e.g. on retry or startup recovery).
+    const alreadyComplete = planVideos.filter((v) => v.status === "COMPLETE").length;
+    const toProcess = planVideos.filter((v) => v.status !== "COMPLETE");
+
     const acquire = makeSemaphore(3);
     const results = await Promise.all(
-      planVideos.map((v) => acquire(() => processVideo(planId, v.id, userId))),
+      toProcess.map((v) => acquire(() => processVideo(planId, v.id, userId))),
     );
 
-    const successCount = results.filter((r) => r === "COMPLETE").length;
+    const successCount = results.filter((r) => r === "COMPLETE").length + alreadyComplete;
     const failCount = results.filter((r) => r === "FAILED").length;
 
     await db.update(contentPlans).set({ status: "complete", updatedAt: new Date() }).where(eq(contentPlans.id, planId));

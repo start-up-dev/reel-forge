@@ -8,18 +8,13 @@ import {
   TrendingDown,
   Flame,
   Film,
-  Smile,
-  Star,
   Layers,
   Zap,
-  PenLine,
-  Video,
   CheckCircle,
   XCircle,
   Play,
   Lightbulb,
   Bot,
-  Type,
   Rocket,
   Check,
   Activity,
@@ -39,7 +34,6 @@ import {
   PROBLEM,
   SOLUTION,
   PIPELINE,
-  STYLES,
   COMPARISON,
   PRICING,
   FAQ,
@@ -59,11 +53,11 @@ function JsonLd() {
     "@context": "https://schema.org",
     "@type": "SoftwareApplication",
     name: SITE.name,
-    applicationCategory: "MultimediaApplication",
+    applicationCategory: "BusinessApplication",
     operatingSystem: "Web",
     url: APP_URL,
     description:
-      "AI-powered short-form video content machine. Plan a full week of videos in 10 minutes — scripts written, scenes generated, assembled and auto-posted.",
+      "Automatic Facebook video maker for creators and content brands. Plan a full week of short-form videos in minutes — ReelForge writes the scripts, produces the videos, and auto-posts them to your Facebook page.",
     offers: PRICING.plans.map((p) => ({
       "@type": "Offer",
       name: p.name,
@@ -135,7 +129,6 @@ export default async function RootPage() {
         <ProblemSection />
         <SolutionReveal />
         <PipelineSection />
-        <StylesSection />
         <BeforeAfterSection />
         <PricingSection />
         <FAQSection />
@@ -209,7 +202,7 @@ function PrimaryButton({
 
 function HeroSection() {
   return (
-    <section className="relative flex min-h-[90vh] flex-col items-center justify-start overflow-hidden pt-32 pb-16 md:pt-40 md:pb-20">
+    <section className="relative flex flex-col items-center justify-start overflow-hidden pt-28 pb-12 md:pt-32 md:pb-16">
       {/* Background elements */}
       <div className="absolute top-0 left-1/2 -translate-x-1/2 w-full max-w-[1000px] h-[600px] pointer-events-none z-0">
         <div
@@ -234,10 +227,10 @@ function HeroSection() {
         </FadeIn>
 
         <FadeIn delay={0.2}>
-          <h1 className="mb-6 md:mb-8 text-[48px] sm:text-[64px] font-[900] leading-[0.95] md:leading-[0.9] tracking-[-0.04em] text-[var(--text-primary)] md:text-[100px] lg:text-[110px]">
+          <h1 className="mb-6 md:mb-8 text-[40px] sm:text-[56px] font-[1000] leading-[0.95] md:leading-[0.9] tracking-[-0.04em] text-[var(--text-primary)] md:text-[68px] lg:text-[80px]">
             {HERO.headlineLine1}
             <br />
-            <span className="pb-4 text-transparent bg-clip-text bg-gradient-to-b from-[var(--text-primary)] to-[var(--text-primary)]/50 relative inline-block">
+            <span className="pb-4 text-transparent bg-clip-text bg-gradient-to-r from-[var(--accent-primary)] to-[var(--accent-secondary)] relative inline-block italic">
               {HERO.headlineLine2}
               <svg
                 aria-hidden
@@ -392,11 +385,9 @@ function ShowcaseSection() {
 
 function PhoneFrame({ video }: { video: (typeof SHOWCASE.videos)[number] }) {
   const platformColor: Record<string, string> = {
-    TikTok: "#010101",
-    Instagram: "#e1306c",
-    "YouTube Shorts": "#ff0000",
+    Facebook: "#1877F2",
   };
-  const dotColor = platformColor[video.platform] ?? "#888";
+  const dotColor = platformColor[video.platform] ?? "#1877F2";
 
   return (
     <div className="group relative w-[230px] sm:w-[260px] md:w-[300px]">
@@ -746,195 +737,6 @@ function PipelineSection() {
   );
 }
 
-/* ─── Styles ──────────────────────────────────────────────────────────────── */
-const STYLE_ICONS = {
-  film: Film,
-  smile: Smile,
-  star: Star,
-  shapes: Layers,
-  zap: Zap,
-  "pen-line": PenLine,
-  video: Video,
-} as const;
-
-const BADGE_CLS = {
-  warning:
-    "border-[var(--accent-warning)]/25 bg-[var(--accent-warning)]/10 text-[var(--accent-warning)]",
-  primary: `border-[var(--accent-primary)]/30 bg-[var(--accent-primary)]/10 text-[var(--accent-primary)]`,
-  muted: "border-white/10 bg-white/5 text-[var(--text-muted)]",
-  secondary:
-    "border-[var(--accent-secondary)]/25 bg-[var(--accent-secondary)]/10 text-[var(--accent-secondary)]",
-} as const;
-
-function StyleCard({ style }: { style: (typeof STYLES.visualStyles)[number] }) {
-  const Icon = STYLE_ICONS[style.iconKey as keyof typeof STYLE_ICONS];
-  return (
-    <StaggerItem>
-      <div className="group h-full flex flex-col rounded-[2rem] border border-white/5 bg-gradient-to-b from-white/[0.03] to-transparent p-7 transition-all duration-500 hover:-translate-y-2 hover:border-white/10 hover:bg-white/[0.05] hover:shadow-[0_20px_40px_rgba(0,0,0,0.4)]">
-        <div
-          className="mb-6 flex h-14 w-14 items-center justify-center rounded-xl shadow-2xl group-hover:scale-110 group-hover:rotate-6 transition-all duration-500 border border-white/5"
-          style={{ background: style.iconBg }}
-        >
-          <Icon className="h-7 w-7" style={{ color: style.iconColor }} />
-        </div>
-        <h3 className="mb-2 text-[19px] font-[900] text-[var(--text-primary)] tracking-tight">
-          {style.name}
-        </h3>
-        <p className="mb-3 text-[10px] font-black tracking-[0.1em] uppercase text-[var(--accent-primary)]/80">
-          {style.mood}
-        </p>
-        <p className="text-[14px] leading-relaxed text-[var(--text-secondary)] font-medium flex-1">
-          {style.description}
-        </p>
-      </div>
-    </StaggerItem>
-  );
-}
-
-function StylesSection() {
-  return (
-    <section
-      id="styles"
-      className="bg-[var(--bg-surface)] py-20 md:py-32 relative overflow-hidden"
-    >
-      <div className="absolute top-0 left-0 w-full h-[400px] bg-gradient-to-b from-[var(--bg-base)] to-transparent pointer-events-none opacity-50" />
-
-      <div className="mx-auto max-w-6xl px-6 relative z-10">
-        <FadeIn className="mb-16 md:mb-20 text-center">
-          <SectionLabel>{STYLES.label}</SectionLabel>
-          <h2 className="text-[32px] sm:text-[42px] md:text-[72px] font-[900] leading-[1.1] md:leading-[1] tracking-[-0.03em] text-[var(--text-primary)]">
-            {STYLES.headlineLine1}
-            <br />
-            {STYLES.headlineLine2}
-            <br />
-            <span className="text-[var(--accent-primary)] relative inline-block">
-              {STYLES.headlineAccent}
-              <svg
-                className="absolute -bottom-1 md:-bottom-2 left-0 w-full h-2 md:h-3 text-[var(--accent-primary)]/20"
-                viewBox="0 0 100 10"
-                preserveAspectRatio="none"
-              >
-                <path
-                  d="M0 5 Q 50 10 100 5"
-                  stroke="currentColor"
-                  strokeWidth="6"
-                  fill="transparent"
-                />
-              </svg>
-            </span>
-          </h2>
-          <p className="mx-auto mt-6 max-w-2xl text-[17px] md:text-[19px] font-medium text-[var(--text-secondary)]">
-            {STYLES.subheadline}
-          </p>
-        </FadeIn>
-
-        <StaggerContainer className="grid gap-4 md:gap-6 sm:grid-cols-2 lg:grid-cols-4">
-          {STYLES.visualStyles.slice(0, 4).map((s) => (
-            <StyleCard key={s.name} style={s} />
-          ))}
-        </StaggerContainer>
-        <StaggerContainer
-          delay={0.2}
-          className="mt-4 md:mt-6 grid gap-4 md:gap-6 sm:grid-cols-2 lg:grid-cols-3"
-        >
-          {STYLES.visualStyles.slice(4).map((s) => (
-            <StyleCard key={s.name} style={s} />
-          ))}
-        </StaggerContainer>
-
-        {/* Subtitle styles */}
-        <div className="mt-16 md:mt-24 border-t border-white/5 pt-16 md:pt-24">
-          <FadeIn className="mb-12 md:mb-16 text-center">
-            <div className="inline-flex h-12 w-12 md:h-14 md:w-14 items-center justify-center rounded-xl bg-white/[0.03] border border-white/5 mb-6 text-[var(--text-muted)]">
-              <Type className="h-6 w-6 md:h-7 md:w-7" />
-            </div>
-            <h3 className="mb-4 text-[28px] sm:text-[36px] md:text-[48px] font-[900] text-[var(--text-primary)] tracking-tight leading-tight">
-              Then choose how your words land.
-            </h3>
-            <p className="mx-auto max-w-2xl text-[16px] md:text-[17px] font-medium text-[var(--text-secondary)] leading-relaxed">
-              85% of short-form video is watched on mute. Subtitles aren&apos;t
-              decoration — they&apos;re your voice.
-            </p>
-          </FadeIn>
-
-          <StaggerContainer className="grid gap-4 md:gap-6 sm:grid-cols-2 lg:grid-cols-4">
-            {STYLES.subtitleStyles.map((s) => (
-              <StaggerItem key={s.name}>
-                <div className="group h-full flex flex-col overflow-hidden rounded-[1.5rem] md:rounded-[2rem] border border-white/5 bg-[var(--bg-elevated)] transition-all hover:border-white/10 hover:shadow-2xl hover:-translate-y-1">
-                  <SubtitlePreview name={s.name} />
-                  <div className="p-6 md:p-7 flex-1 flex flex-col">
-                    <div className="mb-3 flex flex-wrap items-center gap-2">
-                      <h4 className="text-[16px] md:text-[17px] font-black text-[var(--text-primary)] tracking-tight">
-                        {s.name}
-                      </h4>
-                      <span
-                        className={`rounded-full border px-2.5 py-0.5 text-[8px] md:text-[9px] font-black uppercase tracking-wider ${BADGE_CLS[s.badgeVariant as keyof typeof BADGE_CLS]}`}
-                      >
-                        {s.badge}
-                      </span>
-                    </div>
-                    <p className="text-[13px] md:text-[14px] leading-relaxed text-[var(--text-secondary)] font-medium">
-                      {s.description}
-                    </p>
-                  </div>
-                </div>
-              </StaggerItem>
-            ))}
-          </StaggerContainer>
-        </div>
-      </div>
-    </section>
-  );
-}
-
-function SubtitlePreview({ name }: { name: string }) {
-  const map: Record<string, React.ReactNode> = {
-    "Bold Pop": (
-      <div className="flex h-40 items-center justify-center bg-[#09090b] px-3 relative overflow-hidden">
-        <div className="absolute inset-0 bg-gradient-to-tr from-orange-900/30 to-orange-600/20 opacity-40" />
-        <p className="relative text-[22px] font-[1000] text-white drop-shadow-[0_8px_24px_rgba(0,0,0,1)] scale-110 group-hover:scale-125 transition-transform duration-700">
-          SAVE{" "}
-          <span className="rounded-lg bg-[var(--accent-warning)] px-2.5 py-0.5 text-black shadow-2xl">
-            YOUR
-          </span>{" "}
-          MONEY
-        </p>
-      </div>
-    ),
-    "Word Highlight": (
-      <div className="flex h-40 items-center justify-center gap-2 bg-[#09090b] relative overflow-hidden">
-        <div className="absolute inset-0 bg-gradient-to-tr from-blue-900/30 to-teal-900/30 opacity-40" />
-        <div className="relative flex items-end gap-2 group-hover:-translate-y-2 transition-transform duration-700">
-          <span className="text-base font-bold text-white/20">Your</span>
-          <span className="text-lg font-bold text-white/40">Future</span>
-          <span className="text-2xl font-[1000] text-[var(--accent-primary)] drop-shadow-[0_4px_16px_rgba(245,92,42,0.6)]">
-            Starts
-          </span>
-        </div>
-      </div>
-    ),
-    Minimal: (
-      <div className="relative flex h-40 items-end bg-[#09090b] pb-6 relative overflow-hidden">
-        <div className="absolute inset-0 bg-gradient-to-tr from-gray-900/40 to-slate-800/40 opacity-40" />
-        <p className="relative w-full text-center text-[13px] font-bold text-white/70 group-hover:text-white transition-colors tracking-wide px-6">
-          &quot;Building a brand that lasts a lifetime.&quot;
-        </p>
-      </div>
-    ),
-    Cinematic: (
-      <div className="relative flex h-40 items-end bg-[#09090b] overflow-hidden">
-        <div className="absolute inset-0 bg-[url('https://images.unsplash.com/photo-1536440136628-849c177e76a1?q=80&w=800&auto=format&fit=crop')] bg-cover bg-center opacity-40 group-hover:scale-110 transition-transform duration-1000" />
-        <div className="relative w-full bg-black/80 py-3 px-6 backdrop-blur-xl group-hover:bg-black/95 transition-colors border-t border-white/10">
-          <p className="text-center text-[12px] font-serif tracking-[0.25em] text-white uppercase font-light">
-            Everything changes tonight.
-          </p>
-        </div>
-      </div>
-    ),
-  };
-  return <div className="border-b border-white/5">{map[name] ?? null}</div>;
-}
-
 /* ─── Before / After ─────────────────────────────────────────────────────── */
 
 function BeforeAfterSection() {
@@ -1235,11 +1037,11 @@ function FinalCTASection() {
         </FadeIn>
 
         <FadeIn delay={0.2}>
-          <div className="mx-auto mb-10 md:mb-12 max-w-xl space-y-2 md:space-y-3">
+          <div className="mx-auto mb-10 md:mb-12 max-w-xl space-y-1 md:space-y-2">
             {FINAL_CTA.body.map((line, i) => (
               <p
                 key={i}
-                className="text-[15px] md:text-[22px] font-black text-[var(--text-secondary)] tracking-tight leading-tight uppercase italic opacity-80"
+                className="text-[20px] md:text-[28px] font-semibold text-[var(--text-secondary)] leading-snug tracking-tight"
               >
                 {line}
               </p>
@@ -1259,7 +1061,7 @@ function FinalCTASection() {
 
             <div className="flex items-center gap-2 px-4 md:px-5 py-1.5 md:py-2 rounded-full bg-white/[0.03] border border-white/5 backdrop-blur-md">
               <ShieldCheck className="w-3.5 h-3.5 md:w-4 md:h-4 text-[var(--accent-success)]" />
-              <p className="text-[10px] md:text-[12px] font-black uppercase tracking-widest text-[var(--text-muted)]">
+              <p className="text-[11px] md:text-[13px] font-bold text-[var(--text-muted)]">
                 {FINAL_CTA.cta.subtext}
               </p>
             </div>
