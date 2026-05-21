@@ -7,7 +7,7 @@
 
 ## 1. Product Vision
 
-ReelForge is a **set-and-go content machine** for short-form video. A user connects their Facebook page, completes a one-time brand onboarding interview, and generates a weekly content calendar. They press Approve and an agentic pipeline generates all videos — scripts, scenes, Grok Imagine clips, FFmpeg assembly, subtitles — fully automatically. Videos can auto-post to Facebook as drafts or scheduled posts. The user receives an email when their week is ready.
+ReelForge is a **set-and-go content machine** for short-form video. A user connects their Facebook page, then reviews and confirms an AI-generated brand profile (Claude analyses the connected page and proposes the niche, tone, audience, and character — the user edits any field inline or refines it conversationally), and generates a weekly content calendar. They press Approve and an agentic pipeline generates all videos — scripts, scenes, Grok Imagine clips, FFmpeg assembly, subtitles — fully automatically. Videos can auto-post to Facebook as drafts or scheduled posts. The user receives an email each time a video finishes assembly, plus a batch summary when the full week is ready.
 
 ---
 
@@ -16,7 +16,7 @@ ReelForge is a **set-and-go content machine** for short-form video. A user conne
 ```
 Connect Facebook page
         ↓
-Brand onboarding (7-step wizard)
+Brand onboarding (review AI-generated brand profile)
         ↓
 Generate character sheet (GPT-image-2)
         ↓
@@ -94,7 +94,7 @@ All tables use `created_at` and `updated_at` timestamps. All UUID primary keys e
 | stripe_customer_id | text unique nullable | |
 | stripe_subscription_id | text nullable | |
 | trial_paid | bool default false | true after $5 one-time payment |
-| trial_video_remaining | int default 0 | set to 3 on trial payment |
+| trial_video_remaining | int default 0 | set to 7 on trial payment (one full week at 1/day) |
 | videos_today | int default 0 | reset daily (UTC midnight) |
 | videos_this_month | int default 0 | reset monthly |
 | daily_limit | int default 0 | set by plan |
@@ -563,9 +563,9 @@ Web hook `usePlanProgress(planId, totalVideos)` in `apps/web/hooks/usePlanProgre
 
 | Plan | Price | Type | Credits/Limits |
 |---|---|---|---|
-| **Try Out** | $5 | one-time | 3 video credits (`trialVideoRemaining`) |
-| **Starter** | $49/month | subscription | 5 videos/day, 150 videos/month |
-| **Pro** | $99/month | subscription | 15 videos/day, 450 videos/month |
+| **Try Out** | $5 | one-time | 7 video credits — one full week at 1/day (`trialVideoRemaining`) |
+| **Starter** | $49/month | subscription | 1 video/day, 30 videos/month |
+| **Pro** | $99/month | subscription | 3 videos/day, 90 videos/month |
 
 Stripe price IDs from env: `STRIPE_TRIAL_PRICE_ID`, `STRIPE_STARTER_PRICE_ID`, `STRIPE_PRO_PRICE_ID`.
 
@@ -583,7 +583,7 @@ Counters incremented in `batch-generator.ts` atomically with SQL: `videosToday +
 
 | Event | Action |
 |---|---|
-| `checkout.session.completed` (payment) | plan="try_out", trialPaid=true, trialVideoRemaining=3 |
+| `checkout.session.completed` (payment) | plan="try_out", trialPaid=true, trialVideoRemaining=7 |
 | `checkout.session.completed` (subscription) | save stripeCustomerId, set plan + dailyLimit + monthlyLimit |
 | `customer.subscription.created/updated` | sync plan limits if active/trialing |
 | `customer.subscription.deleted` | plan="none", limits=0 |

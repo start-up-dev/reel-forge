@@ -78,7 +78,7 @@ packages/
 ReelForge is a **set-and-go content machine**. The full user flow:
 
 1. **Connect Facebook** (OAuth) → selects a page → saved to `social_accounts`
-2. **Brand onboarding** (7-step wizard at `/brands/new`) → saved to `brand_profiles`
+2. **Brand onboarding** (agentic — Claude analyses the connected Facebook page and proposes a full brand profile at `/brands/[id]/onboard`; user reviews, edits inline, or refines conversationally) → saved to `brand_profiles`
 3. **Character sheet** (GPT-image-2 via `openai-image.ts`) → stored in R2, path in `brand_profiles.character_sheet_gcs_path`
 4. **Content plan** (Claude generates a full week of topics) → saved to `content_plans.topics` as JSONB
 5. **Approve plan** → `batch-generator.ts` runs all videos in parallel (semaphore: max 3 concurrent)
@@ -153,7 +153,7 @@ Pipeline in `assemble.ts`: download clips from R2 → FFmpeg normalize → FFmpe
 Next.js App Router. All dashboard pages are under `app/(dashboard)/` with a shared layout (`AppSidebar` + `AppHeader`).
 
 Key pages:
-- `/brands` — brand list; `/brands/new` — 7-step onboarding wizard
+- `/brands` — brand list; `/brands/[id]/onboard` — agentic brand onboarding (Claude proposes the profile, user reviews/edits)
 - `/brands/[id]/character-sheet` — GPT-image-2 review + regenerate
 - `/brands/[id]/plan/new` — choose cadence; `/brands/[id]/plan/[planId]` — calendar + approve
 - `/brands/[id]/plan/[planId]/progress` — agentic progress view
