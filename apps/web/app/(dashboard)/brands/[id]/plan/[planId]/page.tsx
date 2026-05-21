@@ -180,6 +180,11 @@ function postStatusLabel(
   };
 }
 
+const SLOT_TIMES = ["9:00 AM", "6:00 PM", "12:00 PM", "3:00 PM"];
+function slotTime(slot: number): string {
+  return SLOT_TIMES[slot - 1] ?? `Slot ${slot}`;
+}
+
 // ─── Topic card (draft state) ─────────────────────────────────────────────────
 
 function DraftCell({
@@ -190,36 +195,55 @@ function DraftCell({
   onEdit: () => void;
 }) {
   const badge = FORMAT_BADGE[topic.format as ContentFormat] ?? FORMAT_BADGE.ugc;
+  const time = slotTime(topic.slot);
+
   return (
-    <div className="group overflow-hidden rounded-xl border border-[var(--bg-border)] bg-[var(--bg-surface)] transition-colors hover:border-[var(--bg-border)]/80">
-      {/* Thumbnail area — matches PipelineCard proportions */}
-      <div className="relative aspect-[9/16] overflow-hidden bg-[var(--bg-elevated)]">
-        <div className={`absolute inset-x-0 top-0 h-1 ${badge.accent}`} />
-        <div className="absolute inset-0 flex flex-col items-center justify-center gap-2.5 px-3">
-          <p className="line-clamp-4 text-center text-xs font-semibold leading-snug text-[var(--text-primary)]">
-            {topic.title}
-          </p>
-          {topic.hook && (
-            <p className="line-clamp-3 text-center text-[10px] italic leading-snug text-[var(--text-muted)]">
-              {topic.hook}
-            </p>
-          )}
-        </div>
-        {/* Format badge */}
-        <span
-          className={`absolute left-2 top-2 rounded-full px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide ${badge.className}`}
-        >
-          {badge.label}
-        </span>
-        {/* Edited badge */}
-        {topic.overridden && (
-          <span className="absolute right-2 top-2 rounded-full bg-[var(--accent-primary)]/15 px-1.5 py-0.5 text-[9px] font-semibold uppercase tracking-wide text-[var(--accent-primary)]">
-            edited
+    <div className="group flex flex-col overflow-hidden rounded-xl border border-[var(--bg-border)] bg-[var(--bg-surface)] transition-colors hover:border-[var(--accent-primary)]/30">
+      {/* Format accent strip */}
+      <div className={`h-0.5 w-full flex-none ${badge.accent}`} />
+
+      <div className="flex flex-1 flex-col gap-2 p-3">
+        {/* Time + format badge */}
+        <div className="flex items-center justify-between">
+          <span className="text-[10px] font-semibold text-[var(--text-muted)]">
+            {time}
           </span>
+          <span
+            className={`rounded-full px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide ${badge.className}`}
+          >
+            {badge.label}
+          </span>
+        </div>
+
+        {/* Title */}
+        <p className="line-clamp-3 text-xs font-semibold leading-snug text-[var(--text-primary)]">
+          {topic.title}
+        </p>
+
+        {/* Hook */}
+        {topic.hook && (
+          <p className="line-clamp-2 text-[10px] italic leading-snug text-[var(--text-muted)]">
+            &ldquo;{topic.hook}&rdquo;
+          </p>
+        )}
+
+        {/* Angle */}
+        {topic.angle && (
+          <p className="line-clamp-1 text-[10px] leading-snug text-[var(--text-secondary)]">
+            {topic.angle}
+          </p>
         )}
       </div>
+
       {/* Footer */}
-      <div className="flex items-center justify-end p-2">
+      <div className="flex items-center justify-between border-t border-[var(--bg-border)]/50 px-3 py-2">
+        {topic.overridden ? (
+          <span className="rounded-full bg-[var(--accent-primary)]/15 px-1.5 py-0.5 text-[9px] font-semibold uppercase tracking-wide text-[var(--accent-primary)]">
+            edited
+          </span>
+        ) : (
+          <span />
+        )}
         <button
           type="button"
           onClick={onEdit}
@@ -242,12 +266,14 @@ function PipelineCard({
   bucket,
   planPostType,
   onPost,
+  compact = false,
 }: {
   topic: TopicEntry;
   video: VideoInfo | null;
   bucket: PipelineBucket;
   planPostType: string;
   onPost?: () => Promise<void>;
+  compact?: boolean;
 }) {
   const badge = FORMAT_BADGE[topic.format as ContentFormat] ?? FORMAT_BADGE.ugc;
   const videoRef = useRef<HTMLVideoElement>(null);
@@ -262,6 +288,7 @@ function PipelineCard({
     video && (bucket === "ready" || bucket === "posted")
       ? postStatusLabel(video.postSchedule ?? null, planPostType)
       : null;
+  const time = slotTime(topic.slot);
 
   function togglePlay() {
     const el = videoRef.current;
@@ -301,6 +328,57 @@ function PipelineCard({
         : bucket === "failed"
           ? "border-[var(--accent-danger)]/30"
           : "border-[var(--bg-border)]";
+
+  // Compact layout for calendar view — no portrait aspect ratio for non-video states
+  if (compact && !canPlay) {
+    return (
+      <div
+        className={`group flex flex-col overflow-hidden rounded-xl border ${borderClass} bg-[var(--bg-surface)] transition-colors`}
+      >
+        <div className={`h-0.5 w-full flex-none ${badge.accent}`} />
+        <div className="flex flex-1 flex-col gap-2 p-3">
+          <div className="flex items-center justify-between">
+            <span className="text-[10px] font-semibold text-[var(--text-muted)]">
+              {time}
+            </span>
+            <span
+              className={`rounded-full px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide ${badge.className}`}
+            >
+              {badge.label}
+            </span>
+          </div>
+          <p className="line-clamp-3 text-xs font-semibold leading-snug text-[var(--text-primary)]">
+            {topic.title}
+          </p>
+          <div className="flex items-center gap-1.5">
+            {bucket === "generating" ? (
+              <>
+                <Loader2 className="h-3 w-3 animate-spin text-[var(--accent-primary)]" />
+                <span className="text-[10px] font-medium text-[var(--text-muted)]">
+                  {stage.label}
+                </span>
+              </>
+            ) : bucket === "failed" ? (
+              <>
+                <XCircle className="h-3 w-3 text-[var(--accent-danger)]" />
+                <span className="text-[10px] font-medium text-[var(--accent-danger)]">
+                  Failed
+                </span>
+              </>
+            ) : null}
+          </div>
+          {bucket === "generating" && (
+            <div className="h-1 w-full overflow-hidden rounded-full bg-[var(--bg-elevated)]">
+              <div
+                className="h-full rounded-full bg-[var(--accent-primary)] transition-all duration-700"
+                style={{ width: `${stage.pct}%` }}
+              />
+            </div>
+          )}
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div
@@ -602,7 +680,7 @@ function CalendarView({
                   return (
                     <div
                       key={dayIdx}
-                      className="min-h-[120px] rounded-lg border border-dashed border-[var(--bg-border)] bg-[var(--bg-elevated)]/30"
+                      className="min-h-[160px] rounded-lg border border-dashed border-[var(--bg-border)] bg-[var(--bg-elevated)]/30"
                     />
                   );
                 }
@@ -621,12 +699,13 @@ function CalendarView({
                 const status = video?.status ?? "BRAINSTORM_PENDING";
                 const bucket = bucketOf(status, video?.postSchedule ?? null);
                 return (
-                  <div key={dayIdx} className="min-h-[120px]">
+                  <div key={dayIdx}>
                     <PipelineCard
                       topic={topic}
                       video={video}
                       bucket={bucket}
                       planPostType={planPostType}
+                      compact
                       onPost={video && onPostVideo ? () => onPostVideo(video.id) : undefined}
                     />
                   </div>
