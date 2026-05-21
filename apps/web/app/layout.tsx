@@ -22,21 +22,21 @@ const APP_URL = process.env.NEXT_PUBLIC_APP_URL ?? "https://aireelforge.com";
 export const metadata: Metadata = {
   metadataBase: new URL(APP_URL),
   title: {
-    default: "ReelForge — AI Short-Form Video Content Machine",
+    default: "ReelForge — Automatic Facebook Video Maker for Small Business",
     template: "%s | ReelForge",
   },
   description:
-    "Plan a full week of short-form videos in 10 minutes. ReelForge writes every script, generates every AI video, and auto-posts to Facebook, TikTok, and Instagram — while you sleep. Try a full week for $5.",
+    "Generate a full week of Facebook videos in one click. We write the scripts, produce the clips, review every video, and auto-post to your Facebook page. Try your first week for $5.",
   keywords: [
-    "AI video creator",
+    "facebook video maker for small business",
+    "automatic facebook video scheduler",
+    "AI video generator for facebook business page",
+    "weekly facebook content creator tool",
+    "facebook video automation software",
     "automated Facebook videos",
-    "AI content creator",
-    "short-form video automation",
-    "AI video generator",
-    "Facebook Reels automation",
-    "weekly content planner AI",
-    "TikTok video automation",
-    "social media content machine",
+    "facebook video automation",
+    "faceless facebook video creator",
+    "automate facebook business page posts",
     "ReelForge",
   ],
   authors: [{ name: "Make Real", url: "https://makereal.io" }],
@@ -58,15 +58,15 @@ export const metadata: Metadata = {
     locale: "en_US",
     url: APP_URL,
     siteName: "ReelForge",
-    title: "ReelForge — AI Short-Form Video Content Machine",
+    title: "ReelForge — Automatic Facebook Video Maker for Small Business",
     description:
-      "Plan a full week of short-form videos in 10 minutes. ReelForge writes every script, generates every AI video, and auto-posts to Facebook, TikTok, and Instagram — while you sleep.",
+      "Generate a full week of Facebook videos in one click. We write the scripts, produce the clips, review every video, and auto-post to your Facebook page.",
   },
   twitter: {
     card: "summary_large_image",
-    title: "ReelForge — AI Short-Form Video Content Machine",
+    title: "ReelForge — Automatic Facebook Video Maker for Small Business",
     description:
-      "Plan a full week of short-form videos in 10 minutes. AI writes scripts, generates videos, auto-posts. Try a full week for $5.",
+      "Generate a full week of Facebook videos in one click. Scripts written, clips produced, human-reviewed, auto-posted. Try for $5.",
     creator: "@reelforge",
   },
   alternates: {

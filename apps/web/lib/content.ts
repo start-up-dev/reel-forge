@@ -18,6 +18,7 @@ export const NAV_LINKS = [
   { label: "How it Works", href: "#pipeline" },
   { label: "Pricing", href: "#pricing" },
   { label: "FAQ", href: "#faq" },
+  { label: "Guide", href: "/blog" },
 ] as const;
 
 export const NAV_CTA = {
@@ -32,7 +33,7 @@ export const HERO = {
   headlineLine1: "Your Facebook Page,",
   headlineLine2: "On Autopilot.",
   subheadline:
-    "A full week of Facebook videos — planned, produced, and posted for you. Built for creators who'd rather not film or edit a thing.",
+    "A full week of Facebook videos — planned, produced, and posted for you. Built for small business owners and creators who'd rather not film or edit a thing.",
   primaryCta: {
     label: "Start Your First Week — $5",
     subtext: "7 video credits · No subscription required",
@@ -53,7 +54,7 @@ export const SHOWCASE = {
   label: "Built with ReelForge",
   headline: "Real videos. Real niches.\nZero editing.",
   subheadline:
-    "Every video below was produced by ReelForge — scripted by AI, built scene by scene, assembled automatically, and personally reviewed by our team before it's ready to post.",
+    "Every video below was produced by ReelForge — scripted by AI, built scene by scene, assembled automatically, and personally reviewed by our team before it posts to a Facebook business page.",
   trustBadge: "Every clip personally reviewed by our team before it posts.",
   videos: [
     {
@@ -490,6 +491,9 @@ export const FINAL_CTA = {
 
 export const FOOTER = {
   copyright: `© ${new Date().getFullYear()} ReelForge. All rights reserved.`,
-  links: [{ label: "Privacy Policy", href: "/privacy" }],
+  links: [
+    { label: "Guide", href: "/blog" },
+    { label: "Privacy Policy", href: "/privacy" },
+  ],
   platforms: ["Facebook Reels", "Facebook Video", "Facebook Stories"],
 };

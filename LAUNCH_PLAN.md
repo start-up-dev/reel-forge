@@ -109,28 +109,28 @@ Lets users add their brand website during onboarding so Claude has real, specifi
 ## Board 3 — SEO & Geo (2–3 hours of work)
 
 ### On-page SEO
-- [ ] Set `<title>`: "ReelForge — Automatic Facebook Video Maker for Small Business"
-- [ ] Set `<meta description>`: "Generate a full week of Facebook videos in one click. We write the scripts, produce the clips, review every video, and auto-post. Try free."
-- [ ] H1 matches the new hero positioning.
-- [ ] Add alt text to all landing-page images.
-- [ ] Add `<link rel="canonical">` to the landing page.
-- [ ] Generate `/sitemap.xml` (Next.js can auto-generate).
-- [ ] Add `robots.txt`.
+- [x] Set `<title>`: "ReelForge — Automatic Facebook Video Maker for Small Business"
+- [x] Set `<meta description>`: "Generate a full week of Facebook videos in one click. We write the scripts, produce the clips, review every video, and auto-post. Try free." (implemented as "Try your first week for $5" — "Try free" contradicts the $5 trial price per Key Facts)
+- [x] H1 matches the new hero positioning.
+- [x] Add alt text to all landing-page images.
+- [x] Add `<link rel="canonical">` to the landing page.
+- [x] Generate `/sitemap.xml` (Next.js can auto-generate).
+- [x] Add `robots.txt`.
 - [ ] Run mobile Lighthouse — fix until score > 80.
-- [ ] Add `SoftwareApplication` JSON-LD schema to the homepage (name, category BusinessApplication, offer $5 trial).
+- [x] Add `SoftwareApplication` JSON-LD schema to the homepage (name, category BusinessApplication, offer $5 trial).
 
 ### Target keywords (low competition, high intent — use in copy + blog)
-- [ ] Weave these into page copy and the blog post: `facebook video maker for small business`, `automatic facebook video scheduler`, `AI video generator for facebook business page`, `weekly facebook content creator tool`, `facebook video automation software`.
-- [ ] Avoid broad terms (`video maker`, `AI video`) — too competitive to rank this week.
+- [x] Weave these into page copy and the blog post: `facebook video maker for small business`, `automatic facebook video scheduler`, `AI video generator for facebook business page`, `weekly facebook content creator tool`, `facebook video automation software`.
+- [x] Avoid broad terms (`video maker`, `AI video`) — too competitive to rank this week.
 
 ### SEO blog post
-- [ ] Write one post: "How to Create a Week of Facebook Videos Automatically (Without Filming Anything)" — 800–1200 words, real screenshots, target keyword `how to create facebook videos automatically`, link to the trial.
+- [x] Write one post: "How to Create a Week of Facebook Videos Automatically (Without Filming Anything)" — 800–1200 words, real screenshots, target keyword `how to create facebook videos automatically`, link to the trial. (screenshots are placeholders — replace with real product screenshots before launch)
 
 ### Geo targeting
-- [ ] Launch copy targets Tier 1 only: **US, UK, Australia, Canada** (English, high Facebook SMB usage, willingness to pay).
-- [ ] Focus example niches on service professionals — real estate & insurance agents, mortgage brokers, financial advisors, coaches, dentists, lawyers. Do NOT use restaurants, salons, or retail — those need real footage of their actual space/products, which AI video can't provide.
+- [x] Launch copy targets Tier 1 only: **US, UK, Australia, Canada** (English, high Facebook SMB usage, willingness to pay).
+- [x] Focus example niches on service professionals — real estate & insurance agents, mortgage brokers, financial advisors, coaches, dentists, lawyers. Do NOT use restaurants, salons, or retail — those need real footage of their actual space/products, which AI video can't provide.
 - [ ] (Optional, 1 day) Cloudflare geo-detection to swap local business examples by visitor country.
-- [ ] Do NOT build language translations yet — Tier 2 (Philippines, India, Nigeria, South Africa) is a Month-2 task. Ship English perfectly first.
+- [x] Do NOT build language translations yet — Tier 2 (Philippines, India, Nigeria, South Africa) is a Month-2 task. Ship English perfectly first.
 
 ---
 

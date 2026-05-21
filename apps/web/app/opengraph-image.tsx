@@ -1,6 +1,6 @@
 import { ImageResponse } from "next/og";
 
-export const alt = "ReelForge — AI Short-Form Video Content Machine";
+export const alt = "ReelForge — Automatic Facebook Video Maker for Small Business";
 export const size = { width: 1200, height: 630 };
 export const contentType = "image/png";
 
@@ -96,7 +96,7 @@ export default async function Image() {
                 textTransform: "uppercase",
               }}
             >
-              AI Short-Form Video Automation
+              Automatic Facebook Video Maker
             </span>
           </div>
 
@@ -125,23 +125,23 @@ export default async function Image() {
           >
             <span
               style={{
-                fontSize: "34px",
+                fontSize: "30px",
                 fontWeight: 700,
                 color: "#71717a",
                 lineHeight: 1.35,
               }}
             >
-              Your Content Channel,
+              A full week of Facebook videos —
             </span>
             <span
               style={{
-                fontSize: "34px",
+                fontSize: "30px",
                 fontWeight: 700,
                 color: "#f55c2a",
                 lineHeight: 1.35,
               }}
             >
-              On Autopilot.
+              written, made, human-reviewed, and posted.
             </span>
           </div>
 
