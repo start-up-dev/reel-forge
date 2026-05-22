@@ -54,7 +54,7 @@ export default function BlogIndex() {
           <p className="mb-3 text-[11px] font-bold uppercase tracking-[0.2em] text-[#f55c2a]">
             ReelForge Blog
           </p>
-          <h1 className="text-[32px] sm:text-[40px] font-[900] leading-tight tracking-[-0.03em] text-[#F4F4F8]">
+          <h1 className="text-[32px] sm:text-[36px] font-[900] leading-tight tracking-[-0.03em] text-[#F4F4F8]">
             Guides for Facebook video automation
           </h1>
           <p className="mt-4 text-[16px] md:text-[18px] leading-relaxed text-[#a1a1aa]">
@@ -77,7 +77,9 @@ export default function BlogIndex() {
                 </span>
                 <div className="flex items-center gap-1.5 text-[12px] text-[#52525b]">
                   <Clock className="w-3 h-3" />
-                  <span>{post.date} · {post.readTime}</span>
+                  <span>
+                    {post.date} · {post.readTime}
+                  </span>
                 </div>
               </div>
               <h2 className="mb-3 text-[18px] md:text-[20px] font-[900] leading-snug tracking-tight text-[#F4F4F8] group-hover:text-[#f55c2a] transition-colors">

@@ -118,7 +118,7 @@ export default function BlogPost() {
               May 22, 2026 · 6 min read
             </span>
           </div>
-          <h1 className="mb-6 text-[32px] sm:text-[40px] md:text-[48px] font-[900] leading-[1.1] tracking-[-0.03em] text-[#F4F4F8]">
+          <h1 className="mb-6 text-[32px] sm:text-[36px] md:text-[48px] font-[900] leading-[1.1] tracking-[-0.03em] text-[#F4F4F8]">
             How to Create a Week of Facebook Videos Automatically (Without
             Filming Anything)
           </h1>
@@ -219,7 +219,8 @@ export default function BlogPost() {
               That&apos;s per video. Per day. Every single day. Most business
               owners manage it for a few weeks. Some sustain it for a month.
               Almost everyone eventually goes quiet&mdash;and when you go quiet
-              on Facebook, the algorithm notices immediately and cuts your reach.
+              on Facebook, the algorithm notices immediately and cuts your
+              reach.
             </p>
           </section>
 
@@ -338,8 +339,7 @@ export default function BlogPost() {
               Production is only half the equation. The other half is posting
               consistently at the right times. An automatic Facebook video
               scheduler means your content goes live at peak engagement
-              windows&mdash;whether you&apos;re working, asleep, or on
-              holiday.
+              windows&mdash;whether you&apos;re working, asleep, or on holiday.
             </p>
             <p className="mt-4">
               ReelForge connects directly to your Facebook page via the official

@@ -224,14 +224,14 @@ function HeroShowcaseSection() {
               <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-[var(--accent-primary)] opacity-75"></span>
               <span className="relative inline-flex rounded-full h-2 w-2 bg-[var(--accent-primary)]"></span>
             </div>
-            <p className="text-[10px] md:text-[12px] font-bold uppercase tracking-[0.1em] text-[var(--text-primary)]">
+            <p className="text-[8px] md:text-[12px] font-bold uppercase tracking-[0.1em] text-[var(--text-primary)]">
               {HERO.eyebrow}
             </p>
           </div>
         </FadeIn>
 
         <FadeIn delay={0.2}>
-          <h1 className="mb-6 md:mb-8 text-[40px] sm:text-[56px] font-[1000] leading-[0.95] md:leading-[0.9] tracking-[-0.04em] text-[var(--text-primary)] md:text-[68px] lg:text-[80px]">
+          <h1 className="mb-6 md:mb-8 text-[36px] sm:text-[56px] font-[1000] leading-[0.95] md:leading-[0.9] tracking-[-0.04em] text-[var(--text-primary)] md:text-[68px] lg:text-[80px]">
             {HERO.headlineLine1}
             <br />
             <span className="pb-4 text-transparent bg-clip-text bg-gradient-to-r from-[var(--accent-primary)] to-[var(--accent-secondary)] relative inline-block italic">
@@ -882,7 +882,7 @@ function PricingSection() {
       <div className="mx-auto max-w-6xl px-6 relative z-10">
         <FadeIn className="mb-12 md:mb-16 text-center">
           <SectionLabel variant="warning">{PRICING.label}</SectionLabel>
-          <h2 className="mb-5 text-[36px] sm:text-[46px] font-[1000] leading-none tracking-[-0.04em] text-[var(--text-primary)] md:text-[80px]">
+          <h2 className="mb-5 text-[32px] sm:text-[46px] font-[1000] leading-none tracking-[-0.04em] text-[var(--text-primary)] md:text-[80px]">
             <span className="text-transparent bg-clip-text bg-gradient-to-b from-[var(--accent-primary)] to-[var(--accent-primary)]/60">
               {PRICING.headlineLine1}
             </span>
@@ -1007,7 +1007,7 @@ function FAQSection() {
       <div className="mx-auto max-w-4xl px-6">
         <FadeIn className="mb-12 md:mb-16 text-center">
           <SectionLabel>{FAQ.label}</SectionLabel>
-          <h2 className="text-[32px] sm:text-[40px] md:text-[64px] font-[900] tracking-[-0.03em] text-[var(--text-primary)]">
+          <h2 className="text-[32px] sm:text-[36px] md:text-[64px] font-[900] tracking-[-0.03em] text-[var(--text-primary)]">
             {FAQ.headline}
           </h2>
         </FadeIn>
