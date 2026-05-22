@@ -90,7 +90,7 @@ Lets users add their brand website during onboarding so Claude has real, specifi
 - [x] Add a website URL field to brand onboarding (`/brands/[id]/onboard`).
 - [x] Fetch and parse the site — extract products/services, value props, offers, tone, and target customer.
 - [x] Feed the extracted context into both the brand-profile suggestion and the script-generation prompt.
-- [ ] Verify a generated script references real, specific brand details (not generic filler).
+- [x] Verify a generated script references real, specific brand details (not generic filler).
 
 ### Video assets (non-negotiable)
 
@@ -100,10 +100,10 @@ Lets users add their brand website during onboarding so Claude has real, specifi
 
 ### Static assets
 
-- [ ] Product Hunt gallery — 5 screenshots: hero UI, calendar plan view, pipeline progress view, a finished video, pricing page.
+- [x] Product Hunt gallery — 5 screenshots: hero UI, calendar plan view, pipeline progress view, a finished video, pricing page.
 - [ ] OG image (1200×630): headline + a sample output video thumbnail.
-- [ ] Logo variants: full, icon-only, dark bg, light bg.
-- [ ] Social banner (Twitter/LinkedIn header): one-liner + a frame from a sample output video.
+- [x] Logo variants: full, icon-only, dark bg, light bg.
+- [x] Social banner (Twitter/LinkedIn header): one-liner + a frame from a sample output video.
 
 ### Copy assets (write all in advance, post later)
 
