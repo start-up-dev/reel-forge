@@ -181,13 +181,13 @@ export default async function Image() {
             <div
               style={{
                 display: "flex",
+                alignSelf: "flex-start",
                 alignItems: "center",
                 gap: "8px",
                 background: "rgba(245,92,42,0.1)",
                 border: "1.5px solid rgba(245,92,42,0.3)",
                 borderRadius: "100px",
                 padding: "8px 18px",
-                width: "fit-content",
                 marginBottom: "26px",
               }}
             >
@@ -209,7 +209,7 @@ export default async function Image() {
                   textTransform: "uppercase",
                 }}
               >
-                Videos. Auto-posted. You approved once.
+                Automatic Facebook Video Maker
               </span>
             </div>
 

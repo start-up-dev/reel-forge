@@ -6,6 +6,7 @@ import {
   spring,
   interpolate,
   staticFile,
+  Img,
 } from "remotion";
 import { Heart, MessageCircle, Share2, Bookmark, Check } from "lucide-react";
 
@@ -523,14 +524,17 @@ export const SceneShowcase: React.FC = () => {
         }}
       />
 
-      {/* Section label */}
+      {/* Section label — "Built with [logo]" */}
       <div
         style={{
           position: "absolute",
-          top: 48,
+          top: 70,
           left: 0,
           right: 0,
-          textAlign: "center",
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "center",
+          gap: 16,
           zIndex: 20,
           opacity: labelP,
           transform: `translateY(${interpolate(labelP, [0, 1], [-10, 0])}px)`,
@@ -539,20 +543,23 @@ export const SceneShowcase: React.FC = () => {
         <span
           style={{
             fontFamily: "'Inter', sans-serif",
-            position: "absolute",
-            top: 50,
-            left: "50%",
-            transform: "translateX(-50%)",
             fontSize: 24,
             fontWeight: 700,
             color: "#f55c2a",
             textTransform: "uppercase",
             letterSpacing: "0.2em",
-            zIndex: 20,
           }}
         >
-          Built with ReelForge
+          Built with
         </span>
+        <Img
+          src={staticFile("launch_assets/logo.png")}
+          style={{
+            height: 36,
+            width: "auto",
+            mixBlendMode: "screen",
+          }}
+        />
       </div>
 
       {/* Scrolling phone row */}

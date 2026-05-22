@@ -10,34 +10,51 @@ import {
 } from "remotion";
 
 const URL_TEXT = "aiReelForge.com";
-const URL_START = 120;
+const URL_START = 70;
 
 export const SceneCTA: React.FC = () => {
   const frame = useCurrentFrame();
   const { fps } = useVideoConfig();
 
   const logoP = spring({ frame, fps, config: { stiffness: 140, damping: 22 } });
-  const line1P = spring({ frame: frame - 8, fps, config: { stiffness: 130, damping: 22 } });
-  const line2P = spring({ frame: frame - 18, fps, config: { stiffness: 130, damping: 22 } });
-  const buttonP = spring({ frame: frame - 30, fps, config: { stiffness: 160, damping: 22 } });
+  const line1P = spring({
+    frame: frame - 8,
+    fps,
+    config: { stiffness: 130, damping: 22 },
+  });
+  const line2P = spring({
+    frame: frame - 18,
+    fps,
+    config: { stiffness: 130, damping: 22 },
+  });
+  const buttonP = spring({
+    frame: frame - 30,
+    fps,
+    config: { stiffness: 160, damping: 22 },
+  });
 
-  const dividerProgress = interpolate(frame, [85, 115], [0, 1], {
+  const dividerProgress = interpolate(frame, [0, 20], [0, 1], {
     extrapolateLeft: "clamp",
     extrapolateRight: "clamp",
   });
 
-  const urlFade = interpolate(frame, [110, 128], [0, 1], {
+  const urlFade = interpolate(frame, [0, 8], [0, 1], {
     extrapolateLeft: "clamp",
     extrapolateRight: "clamp",
   });
 
   // URL types itself in
   const charsVisible = Math.max(0, Math.floor((frame - URL_START) * 0.65));
-  const displayedUrl = URL_TEXT.slice(0, Math.min(charsVisible, URL_TEXT.length));
+  const displayedUrl = URL_TEXT.slice(
+    0,
+    Math.min(charsVisible, URL_TEXT.length),
+  );
   const urlDone = charsVisible >= URL_TEXT.length;
   const cursorBlink =
     urlDone &&
-    Math.floor((frame - (URL_START + Math.ceil(URL_TEXT.length / 0.65))) / 15) % 2 === 0;
+    Math.floor((frame - (URL_START + Math.ceil(URL_TEXT.length / 0.2))) / 15) %
+      2 ===
+      0;
 
   // Pulsing glow on CTA button
   const buttonGlow = 0.3 + 0.2 * Math.sin(frame * 0.09);
@@ -184,7 +201,9 @@ export const SceneCTA: React.FC = () => {
             >
               Get your first week for $5
             </span>
-            <span style={{ fontSize: 24, color: "rgba(255,255,255,0.85)" }}>→</span>
+            <span style={{ fontSize: 24, color: "rgba(255,255,255,0.85)" }}>
+              →
+            </span>
           </div>
         </div>
 
@@ -203,8 +222,8 @@ export const SceneCTA: React.FC = () => {
         <div
           style={{
             fontFamily: "'JetBrains Mono', monospace",
-            fontSize: 20,
-            color: "#3a3a44",
+            fontSize: 24,
+            color: "#fff",
             letterSpacing: "0.06em",
             opacity: urlFade,
             minHeight: 30,

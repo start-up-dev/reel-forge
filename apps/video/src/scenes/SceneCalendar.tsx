@@ -20,6 +20,12 @@ export const SceneCalendar: React.FC = () => {
   const frame = useCurrentFrame();
   const { fps } = useVideoConfig();
 
+  // Logo — fades in at start, stays the full scene
+  const logoOpacity = interpolate(frame, [0, 12], [0, 1], {
+    extrapolateLeft: "clamp",
+    extrapolateRight: "clamp",
+  });
+
   // Eyebrow label — fades in then out as overlay arrives
   const labelOpacity = interpolate(
     frame,
@@ -36,7 +42,7 @@ export const SceneCalendar: React.FC = () => {
     { extrapolateLeft: "clamp", extrapolateRight: "clamp" },
   );
 
-  // Approve button springs in — snappy to match compressed timing
+  // Approve button springs in
   const buttonP = spring({
     frame: frame - APPROVE_IN,
     fps,
@@ -55,7 +61,7 @@ export const SceneCalendar: React.FC = () => {
   // Pulsing glow before click
   const glow = frame < CLICK_FRAME ? 0.3 + 0.22 * Math.sin(frame * 0.1) : 0;
 
-  // Click scale punch
+  // Click scale punch — big zoom burst on press
   const clickP = spring({
     frame: frame - CLICK_FRAME,
     fps,
@@ -64,31 +70,47 @@ export const SceneCalendar: React.FC = () => {
   const buttonScale =
     frame < CLICK_FRAME
       ? interpolate(buttonP, [0, 1], [0.86, 1])
-      : interpolate(clickP, [0, 0.22, 1], [1, 1.09, 1]);
+      : interpolate(clickP, [0, 0.12, 0.35, 1], [1, 1.22, 1.08, 1.35]);
 
-  // White flash on click
+  // Orange flash on click
   const flashOpacity =
     frame >= CLICK_FRAME
       ? interpolate(
           frame,
-          [CLICK_FRAME, CLICK_FRAME + 3, CLICK_FRAME + 14],
-          [0, 0.5, 0],
+          [CLICK_FRAME, CLICK_FRAME + 2, CLICK_FRAME + 18],
+          [0, 0.55, 0],
           { extrapolateLeft: "clamp", extrapolateRight: "clamp" },
         )
       : 0;
 
-  // Expanding ripple on click
-  const rippleP = spring({
+  // Three staggered expanding ripple rings
+  const r1 = spring({
     frame: frame - CLICK_FRAME,
     fps,
-    config: { stiffness: 50, damping: 18 },
+    config: { stiffness: 38, damping: 20 },
   });
-  const rippleOpacity =
-    frame >= CLICK_FRAME
-      ? interpolate(frame, [CLICK_FRAME, CLICK_FRAME + 32], [0.3, 0], {
-          extrapolateLeft: "clamp",
-          extrapolateRight: "clamp",
-        })
+  const r2 = spring({
+    frame: frame - CLICK_FRAME - 8,
+    fps,
+    config: { stiffness: 34, damping: 20 },
+  });
+  const r3 = spring({
+    frame: frame - CLICK_FRAME - 16,
+    fps,
+    config: { stiffness: 30, damping: 20 },
+  });
+
+  const ringAlpha = (delay: number) =>
+    frame >= CLICK_FRAME + delay
+      ? interpolate(
+          frame,
+          [CLICK_FRAME + delay, CLICK_FRAME + delay + 40],
+          [0.6, 0],
+          {
+            extrapolateLeft: "clamp",
+            extrapolateRight: "clamp",
+          },
+        )
       : 0;
 
   const showButton = frame >= APPROVE_IN && frame < OVERLAY_OUT + 26;
@@ -116,7 +138,7 @@ export const SceneCalendar: React.FC = () => {
 
       <MonthlyCalendar />
 
-      {/* Logo — top center, fades with eyebrow label */}
+      {/* Logo — top center, full duration */}
       <div
         style={{
           position: "absolute",
@@ -125,7 +147,8 @@ export const SceneCalendar: React.FC = () => {
           right: 0,
           display: "flex",
           justifyContent: "center",
-          opacity: labelOpacity,
+          opacity: logoOpacity,
+          zIndex: 30,
         }}
       >
         <Img
@@ -173,7 +196,7 @@ export const SceneCalendar: React.FC = () => {
         />
       )}
 
-      {/* Approve button + ripple */}
+      {/* Approve button + 3 ripple rings */}
       {showButton && (
         <div
           style={{
@@ -186,15 +209,39 @@ export const SceneCalendar: React.FC = () => {
             opacity: buttonOpacity,
           }}
         >
-          {/* Ripple ring */}
+          {/* Ring 1 */}
           <div
             style={{
               position: "absolute",
-              width: 620 * rippleP,
-              height: 620 * rippleP,
+              width: 700 * r1,
+              height: 700 * r1,
               borderRadius: "50%",
-              border: "2px solid rgba(245,92,42,0.45)",
-              opacity: rippleOpacity,
+              border: "2px solid rgba(245,92,42,0.5)",
+              opacity: ringAlpha(0),
+              pointerEvents: "none",
+            }}
+          />
+          {/* Ring 2 */}
+          <div
+            style={{
+              position: "absolute",
+              width: 700 * r2,
+              height: 700 * r2,
+              borderRadius: "50%",
+              border: "2px solid rgba(245,92,42,0.35)",
+              opacity: ringAlpha(8),
+              pointerEvents: "none",
+            }}
+          />
+          {/* Ring 3 */}
+          <div
+            style={{
+              position: "absolute",
+              width: 700 * r3,
+              height: 700 * r3,
+              borderRadius: "50%",
+              border: "2px solid rgba(245,92,42,0.2)",
+              opacity: ringAlpha(16),
               pointerEvents: "none",
             }}
           />
@@ -249,13 +296,13 @@ export const SceneCalendar: React.FC = () => {
         </div>
       )}
 
-      {/* Click flash */}
+      {/* Orange flash on click */}
       {flashOpacity > 0 && (
         <div
           style={{
             position: "absolute",
             inset: 0,
-            background: "#fff",
+            background: "radial-gradient(circle at 50% 50%, #f55c2a, #ff8c00)",
             opacity: flashOpacity,
             pointerEvents: "none",
           }}
