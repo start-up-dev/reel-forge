@@ -1,4 +1,4 @@
-import { and, asc, desc, eq, inArray } from "drizzle-orm";
+import { and, asc, desc, eq, inArray, sql } from "drizzle-orm";
 import type { FastifyInstance } from "fastify";
 import { z } from "zod";
 import { db } from "../lib/db/index.js";
@@ -66,10 +66,10 @@ export async function contentPlansRoutes(fastify: FastifyInstance) {
       });
     }
     if (trialPaid && userPlan !== "starter" && userPlan !== "pro") {
-      // Trial: only 1/day, must have enough credits
+      // Trial: only 7-video plans (postsPerDay 1), must have enough credits
       if (postsPerDay !== 1) {
         return reply.status(403).send({
-          error: { code: "PLAN_LIMIT", message: "Trial plan only supports 1 video per day. Upgrade to Pro for 3/day." },
+          error: { code: "PLAN_LIMIT", message: "Trial plan supports 7-video week plans. Upgrade to Pro for 21-video plans." },
         });
       }
       if ((trialVideoRemaining ?? 0) < 7) {
@@ -80,7 +80,7 @@ export async function contentPlansRoutes(fastify: FastifyInstance) {
     }
     if (userPlan === "starter" && postsPerDay !== 1) {
       return reply.status(403).send({
-        error: { code: "PLAN_LIMIT", message: "Starter plan supports 1 video per day. Upgrade to Pro for 3/day." },
+        error: { code: "PLAN_LIMIT", message: "Starter plan supports 7-video week plans. Upgrade to Pro for 21-video plans." },
       });
     }
 
@@ -380,6 +380,20 @@ export async function contentPlansRoutes(fastify: FastifyInstance) {
 
           if (!updated) {
             throw new Error("Plan was already approved.");
+          }
+
+          // Consume quota atomically inside the transaction so concurrent
+          // approvals can't bypass the check, and rolls back if insert fails.
+          if (freshUser.plan === "starter" || freshUser.plan === "pro") {
+            await tx.update(users).set({
+              videosThisMonth: sql`${users.videosThisMonth} + ${topicCount}`,
+              updatedAt: new Date(),
+            }).where(eq(users.id, user.id));
+          } else {
+            await tx.update(users).set({
+              trialVideoRemaining: sql`GREATEST(${users.trialVideoRemaining} - ${topicCount}, 0)`,
+              updatedAt: new Date(),
+            }).where(eq(users.id, user.id));
           }
 
           const inserted = await tx

@@ -11,6 +11,7 @@ import {
   TrendingUp,
 } from "lucide-react";
 import { useUser } from "@/lib/hooks/use-user";
+
 const navSections = [
   {
     label: "Content",

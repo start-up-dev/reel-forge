@@ -53,7 +53,7 @@ function BillingContent() {
 
   useEffect(() => {
     if (searchParams.get("trial_success") === "1") {
-      toast.success("Try Out activated! 3 videos are ready to create.");
+      toast.success("Try Out activated! 7 video credits are ready to use.");
       void refetch();
     } else if (searchParams.get("subscribed") === "1") {
       toast.success("Subscription activated! Welcome aboard.");

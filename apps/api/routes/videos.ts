@@ -66,12 +66,22 @@ export async function videosRoutes(fastify: FastifyInstance): Promise<void> {
             error: { code: "INSUFFICIENT_CREDITS", message: "No trial credits remaining. Upgrade to continue.", redirect: "billing" },
           });
         }
+        // Consume trial credit immediately so concurrent requests can't bypass the check
+        await db.update(users).set({
+          trialVideoRemaining: sql`GREATEST(${users.trialVideoRemaining} - 1, 0)`,
+          updatedAt: new Date(),
+        }).where(eq(users.id, user.id));
       } else if (freshUser.plan === "starter" || freshUser.plan === "pro") {
         if (freshUser.monthlyLimit > 0 && freshUser.videosThisMonth >= freshUser.monthlyLimit) {
           return reply.status(403).send({
             error: { code: "QUOTA_EXCEEDED", message: "Monthly video limit reached. Upgrade to continue.", redirect: "billing" },
           });
         }
+        // Consume monthly quota immediately so concurrent requests can't bypass the check
+        await db.update(users).set({
+          videosThisMonth: sql`${users.videosThisMonth} + 1`,
+          updatedAt: new Date(),
+        }).where(eq(users.id, user.id));
       } else {
         return reply.status(403).send({
           error: { code: "NO_PLAN", message: "Upgrade required to generate videos.", redirect: "billing" },

@@ -10,7 +10,6 @@ import {
   Pencil,
   Check,
   ChevronRight,
-  UserSquare2,
   Globe,
   Plug,
   RefreshCw,
