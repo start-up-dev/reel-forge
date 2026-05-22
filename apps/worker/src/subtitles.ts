@@ -125,26 +125,26 @@ Format: Layer, Start, End, Style, Name, MarginL, MarginR, MarginV, Effect, Text`
 // ─── Style builders ───────────────────────────────────────────────────────────
 
 function buildBoldPop(words: WordTimestamp[]): string {
-  const style = makeStyle("Default", 90, COLOR_WHITE, COLOR_WHITE, COLOR_BLACK, COLOR_SHADOW, true, false, 4, 2, 2, 200);
+  const style = makeStyle("Default", 90, COLOR_WHITE, COLOR_WHITE, COLOR_BLACK, COLOR_SHADOW, true, false, 4, 2, 2, 350);
   const events: AssEvent[] = words.map((w) => ({ start: w.start, end: w.end, text: w.word.toUpperCase() }));
   return buildAssFile(style, events);
 }
 
 function buildWordHighlight(words: WordTimestamp[]): string {
-  const style = makeStyle("Default", 80, COLOR_WHITE, COLOR_WHITE, COLOR_ACCENT_ORANGE, COLOR_SHADOW, true, false, 5, 0, 2, 200);
+  const style = makeStyle("Default", 80, COLOR_WHITE, COLOR_WHITE, COLOR_ACCENT_ORANGE, COLOR_SHADOW, true, false, 5, 0, 2, 350);
   const events: AssEvent[] = words.map((w) => ({ start: w.start, end: w.end, text: w.word }));
   return buildAssFile(style, events);
 }
 
 function buildMinimal(words: WordTimestamp[], sceneBoundaries?: number[]): string {
-  const style = makeStyle("Default", 56, COLOR_WHITE, COLOR_WHITE, COLOR_BLACK, COLOR_TRANSPARENT, false, false, 2, 0, 2, 150);
+  const style = makeStyle("Default", 56, COLOR_WHITE, COLOR_WHITE, COLOR_BLACK, COLOR_TRANSPARENT, false, false, 2, 0, 2, 300);
   const groups = groupWords(words, 5, sceneBoundaries);
   const events: AssEvent[] = groups.map((g) => ({ start: g[0]!.start, end: g[g.length - 1]!.end, text: g.map((w) => w.word).join(" ") }));
   return buildAssFile(style, events);
 }
 
 function buildCinematic(words: WordTimestamp[], sceneBoundaries?: number[]): string {
-  const style = makeStyle("Default", 64, COLOR_WARM_WHITE, COLOR_WARM_WHITE, COLOR_BLACK, COLOR_TRANSPARENT, false, true, 2, 4, 2, 120);
+  const style = makeStyle("Default", 64, COLOR_WARM_WHITE, COLOR_WARM_WHITE, COLOR_BLACK, COLOR_TRANSPARENT, false, true, 2, 4, 2, 280);
   const groups = groupWords(words, 4, sceneBoundaries);
   const events: AssEvent[] = groups.map((g) => ({ start: g[0]!.start, end: g[g.length - 1]!.end, text: g.map((w) => w.word).join(" ") }));
   return buildAssFile(style, events);
@@ -152,7 +152,7 @@ function buildCinematic(words: WordTimestamp[], sceneBoundaries?: number[]): str
 
 function buildNeonGlow(words: WordTimestamp[]): string {
   // White text with thick orange outline — the wide outline creates a bloom/glow effect
-  const style = makeStyle("Default", 88, COLOR_WHITE, COLOR_WHITE, COLOR_ACCENT_ORANGE, COLOR_SHADOW, true, false, 6, 3, 2, 200);
+  const style = makeStyle("Default", 88, COLOR_WHITE, COLOR_WHITE, COLOR_ACCENT_ORANGE, COLOR_SHADOW, true, false, 6, 3, 2, 350);
   const events: AssEvent[] = words.map((w) => ({ start: w.start, end: w.end, text: w.word.toUpperCase() }));
   return buildAssFile(style, events);
 }
@@ -165,14 +165,14 @@ function buildOversizedPop(words: WordTimestamp[]): string {
 }
 
 function buildGroupedBold(words: WordTimestamp[], sceneBoundaries?: number[]): string {
-  const style = makeStyle("Default", 72, COLOR_WHITE, COLOR_WHITE, COLOR_BLACK, COLOR_SHADOW, true, false, 3, 2, 2, 180);
+  const style = makeStyle("Default", 72, COLOR_WHITE, COLOR_WHITE, COLOR_BLACK, COLOR_SHADOW, true, false, 3, 2, 2, 330);
   const groups = groupWords(words, 3, sceneBoundaries);
   const events: AssEvent[] = groups.map((g) => ({ start: g[0]!.start, end: g[g.length - 1]!.end, text: g.map((w) => w.word).join(" ") }));
   return buildAssFile(style, events);
 }
 
 function buildGroupedCinematic(words: WordTimestamp[], sceneBoundaries?: number[]): string {
-  const style = makeStyle("Default", 60, COLOR_WARM_WHITE, COLOR_WARM_WHITE, COLOR_BLACK, COLOR_TRANSPARENT, false, true, 2, 6, 2, 100);
+  const style = makeStyle("Default", 60, COLOR_WARM_WHITE, COLOR_WARM_WHITE, COLOR_BLACK, COLOR_TRANSPARENT, false, true, 2, 6, 2, 280);
   const groups = groupWords(words, 4, sceneBoundaries);
   const events: AssEvent[] = groups.map((g) => ({ start: g[0]!.start, end: g[g.length - 1]!.end, text: g.map((w) => w.word).join(" ") }));
   return buildAssFile(style, events);
@@ -182,7 +182,7 @@ function buildKaraoke(words: WordTimestamp[], sceneBoundaries?: number[]): strin
   // Groups of 4 words; active word highlighted in accent orange via inline {\ } override tags.
   // Each word in the group gets its own Dialogue event covering word.start → next word.start,
   // so the highlight switches word-by-word while the full group stays visible.
-  const style = makeStyle("Default", 72, COLOR_WHITE, COLOR_WHITE, COLOR_BLACK, COLOR_SHADOW, true, false, 3, 2, 2, 180);
+  const style = makeStyle("Default", 72, COLOR_WHITE, COLOR_WHITE, COLOR_BLACK, COLOR_SHADOW, true, false, 3, 2, 2, 330);
   const groups = groupWords(words, 4, sceneBoundaries);
   const events: AssEvent[] = [];
 
