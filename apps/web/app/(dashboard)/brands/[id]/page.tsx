@@ -406,36 +406,26 @@ function SubtitleStyleEditor({
       <p className="mb-2 text-[10px] font-semibold uppercase tracking-wider text-[var(--accent-primary)]">
         Subtitle style
       </p>
-      <div className="space-y-1.5">
+      <div className="grid grid-cols-3 gap-2">
         {SUBTITLE_STYLES.map((s) => (
           <button
             key={s.value}
             type="button"
             onClick={() => setDraft(s.value)}
-            className={`flex w-full items-center gap-3 rounded-lg border px-3 py-2 text-left transition-colors ${
+            className={`overflow-hidden rounded-lg border transition-colors ${
               draft === s.value
-                ? "border-[var(--accent-primary)] bg-[var(--accent-primary)]/10"
+                ? "border-[var(--accent-primary)]"
                 : "border-[var(--bg-border)] hover:border-[var(--accent-primary)]/40"
             }`}
           >
-            <div
-              className={`mt-0.5 h-3 w-3 shrink-0 rounded-full border-2 ${
-                draft === s.value
-                  ? "border-[var(--accent-primary)] bg-[var(--accent-primary)]"
-                  : "border-[var(--text-muted)]"
-              }`}
-            />
-            <div className="flex-1">
-              <p
-                className={`text-sm font-semibold ${draft === s.value ? "text-[var(--text-primary)]" : "text-[var(--text-secondary)]"}`}
-              >
-                {s.label}
-              </p>
-              <p className="text-xs text-[var(--text-muted)]">
-                {s.description}
-              </p>
-            </div>
             <SubtitlePreview style={s.value} />
+            <p className={`py-1.5 text-center text-[10px] font-semibold leading-tight ${
+              draft === s.value
+                ? "text-[var(--accent-primary)]"
+                : "text-[var(--text-muted)]"
+            }`}>
+              {s.label}
+            </p>
           </button>
         ))}
       </div>

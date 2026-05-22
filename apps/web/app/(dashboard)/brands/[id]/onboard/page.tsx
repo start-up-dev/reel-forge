@@ -504,30 +504,26 @@ export default function BrandOnboardPage() {
         <p className="mb-3 text-[10px] font-semibold uppercase tracking-wider text-[var(--text-muted)]">
           Subtitle style
         </p>
-        <div className="grid grid-cols-1 gap-2">
+        <div className="grid grid-cols-3 gap-2">
           {SUBTITLE_STYLES.map((s) => (
             <button
               key={s.value}
               type="button"
               onClick={() => setSubtitleStyle(s.value)}
-              className={`flex items-center gap-3 rounded-lg border px-3 py-2.5 text-left transition-colors ${
+              className={`overflow-hidden rounded-lg border transition-colors ${
                 subtitleStyle === s.value
-                  ? "border-[var(--accent-primary)] bg-[var(--accent-primary)]/10"
+                  ? "border-[var(--accent-primary)]"
                   : "border-[var(--bg-border)] hover:border-[var(--accent-primary)]/40"
               }`}
             >
-              <div className={`mt-0.5 h-3.5 w-3.5 shrink-0 rounded-full border-2 ${
-                subtitleStyle === s.value
-                  ? "border-[var(--accent-primary)] bg-[var(--accent-primary)]"
-                  : "border-[var(--text-muted)]"
-              }`} />
-              <div className="flex-1">
-                <p className={`text-sm font-semibold ${subtitleStyle === s.value ? "text-[var(--text-primary)]" : "text-[var(--text-secondary)]"}`}>
-                  {s.label}
-                </p>
-                <p className="text-xs text-[var(--text-muted)]">{s.description}</p>
-              </div>
               <SubtitlePreview style={s.value} />
+              <p className={`py-1.5 text-center text-[10px] font-semibold leading-tight ${
+                subtitleStyle === s.value
+                  ? "text-[var(--accent-primary)]"
+                  : "text-[var(--text-muted)]"
+              }`}>
+                {s.label}
+              </p>
             </button>
           ))}
         </div>
