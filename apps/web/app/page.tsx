@@ -609,9 +609,6 @@ function ProblemSection() {
                 <h3 className="mb-2 md:mb-3 text-[18px] md:text-[20px] font-black text-[var(--text-primary)] leading-tight">
                   {card.title}
                 </h3>
-                <p className="text-[14px] md:text-[15px] leading-relaxed text-[var(--text-secondary)] font-medium">
-                  {card.body}
-                </p>
               </div>
             </StaggerItem>
           );
