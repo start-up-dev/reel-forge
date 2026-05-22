@@ -350,6 +350,36 @@ function PipelineCard({
             </span>
           </div>
 
+          {/* Video preview for ready/posted */}
+          {(bucket === "ready" || bucket === "posted") && outputUrl && (
+            <div className="relative -mx-3 overflow-hidden bg-[var(--bg-elevated)]" style={{ height: "140px" }}>
+              <video
+                ref={videoRef}
+                src={outputUrl}
+                preload="metadata"
+                playsInline
+                className="absolute inset-0 h-full w-full object-cover"
+                onEnded={() => setPlaying(false)}
+              />
+              <button
+                type="button"
+                aria-label={playing ? "Pause" : "Play"}
+                onClick={togglePlay}
+                className="absolute inset-0 flex items-center justify-center"
+              >
+                <div
+                  className={`flex h-9 w-9 items-center justify-center rounded-full bg-black/50 backdrop-blur-sm transition-opacity ${playing ? "opacity-0 group-hover:opacity-100" : "opacity-100"}`}
+                >
+                  {playing ? (
+                    <Pause className="h-4 w-4 text-white" />
+                  ) : (
+                    <Play className="h-4 w-4 translate-x-0.5 text-white" />
+                  )}
+                </div>
+              </button>
+            </div>
+          )}
+
           {/* Title */}
           <p className="line-clamp-3 text-xs font-semibold leading-snug text-[var(--text-primary)]">
             {topic.title}
