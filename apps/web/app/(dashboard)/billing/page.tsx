@@ -31,7 +31,7 @@ const plans = [
     price: "$49",
     period: "/ month",
     planType: PlanType.Starter,
-    features: ["1 video per day", "30 videos per month", "Auto-schedule to Facebook", "BGM library", "Email notifications"],
+    features: ["30 videos per month", "Plan your whole month at once", "Auto-schedule to Facebook", "BGM library", "Email notifications"],
   },
   {
     name: "Pro",
@@ -40,7 +40,7 @@ const plans = [
     planType: PlanType.Pro,
     highlight: true,
     badge: "Most Popular",
-    features: ["3 videos per day", "90 videos per month", "All Starter features", "Priority queue", "Custom voice prompts"],
+    features: ["90 videos per month", "Plan your whole month at once", "All Starter features", "Priority queue", "Custom voice prompts"],
   },
 ];
 
@@ -104,8 +104,6 @@ function BillingContent() {
   const isTrial = !!user?.trialPaid;
   const isTryOut = currentPlan === PlanType.TryOut || (currentPlan === PlanType.None && isTrial);
   const trialRemaining = user?.trialVideoRemaining ?? 0;
-  const dailyUsed = user?.videosToday ?? 0;
-  const dailyLimit = currentPlan === PlanType.None || isTryOut ? 0 : (user?.dailyLimit ?? 0);
   const monthlyUsed = user?.videosThisMonth ?? 0;
   const monthlyLimit = currentPlan === PlanType.None || isTryOut ? 0 : (user?.monthlyLimit ?? 0);
 
@@ -169,32 +167,18 @@ function BillingContent() {
               />
             </div>
           ) : (
-            <>
-              <div>
-                <div className="mb-1.5 flex items-center justify-between text-xs">
-                  <span className="text-[var(--text-secondary)]">Videos today</span>
-                  <span className="font-medium text-[var(--text-primary)]">
-                    {dailyUsed} / {dailyLimit}
-                  </span>
-                </div>
-                <ProgressBar
-                  value={dailyLimit > 0 ? (dailyUsed / dailyLimit) * 100 : 0}
-                  color={dailyLimit > 0 && dailyUsed >= dailyLimit ? "danger" : dailyLimit > 0 && dailyUsed / dailyLimit > 0.8 ? "warning" : "primary"}
-                />
+            <div>
+              <div className="mb-1.5 flex items-center justify-between text-xs">
+                <span className="text-[var(--text-secondary)]">Videos this month</span>
+                <span className="font-medium text-[var(--text-primary)]">
+                  {monthlyUsed} / {monthlyLimit}
+                </span>
               </div>
-              <div>
-                <div className="mb-1.5 flex items-center justify-between text-xs">
-                  <span className="text-[var(--text-secondary)]">Videos this month</span>
-                  <span className="font-medium text-[var(--text-primary)]">
-                    {monthlyUsed} / {monthlyLimit}
-                  </span>
-                </div>
-                <ProgressBar
-                  value={monthlyLimit > 0 ? (monthlyUsed / monthlyLimit) * 100 : 0}
-                  color={monthlyLimit > 0 && monthlyUsed >= monthlyLimit ? "danger" : monthlyLimit > 0 && monthlyUsed / monthlyLimit > 0.8 ? "warning" : "primary"}
-                />
-              </div>
-            </>
+              <ProgressBar
+                value={monthlyLimit > 0 ? (monthlyUsed / monthlyLimit) * 100 : 0}
+                color={monthlyLimit > 0 && monthlyUsed >= monthlyLimit ? "danger" : monthlyLimit > 0 && monthlyUsed / monthlyLimit > 0.8 ? "warning" : "primary"}
+              />
+            </div>
           )}
         </div>
 
@@ -204,7 +188,7 @@ function BillingContent() {
             <Link href="#plans" className="text-[var(--accent-primary)] hover:underline">
               Try Out for $5
             </Link>{" "}
-            or subscribe to Starter or Pro for daily video creation.
+            or subscribe to Starter or Pro to plan your month&apos;s content at once.
           </p>
         )}
       </section>

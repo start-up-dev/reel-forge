@@ -52,8 +52,8 @@ export function AppHeader({ onMenuToggle }: AppHeaderProps) {
   const hasActivePlan = plan !== PlanType.None || isTrial;
   const isTryOut = plan === PlanType.TryOut || (plan === PlanType.None && isTrial);
   const trialRemaining = user?.trialVideoRemaining ?? 0;
-  const dailyUsed = user?.videosToday ?? 0;
-  const dailyLimit = hasActivePlan && !isTryOut ? (user?.dailyLimit ?? 0) : 0;
+  const monthlyUsed = hasActivePlan && !isTryOut ? (user?.videosThisMonth ?? 0) : 0;
+  const monthlyLimit = hasActivePlan && !isTryOut ? (user?.monthlyLimit ?? 0) : 0;
 
   const planBadge = PLAN_BADGE[plan] ?? null;
 
@@ -93,15 +93,15 @@ export function AppHeader({ onMenuToggle }: AppHeaderProps) {
             ) : (
               <>
                 <div className="flex items-center gap-2">
-                  <span className="text-xs text-[var(--text-muted)]">Videos today</span>
-                  <span className={`text-xs font-medium tabular-nums ${dailyUsed >= dailyLimit ? "text-[var(--accent-danger)]" : "text-[var(--text-primary)]"}`}>
-                    {dailyUsed} / {dailyLimit}
+                  <span className="text-xs text-[var(--text-muted)]">Videos this month</span>
+                  <span className={`text-xs font-medium tabular-nums ${monthlyUsed >= monthlyLimit ? "text-[var(--accent-danger)]" : "text-[var(--text-primary)]"}`}>
+                    {monthlyUsed} / {monthlyLimit}
                   </span>
                 </div>
                 <div className="h-1.5 w-24 overflow-hidden rounded-full bg-[var(--bg-elevated)]">
                   <div
-                    className={`h-full rounded-full transition-all ${dailyUsed >= dailyLimit ? "bg-[var(--accent-danger)]" : dailyUsed / dailyLimit > 0.8 ? "bg-[var(--accent-warning)]" : "bg-[var(--accent-primary)]"}`}
-                    style={{ width: `${dailyLimit > 0 ? Math.min((dailyUsed / dailyLimit) * 100, 100) : 0}%` }}
+                    className={`h-full rounded-full transition-all ${monthlyUsed >= monthlyLimit ? "bg-[var(--accent-danger)]" : monthlyLimit > 0 && monthlyUsed / monthlyLimit > 0.8 ? "bg-[var(--accent-warning)]" : "bg-[var(--accent-primary)]"}`}
+                    style={{ width: `${monthlyLimit > 0 ? Math.min((monthlyUsed / monthlyLimit) * 100, 100) : 0}%` }}
                   />
                 </div>
               </>

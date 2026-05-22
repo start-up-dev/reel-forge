@@ -17,10 +17,10 @@ const PLAN_CONFIG: Record<
 > = {
   [env.STRIPE_STARTER_PRICE_ID]: {
     plan: "starter",
-    dailyLimit: 1,
+    dailyLimit: 0,
     monthlyLimit: 30,
   },
-  [env.STRIPE_PRO_PRICE_ID]: { plan: "pro", dailyLimit: 3, monthlyLimit: 90 },
+  [env.STRIPE_PRO_PRICE_ID]: { plan: "pro", dailyLimit: 0, monthlyLimit: 90 },
 };
 
 const PLAN_PRICE_MAP: Record<string, string> = {
@@ -160,6 +160,8 @@ export async function billingRoutes(fastify: FastifyInstance): Promise<void> {
         monthlyLimit: number;
         trialPaid?: boolean;
         trialVideoRemaining?: number;
+        videosToday?: number;
+        videosThisMonth?: number;
       }
     > = {
       none: { plan: "none", dailyLimit: 0, monthlyLimit: 0 },
@@ -170,8 +172,8 @@ export async function billingRoutes(fastify: FastifyInstance): Promise<void> {
         trialPaid: true,
         trialVideoRemaining: 7,
       },
-      starter: { plan: "starter", dailyLimit: 1, monthlyLimit: 30 },
-      pro: { plan: "pro", dailyLimit: 3, monthlyLimit: 90 },
+      starter: { plan: "starter", dailyLimit: 0, monthlyLimit: 30, videosToday: 0, videosThisMonth: 0 },
+      pro: { plan: "pro", dailyLimit: 0, monthlyLimit: 90, videosToday: 0, videosThisMonth: 0 },
     };
 
     fastify.post<{ Body: { plan?: string } }>(
@@ -265,6 +267,8 @@ async function handleStripeEvent(event: Stripe.Event): Promise<void> {
                   plan: config.plan,
                   dailyLimit: config.dailyLimit,
                   monthlyLimit: config.monthlyLimit,
+                  videosToday: 0,
+                  videosThisMonth: 0,
                 }
               : {}),
             updatedAt: new Date(),
@@ -274,7 +278,41 @@ async function handleStripeEvent(event: Stripe.Event): Promise<void> {
       break;
     }
 
-    case "customer.subscription.created":
+    case "customer.subscription.created": {
+      const sub = event.data.object as Stripe.Subscription;
+      const priceId = sub.items.data[0]?.price.id;
+      if (!priceId) return;
+
+      const config = PLAN_CONFIG[priceId];
+      if (!config) return;
+
+      const customerId =
+        typeof sub.customer === "string" ? sub.customer : sub.customer.id;
+
+      const [user] = await db
+        .select({ id: users.id })
+        .from(users)
+        .where(eq(users.stripeCustomerId, customerId))
+        .limit(1);
+
+      if (!user) return;
+
+      const isActive = sub.status === "active" || sub.status === "trialing";
+
+      await db
+        .update(users)
+        .set({
+          plan: isActive ? config.plan : "none",
+          dailyLimit: isActive ? config.dailyLimit : 0,
+          monthlyLimit: isActive ? config.monthlyLimit : 0,
+          // Reset counters so trial usage doesn't carry over to the new subscription
+          ...(isActive ? { videosToday: 0, videosThisMonth: 0 } : {}),
+          updatedAt: new Date(),
+        })
+        .where(eq(users.id, user.id));
+      break;
+    }
+
     case "customer.subscription.updated": {
       const sub = event.data.object as Stripe.Subscription;
       const priceId = sub.items.data[0]?.price.id;

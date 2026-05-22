@@ -11,8 +11,6 @@ import {
   TrendingUp,
 } from "lucide-react";
 import { useUser } from "@/lib/hooks/use-user";
-import { cn } from "@repo/ui/utils";
-
 const navSections = [
   {
     label: "Content",
@@ -30,13 +28,6 @@ const navSections = [
   },
 ];
 
-const PLAN_LABEL: Record<string, string> = {
-  none: "Free",
-  try_out: "Trial",
-  starter: "Starter",
-  pro: "Pro",
-};
-
 interface AppSidebarProps {
   isOpen: boolean;
   onClose: () => void;
@@ -47,14 +38,6 @@ export function AppSidebar({ isOpen, onClose }: AppSidebarProps) {
   const { user } = useUser();
 
   const showUpgrade = !user || user.plan === "none" || user.plan === "try_out";
-  const showUsage =
-    user &&
-    (user.plan === "starter" || user.plan === "pro") &&
-    user.dailyLimit > 0;
-  const usagePct = showUsage
-    ? Math.min((user.videosToday / user.dailyLimit) * 100, 100)
-    : 0;
-  const usageWarning = usagePct >= 80;
 
   return (
     <>
@@ -111,40 +94,6 @@ export function AppSidebar({ isOpen, onClose }: AppSidebarProps) {
           ))}
         </div>
       </nav>
-
-      {/* Usage meter (paid plans) */}
-      {showUsage && (
-        <div className="px-4 pb-3">
-          <div className="rounded-lg border border-[var(--bg-border)] bg-[var(--bg-elevated)] p-3">
-            <div className="mb-1.5 flex items-center justify-between text-xs">
-              <span className="text-[var(--text-muted)]">Today</span>
-              <span
-                className={
-                  usageWarning
-                    ? "text-[var(--accent-warning)]"
-                    : "text-[var(--text-secondary)]"
-                }
-              >
-                {user.videosToday}/{user.dailyLimit} videos
-              </span>
-            </div>
-            <div className="h-1.5 w-full overflow-hidden rounded-full bg-[var(--bg-base)]">
-              <div
-                className={cn(
-                  "h-full rounded-full transition-all",
-                  usageWarning
-                    ? "bg-[var(--accent-warning)]"
-                    : "bg-[var(--accent-primary)]",
-                )}
-                style={{ width: `${usagePct}%` }}
-              />
-            </div>
-            <p className="mt-1.5 text-[10px] text-[var(--text-muted)]">
-              {PLAN_LABEL[user.plan]} plan · resets midnight UTC
-            </p>
-          </div>
-        </div>
-      )}
 
       {/* Upgrade CTA (free / trial plans) */}
       {showUpgrade && (
