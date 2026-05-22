@@ -158,6 +158,17 @@ export function createApiClient(getToken: () => Promise<string | null>) {
       postStatus(id: string): Promise<ApiResponse<PostSchedule[]>> {
         return authedRequest(`/api/videos/${id}/post-status`);
       },
+      generateSingle(data: {
+        brandProfileId: string;
+        topic: string;
+        videoType?: "talking" | "action_reel";
+        targetDurationSeconds?: number;
+      }): Promise<ApiResponse<{ videoId: string }>> {
+        return authedRequest("/api/videos/generate-single", {
+          method: "POST",
+          body: JSON.stringify(data),
+        });
+      },
     },
 
     // ── Scenes ────────────────────────────────────────────────────────────

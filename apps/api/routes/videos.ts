@@ -3,16 +3,107 @@ import type { FastifyInstance } from "fastify";
 import { z } from "zod";
 import type { SnapshotClip } from "@repo/types";
 import { db } from "../lib/db/index.js";
-import { clipRequests, postSchedules, scenes, videos } from "../lib/db/schema.js";
+import { brandProfiles, clipRequests, postSchedules, scenes, users, videos } from "../lib/db/schema.js";
 import {
   ASSET_URL_TTL_MINUTES,
   generateSignedReadUrl,
 } from "../lib/storage.js";
 import { subscribeToVideo } from "../lib/clip-events.js";
+import { processVideo } from "../services/batch-generator.js";
 
 const PAGE_SIZE = 20;
 
 export async function videosRoutes(fastify: FastifyInstance): Promise<void> {
+  // POST /api/videos/generate-single — create and start a single video without a content plan
+  fastify.post(
+    "/videos/generate-single",
+    async (request, reply) => {
+      const user = request.currentUser!;
+
+      const bodySchema = z.object({
+        brandProfileId: z.string().uuid(),
+        topic: z.string().min(1).max(500),
+        videoType: z.enum(["talking", "action_reel"]).default("talking"),
+        targetDurationSeconds: z.number().int().refine((v) => [15, 30, 45, 60].includes(v)).default(30),
+      });
+
+      const parsed = bodySchema.safeParse(request.body);
+      if (!parsed.success) {
+        return reply.status(400).send({ error: { code: "VALIDATION_ERROR", message: parsed.error.message } });
+      }
+
+      const { brandProfileId, topic, videoType, targetDurationSeconds } = parsed.data;
+
+      const [brand] = await db
+        .select({ id: brandProfiles.id, subtitleStyle: brandProfiles.subtitleStyle })
+        .from(brandProfiles)
+        .where(and(eq(brandProfiles.id, brandProfileId), eq(brandProfiles.userId, user.id)))
+        .limit(1);
+
+      if (!brand) {
+        return reply.status(404).send({ error: { code: "NOT_FOUND", message: "Brand not found." } });
+      }
+
+      const [freshUser] = await db
+        .select({
+          plan: users.plan,
+          trialPaid: users.trialPaid,
+          trialVideoRemaining: users.trialVideoRemaining,
+          videosThisMonth: users.videosThisMonth,
+          monthlyLimit: users.monthlyLimit,
+        })
+        .from(users)
+        .where(eq(users.id, user.id))
+        .limit(1);
+
+      if (!freshUser) {
+        return reply.status(401).send({ error: { message: "User not found." } });
+      }
+
+      if (freshUser.trialPaid && freshUser.plan !== "starter" && freshUser.plan !== "pro") {
+        if ((freshUser.trialVideoRemaining ?? 0) < 1) {
+          return reply.status(403).send({
+            error: { code: "INSUFFICIENT_CREDITS", message: "No trial credits remaining. Upgrade to continue.", redirect: "billing" },
+          });
+        }
+      } else if (freshUser.plan === "starter" || freshUser.plan === "pro") {
+        if (freshUser.monthlyLimit > 0 && freshUser.videosThisMonth >= freshUser.monthlyLimit) {
+          return reply.status(403).send({
+            error: { code: "QUOTA_EXCEEDED", message: "Monthly video limit reached. Upgrade to continue.", redirect: "billing" },
+          });
+        }
+      } else {
+        return reply.status(403).send({
+          error: { code: "NO_PLAN", message: "Upgrade required to generate videos.", redirect: "billing" },
+        });
+      }
+
+      const [video] = await db
+        .insert(videos)
+        .values({
+          userId: user.id,
+          brandProfileId,
+          contentPlanId: null,
+          title: topic.slice(0, 100),
+          idea: topic,
+          videoType,
+          targetDurationSeconds,
+          status: "DRAFT",
+          subtitleStyle: brand.subtitleStyle ?? "bold_pop",
+        })
+        .returning({ id: videos.id });
+
+      if (!video) {
+        return reply.status(500).send({ error: { message: "Failed to create video." } });
+      }
+
+      // Fire and forget — background pipeline; progress tracked via /api/videos/:id/status-stream
+      void processVideo(video.id, video.id, user.id);
+
+      return reply.status(201).send({ data: { videoId: video.id } });
+    },
+  );
+
   // GET /api/videos/:id — get a single video with its scenes and clip_request statuses
   fastify.get<{ Params: { id: string } }>(
     "/videos/:id",

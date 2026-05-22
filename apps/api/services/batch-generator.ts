@@ -197,7 +197,7 @@ export async function postSingleVideoToFacebook(planId: string, videoId: string)
   }
 }
 
-async function processVideo(
+export async function processVideo(
   planId: string,
   videoId: string,
   userId: string,

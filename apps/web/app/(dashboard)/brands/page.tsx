@@ -3,7 +3,7 @@
 import { useState, useEffect, useRef } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { Loader2, Plug, UserSquare2, ChevronRight, Plus, Globe, X } from "lucide-react";
+import { Loader2, Plug, UserSquare2, ChevronRight, Plus, X } from "lucide-react";
 import { Button } from "@repo/ui/button";
 import type { BrandProfile } from "@repo/types";
 import { useApiClient, withToast } from "@/lib/api-client";
@@ -42,7 +42,6 @@ function CreateBrandDialog({
 }) {
   const api = useApiClient();
   const [name, setName] = useState("");
-  const [websiteUrl, setWebsiteUrl] = useState("");
   const [creating, setCreating] = useState(false);
   const nameRef = useRef<HTMLInputElement>(null);
 
@@ -72,16 +71,7 @@ function CreateBrandDialog({
       return;
     }
 
-    const brandId = result.data.id;
-
-    if (websiteUrl.trim()) {
-      await withToast(
-        () => api.brands.ingestWebsite(brandId, websiteUrl.trim()),
-        "Could not fetch website — you can add it during onboarding"
-      );
-    }
-
-    onCreated(brandId);
+    onCreated(result.data.id);
   }
 
   return (
@@ -113,25 +103,8 @@ function CreateBrandDialog({
             />
           </div>
 
-          <div>
-            <label className="mb-1.5 block text-xs font-medium text-[var(--text-secondary)]">
-              Website URL{" "}
-              <span className="text-[var(--text-muted)]">(recommended — Claude reads it for context)</span>
-            </label>
-            <div className="relative">
-              <Globe className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-[var(--text-muted)]" />
-              <input
-                type="url"
-                value={websiteUrl}
-                onChange={(e) => setWebsiteUrl(e.target.value)}
-                placeholder="https://example.com"
-                className="w-full rounded-lg border border-[var(--bg-border)] bg-[var(--bg-elevated)] py-2 pl-9 pr-3 text-sm text-[var(--text-primary)] placeholder:text-[var(--text-muted)] focus:border-[var(--accent-primary)] focus:outline-none"
-              />
-            </div>
-          </div>
-
           <p className="text-xs text-[var(--text-muted)]">
-            Claude will build the full brand profile during onboarding. You can connect a Facebook page later.
+            Claude will build the full brand profile during onboarding, including reading your website.
           </p>
 
           <div className="flex gap-2 pt-1">
