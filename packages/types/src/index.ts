@@ -329,6 +329,7 @@ export interface BrandProfile {
   referenceVideoUrl: string | null;
   websiteUrl: string | null;
   websiteContext: string | null;
+  subtitleStyle: SubtitleStyle;
   onboardingComplete: boolean;
   characterSheetGenerationCount: number;
   channels: SocialAccount[];

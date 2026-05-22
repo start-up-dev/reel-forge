@@ -415,6 +415,13 @@ export async function startBatchGeneration(planId: string, userId: string): Prom
       }
 
       console.warn("[startBatchGeneration] no videos found for approved plan, recreating from topics:", planId);
+
+      const [selfHealBrand] = await db
+        .select({ subtitleStyle: brandProfiles.subtitleStyle })
+        .from(brandProfiles)
+        .where(eq(brandProfiles.id, plan.brandProfileId))
+        .limit(1);
+
       const inserted = await db
         .insert(videos)
         .values(
@@ -426,6 +433,7 @@ export async function startBatchGeneration(planId: string, userId: string): Prom
             videoType: mapFormatToVideoType(topic.format),
             status: "DRAFT" as const,
             idea: `${topic.hook}\n\n${topic.scriptOutline}`,
+            subtitleStyle: selfHealBrand?.subtitleStyle ?? "bold_pop",
           })),
         )
         .returning({ id: videos.id });

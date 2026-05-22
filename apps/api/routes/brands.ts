@@ -45,6 +45,7 @@ const createBody = z.object({
   primaryColor: z.string().max(20).optional(),
   secondaryColor: z.string().max(20).optional(),
   referenceVideoUrl: z.string().url().max(500).optional(),
+  subtitleStyle: z.enum(["bold_pop", "word_highlight", "minimal", "cinematic", "neon_glow", "oversized_pop", "grouped_bold", "grouped_cinematic", "karaoke"]).optional(),
 });
 
 const updateBody = createBody.partial().extend({
@@ -117,6 +118,7 @@ export async function brandsRoutes(fastify: FastifyInstance) {
         primaryColor: d.primaryColor ?? null,
         secondaryColor: d.secondaryColor ?? null,
         referenceVideoUrl: d.referenceVideoUrl ?? null,
+        subtitleStyle: d.subtitleStyle ?? "bold_pop",
         onboardingComplete: false,
       })
       .returning();
@@ -199,6 +201,7 @@ export async function brandsRoutes(fastify: FastifyInstance) {
     if (d.referenceVideoUrl !== undefined) patch.referenceVideoUrl = d.referenceVideoUrl;
     if (d.logoGcsPath !== undefined) patch.logoGcsPath = d.logoGcsPath;
     if (d.websiteUrl !== undefined) patch.websiteUrl = d.websiteUrl;
+    if (d.subtitleStyle !== undefined) patch.subtitleStyle = d.subtitleStyle;
 
     const [updated] = await db
       .update(brandProfiles)

@@ -29,6 +29,7 @@ import type {
   CharacterType,
   TargetAudienceAge,
 } from "@repo/types";
+import { SubtitleStyle } from "@repo/types";
 import { useApiClient, withToast } from "@/lib/api-client";
 
 // ─── Display maps ─────────────────────────────────────────────────────────────
@@ -286,6 +287,90 @@ function ColorEditor({
   );
 }
 
+// ─── Subtitle style picker ────────────────────────────────────────────────────
+
+const SUBTITLE_STYLES: { value: SubtitleStyle; label: string; description: string }[] = [
+  { value: SubtitleStyle.BoldPop,          label: "Bold Pop",          description: "Single word, big white caps with black outline" },
+  { value: SubtitleStyle.WordHighlight,    label: "Word Highlight",    description: "Single word, orange-outlined for emphasis" },
+  { value: SubtitleStyle.GroupedBold,      label: "Grouped Bold",      description: "3-word groups, bold and punchy" },
+  { value: SubtitleStyle.Karaoke,          label: "Karaoke",           description: "3-word groups, active word glows orange" },
+  { value: SubtitleStyle.NeonGlow,         label: "Neon Glow",         description: "Single word, wide orange bloom effect" },
+  { value: SubtitleStyle.OversizedPop,     label: "Oversized Pop",     description: "Huge single word, mid-screen placement" },
+  { value: SubtitleStyle.Minimal,          label: "Minimal",           description: "5-word groups, small clean font, no shadow" },
+  { value: SubtitleStyle.Cinematic,        label: "Cinematic",         description: "4-word groups, warm white italic, soft shadow" },
+  { value: SubtitleStyle.GroupedCinematic, label: "Grouped Cinematic", description: "4-word groups, slim warm italic near the bottom" },
+];
+
+const SUBTITLE_LABEL: Record<string, string> = Object.fromEntries(
+  SUBTITLE_STYLES.map((s) => [s.value, s.label]),
+);
+
+function SubtitleStyleEditor({
+  value,
+  onSave,
+  onCancel,
+  saving,
+}: {
+  value: SubtitleStyle;
+  onSave: (v: SubtitleStyle) => void;
+  onCancel: () => void;
+  saving: boolean;
+}) {
+  const [draft, setDraft] = useState<SubtitleStyle>(value);
+  return (
+    <div className="rounded-xl border border-[var(--accent-primary)]/40 bg-[var(--bg-elevated)] px-4 py-3">
+      <p className="mb-2 text-[10px] font-semibold uppercase tracking-wider text-[var(--accent-primary)]">
+        Subtitle style
+      </p>
+      <div className="space-y-1.5">
+        {SUBTITLE_STYLES.map((s) => (
+          <button
+            key={s.value}
+            type="button"
+            onClick={() => setDraft(s.value)}
+            className={`flex w-full items-start gap-3 rounded-lg border px-3 py-2 text-left transition-colors ${
+              draft === s.value
+                ? "border-[var(--accent-primary)] bg-[var(--accent-primary)]/10"
+                : "border-[var(--bg-border)] hover:border-[var(--accent-primary)]/40"
+            }`}
+          >
+            <div className={`mt-0.5 h-3 w-3 shrink-0 rounded-full border-2 ${
+              draft === s.value
+                ? "border-[var(--accent-primary)] bg-[var(--accent-primary)]"
+                : "border-[var(--text-muted)]"
+            }`} />
+            <div>
+              <p className={`text-sm font-semibold ${draft === s.value ? "text-[var(--text-primary)]" : "text-[var(--text-secondary)]"}`}>
+                {s.label}
+              </p>
+              <p className="text-xs text-[var(--text-muted)]">{s.description}</p>
+            </div>
+          </button>
+        ))}
+      </div>
+      <div className="mt-3 flex justify-end gap-2">
+        <button
+          type="button"
+          onClick={onCancel}
+          disabled={saving}
+          className="text-xs text-[var(--text-muted)] hover:text-[var(--text-secondary)] disabled:opacity-50"
+        >
+          Cancel
+        </button>
+        <button
+          type="button"
+          onClick={() => onSave(draft)}
+          disabled={saving}
+          className="flex items-center gap-1.5 rounded-lg bg-[var(--accent-primary)] px-3 py-1.5 text-xs font-semibold text-white disabled:opacity-50"
+        >
+          {saving ? <Loader2 className="h-3 w-3 animate-spin" /> : <Check className="h-3 w-3" />}
+          Save
+        </button>
+      </div>
+    </div>
+  );
+}
+
 // ─── Character sheet sidebar ──────────────────────────────────────────────────
 
 function CharacterSheetPanel({
@@ -394,6 +479,7 @@ type EditField =
   | "colors"
   | "referenceVideoUrl"
   | "websiteUrl"
+  | "subtitleStyle"
   | null;
 
 export default function BrandHubPage() {
@@ -721,6 +807,21 @@ export default function BrandHubPage() {
                       </p>
                     ) : null
                   }
+                />
+              )}
+
+              {editingField === "subtitleStyle" ? (
+                <SubtitleStyleEditor
+                  value={brand.subtitleStyle}
+                  onSave={(v) => void patchBrand({ subtitleStyle: v })}
+                  onCancel={() => setEditingField(null)}
+                  saving={savingField}
+                />
+              ) : (
+                <IdentityCard
+                  label="Subtitle style"
+                  value={SUBTITLE_LABEL[brand.subtitleStyle] ?? brand.subtitleStyle}
+                  onEdit={() => setEditingField("subtitleStyle")}
                 />
               )}
             </div>

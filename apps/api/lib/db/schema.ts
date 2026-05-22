@@ -311,6 +311,7 @@ export const brandProfiles = pgTable(
     referenceVideoUrl: text("reference_video_url"),
     websiteUrl: text("website_url"),
     websiteContext: text("website_context"),
+    subtitleStyle: subtitleStyleEnum("subtitle_style").notNull().default("bold_pop"),
     onboardingComplete: boolean("onboarding_complete").notNull().default(false),
     characterSheetGenerationCount: integer("character_sheet_generation_count")
       .notNull()

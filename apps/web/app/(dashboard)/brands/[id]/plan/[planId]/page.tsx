@@ -986,14 +986,16 @@ function PlanSummaryStrip({
 
   if (batchCrashedWithOrphans) {
     return (
-      <div className="mb-6 flex items-center justify-between rounded-2xl border border-[var(--accent-warning)]/20 bg-[var(--accent-warning)]/5 px-5 py-3">
-        <div className="flex items-center gap-2 text-sm font-semibold text-[var(--accent-warning)]">
-          <XCircle className="h-4 w-4" />
-          Generation interrupted — {generating} video{generating !== 1 ? "s" : ""} still processing, {readyCount} ready
-        </div>
-        <Button size="sm" variant="secondary" onClick={() => void handleRetry()} loading={retrying}>
-          Retry
-        </Button>
+      <div className="mb-6 rounded-2xl border border-[var(--accent-warning)]/20 bg-[var(--accent-warning)]/5 px-5 py-3">
+        <p className="text-sm font-semibold text-[var(--accent-warning)]">
+          Some videos are taking longer than expected — our team has been notified and is on it.
+        </p>
+        <p className="mt-1 text-xs text-[var(--text-muted)]">
+          {readyCount} video{readyCount !== 1 ? "s" : ""} ready so far. If this is urgent, email{" "}
+          <a href="mailto:mahbub@aireelforge.com" className="underline hover:text-[var(--text-secondary)]">
+            mahbub@aireelforge.com
+          </a>
+        </p>
       </div>
     );
   }

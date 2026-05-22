@@ -6,6 +6,7 @@ import { Loader2, Pencil, Check, RefreshCw, Globe, ChevronRight, ExternalLink } 
 import { toast } from "sonner";
 import { Button } from "@repo/ui/button";
 import type { BrandSuggestion, ContentTone, VisualStyle, CharacterType, TargetAudienceAge, TargetAudienceVibe } from "@repo/types";
+import { SubtitleStyle } from "@repo/types";
 import { useApiClient, withToast } from "@/lib/api-client";
 
 // ─── Display maps ─────────────────────────────────────────────────────────────
@@ -48,6 +49,18 @@ const VIBE_LABEL: Record<string, string> = {
   inspiration: "Inspiration",
   humor: "Humor",
 };
+
+const SUBTITLE_STYLES: { value: SubtitleStyle; label: string; description: string }[] = [
+  { value: SubtitleStyle.BoldPop,          label: "Bold Pop",          description: "Single word, big white caps with black outline" },
+  { value: SubtitleStyle.WordHighlight,    label: "Word Highlight",    description: "Single word, orange-outlined for emphasis" },
+  { value: SubtitleStyle.GroupedBold,      label: "Grouped Bold",      description: "3-word groups, bold and punchy" },
+  { value: SubtitleStyle.Karaoke,          label: "Karaoke",           description: "3-word groups, active word glows orange" },
+  { value: SubtitleStyle.NeonGlow,         label: "Neon Glow",         description: "Single word, wide orange bloom effect" },
+  { value: SubtitleStyle.OversizedPop,     label: "Oversized Pop",     description: "Huge single word, mid-screen placement" },
+  { value: SubtitleStyle.Minimal,          label: "Minimal",           description: "5-word groups, small clean font, no shadow" },
+  { value: SubtitleStyle.Cinematic,        label: "Cinematic",         description: "4-word groups, warm white italic, soft shadow" },
+  { value: SubtitleStyle.GroupedCinematic, label: "Grouped Cinematic", description: "4-word groups, slim warm italic near the bottom" },
+];
 
 // ─── Editable card ────────────────────────────────────────────────────────────
 
@@ -170,6 +183,7 @@ export default function BrandOnboardPage() {
   const [analyzingWebsite, setAnalyzingWebsite] = useState(false);
   const [channel, setChannel] = useState<{ pageName: string; pageAvatarUrl: string | null; platform: string } | null>(null);
   const [suggestion, setSuggestion] = useState<BrandSuggestion | null>(null);
+  const [subtitleStyle, setSubtitleStyle] = useState<SubtitleStyle>(SubtitleStyle.BoldPop);
   const [editingField, setEditingField] = useState<string | null>(null);
   const [feedback, setFeedback] = useState("");
   const [regenerating, setRegenerating] = useState(false);
@@ -180,6 +194,9 @@ export default function BrandOnboardPage() {
     if (brandResult?.data?.channels?.[0]) {
       const ch = brandResult.data.channels[0];
       setChannel({ pageName: ch.pageName, pageAvatarUrl: ch.pageAvatarUrl, platform: ch.platform });
+    }
+    if (brandResult?.data?.subtitleStyle) {
+      setSubtitleStyle(brandResult.data.subtitleStyle);
     }
 
     const suggestResult = await withToast(
@@ -241,6 +258,7 @@ export default function BrandOnboardPage() {
         targetAudienceVibe: suggestion.targetAudienceVibe as TargetAudienceVibe,
         primaryColor: suggestion.primaryColor,
         secondaryColor: suggestion.secondaryColor,
+        subtitleStyle,
       }),
       "Failed to save brand profile"
     );
@@ -477,6 +495,39 @@ export default function BrandOnboardPage() {
           <p className="flex-1 text-xs text-[var(--text-muted)]">
             {suggestion.primaryColor} · {suggestion.secondaryColor}
           </p>
+        </div>
+      </div>
+
+      {/* Subtitle style picker */}
+      <div className="mt-6 rounded-xl border border-[var(--bg-border)] bg-[var(--bg-elevated)] p-4">
+        <p className="mb-3 text-[10px] font-semibold uppercase tracking-wider text-[var(--text-muted)]">
+          Subtitle style
+        </p>
+        <div className="grid grid-cols-1 gap-2">
+          {SUBTITLE_STYLES.map((s) => (
+            <button
+              key={s.value}
+              type="button"
+              onClick={() => setSubtitleStyle(s.value)}
+              className={`flex items-start gap-3 rounded-lg border px-3 py-2.5 text-left transition-colors ${
+                subtitleStyle === s.value
+                  ? "border-[var(--accent-primary)] bg-[var(--accent-primary)]/10"
+                  : "border-[var(--bg-border)] hover:border-[var(--accent-primary)]/40"
+              }`}
+            >
+              <div className={`mt-0.5 h-3.5 w-3.5 shrink-0 rounded-full border-2 ${
+                subtitleStyle === s.value
+                  ? "border-[var(--accent-primary)] bg-[var(--accent-primary)]"
+                  : "border-[var(--text-muted)]"
+              }`} />
+              <div>
+                <p className={`text-sm font-semibold ${subtitleStyle === s.value ? "text-[var(--text-primary)]" : "text-[var(--text-secondary)]"}`}>
+                  {s.label}
+                </p>
+                <p className="text-xs text-[var(--text-muted)]">{s.description}</p>
+              </div>
+            </button>
+          ))}
         </div>
       </div>
 

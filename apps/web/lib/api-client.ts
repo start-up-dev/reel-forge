@@ -305,6 +305,7 @@ export function createApiClient(getToken: () => Promise<string | null>) {
           secondaryColor: string;
           referenceVideoUrl: string;
           logoGcsPath: string;
+          subtitleStyle: SubtitleStyle;
         }>
       ): Promise<ApiResponse<BrandProfile>> {
         return authedRequest(`/api/brand-profiles/${id}`, {

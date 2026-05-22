@@ -204,6 +204,13 @@
       "when": 1748131200000,
       "tag": "0028_website_ingestion",
       "breakpoints": true
+    },
+    {
+      "idx": 29,
+      "version": "7",
+      "when": 1748217600000,
+      "tag": "0029_brand_subtitle_style",
+      "breakpoints": true
     }
   ]
 }

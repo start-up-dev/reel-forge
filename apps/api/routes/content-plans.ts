@@ -1,4 +1,4 @@
-import { and, asc, desc, eq, inArray, sql } from "drizzle-orm";
+import { and, asc, desc, eq, inArray } from "drizzle-orm";
 import type { FastifyInstance } from "fastify";
 import { z } from "zod";
 import { db } from "../lib/db/index.js";
@@ -355,6 +355,12 @@ export async function contentPlansRoutes(fastify: FastifyInstance) {
         });
       }
 
+      const [brandRow] = await db
+        .select({ subtitleStyle: brandProfiles.subtitleStyle })
+        .from(brandProfiles)
+        .where(eq(brandProfiles.id, plan.brandProfileId))
+        .limit(1);
+
       // Approve + create videos atomically so we never leave the plan as "approved"
       // with zero videos (which permanently blocks re-approval and stalls generation).
       let videoIds: string[];
@@ -387,6 +393,7 @@ export async function contentPlansRoutes(fastify: FastifyInstance) {
                 videoType: mapFormatToVideoType(topic.format),
                 status: "DRAFT" as const,
                 idea: `${topic.hook}\n\n${topic.scriptOutline}`,
+                subtitleStyle: brandRow?.subtitleStyle ?? "bold_pop",
               })),
             )
             .returning({ id: videos.id });
