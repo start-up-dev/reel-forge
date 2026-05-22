@@ -8,7 +8,6 @@ import {
   TrendingDown,
   Flame,
   Film,
-  Layers,
   Zap,
   CheckCircle,
   XCircle,
@@ -18,7 +17,6 @@ import {
   MessageCircle,
   Share2,
   Bookmark,
-  Lightbulb,
   Bot,
   Rocket,
   Check,
@@ -37,7 +35,6 @@ import {
   SHOWCASE,
   PROBLEM,
   SOLUTION,
-  PIPELINE,
   COMPARISON,
   PRICING,
   FAQ,
@@ -399,6 +396,11 @@ function FacebookReelsFrame({
 }) {
   const likes = REEL_LIKES[index % REEL_LIKES.length];
   const comments = REEL_COMMENTS[index % REEL_COMMENTS.length];
+  const initials = video.creatorName
+    .split(" ")
+    .slice(0, 2)
+    .map((w) => w[0])
+    .join("");
 
   return (
     <div className="group relative w-[210px] sm:w-[235px] md:w-[258px]">
@@ -417,91 +419,93 @@ function FacebookReelsFrame({
           <div className="h-1.5 w-14 rounded-full bg-[#27272a] group-hover:bg-[#3f3f46] transition-colors" />
         </div>
 
-        {/* Screen */}
-        <div className="relative mx-1 mb-1 overflow-hidden rounded-[1rem] h-[370px] sm:h-[415px] md:h-[456px] bg-black">
-          {/* Video */}
-          {video.videoUrl ? (
-            <video
-              src={video.videoUrl}
-              autoPlay
-              muted
-              loop
-              playsInline
-              preload="auto"
-              className="absolute inset-0 h-full w-full object-cover"
-            />
-          ) : (
-            <div
-              className="absolute inset-0"
-              style={{
-                background: `linear-gradient(160deg, ${video.gradientFrom}, ${video.gradientTo})`,
-              }}
-            />
-          )}
+        {/*
+         * Screen wrapper — the overlays are positioned here, NOT inside
+         * the video's overflow-hidden child. This avoids the iOS Safari
+         * bug where nested overflow-hidden+border-radius clips absolute
+         * children incorrectly on real devices.
+         */}
+        <div className="relative mx-1 mb-1 h-[370px] sm:h-[415px] md:h-[456px]">
+          {/* Video layer — own overflow-hidden so it respects rounded corners */}
+          <div className="absolute inset-0 overflow-hidden rounded-[1rem] bg-black">
+            {video.videoUrl ? (
+              <video
+                src={video.videoUrl}
+                autoPlay
+                muted
+                loop
+                playsInline
+                preload="auto"
+                className="absolute inset-0 h-full w-full object-cover"
+              />
+            ) : (
+              <div
+                className="absolute inset-0"
+                style={{
+                  background: `linear-gradient(160deg, ${video.gradientFrom}, ${video.gradientTo})`,
+                }}
+              />
+            )}
+            {/* Gradient scrim */}
+            <div className="absolute inset-0 bg-gradient-to-b from-black/70 via-transparent via-[38%] to-black/90" />
+            {/* Right-side fade so engagement icons always read */}
+            <div className="absolute inset-y-0 right-0 w-12 bg-gradient-to-l from-black/55 to-transparent" />
+          </div>
 
-          {/* Top + bottom gradient scrim */}
-          <div className="absolute inset-0 bg-gradient-to-b from-black/65 via-transparent via-[45%] to-black/80 z-10" />
           {/* ── Right engagement column ── */}
           <div
-            className="absolute right-2.5 z-20 flex flex-col items-center gap-3.5"
-            style={{ bottom: "96px" }}
+            className="absolute right-2.5 z-20 flex flex-col items-center gap-3"
+            style={{ bottom: "100px" }}
           >
             <div className="flex flex-col items-center gap-0.5">
-              <Heart className="w-[22px] h-[22px] text-white drop-shadow-lg" />
-              <span className="text-white text-[8px] font-bold drop-shadow">
+              <Heart className="w-6 h-6 text-white drop-shadow-lg" />
+              <span className="text-white text-[9px] font-bold drop-shadow">
                 {likes}
               </span>
             </div>
             <div className="flex flex-col items-center gap-0.5">
-              <MessageCircle className="w-[22px] h-[22px] text-white drop-shadow-lg" />
-              <span className="text-white text-[8px] font-bold drop-shadow">
+              <MessageCircle className="w-6 h-6 text-white drop-shadow-lg" />
+              <span className="text-white text-[9px] font-bold drop-shadow">
                 {comments}
               </span>
             </div>
             <div className="flex flex-col items-center gap-0.5">
-              <Share2 className="w-[22px] h-[22px] text-white drop-shadow-lg" />
-              <span className="text-white text-[8px] font-bold drop-shadow">
+              <Share2 className="w-6 h-6 text-white drop-shadow-lg" />
+              <span className="text-white text-[9px] font-bold drop-shadow">
                 Share
               </span>
             </div>
-            <Bookmark className="w-[22px] h-[22px] text-white drop-shadow-lg" />
+            <Bookmark className="w-6 h-6 text-white drop-shadow-lg" />
           </div>
 
           {/* ── Bottom creator info + caption ── */}
-          <div className="absolute bottom-0 left-0 right-[44px] z-20 px-3 pb-2.5">
+          <div className="absolute bottom-0 left-0 right-[46px] z-20 px-3 pb-3">
             {/* Creator row */}
-            <div className="flex items-center gap-1.5 mb-1">
+            <div className="flex items-center gap-1.5 mb-1.5">
               <div
-                className="w-6 h-6 rounded-full flex items-center justify-center text-white text-[8px] font-black shrink-0 border border-white/20"
+                className="w-7 h-7 rounded-full flex items-center justify-center text-white text-[9px] font-black shrink-0 border border-white/20"
                 style={{ background: video.accentColor }}
               >
-                {video.creatorName
-                  .split(" ")
-                  .slice(0, 2)
-                  .map((w) => w[0])
-                  .join("")}
+                {initials}
               </div>
-              <span className="text-white font-black text-[8px] drop-shadow leading-none">
+              <span className="text-white font-black text-[10px] drop-shadow leading-none truncate">
                 {video.creatorName}
               </span>
-              <div className="w-3 h-3 rounded-full bg-[#1877F2] flex items-center justify-center shrink-0">
-                <Check className="w-1.5 h-1.5 text-white stroke-[4]" />
+              <div className="w-3.5 h-3.5 rounded-full bg-[#1877F2] flex items-center justify-center shrink-0">
+                <Check className="w-2 h-2 text-white stroke-[3]" />
               </div>
-              <span className="text-white/50 text-[9px] font-bold">
-                · Follow
-              </span>
             </div>
             {/* Caption */}
             <p className="text-white text-[10px] leading-snug mb-2 line-clamp-2 drop-shadow">
-              {video.hook} <span className="text-white/45">... more</span>
+              {video.hook} <span className="text-white/50">... more</span>
             </p>
             {/* Comment input */}
-            <div className="flex items-center gap-1.5 bg-white/[0.08] backdrop-blur-sm rounded-full px-2.5 py-1 border border-white/10">
-              <span className="text-white/40 text-[9px] flex-1 leading-none">
+            <div className="flex items-center gap-1.5 bg-black/40 rounded-full px-2.5 py-1.5 border border-white/15">
+              <span className="text-white/50 text-[9px] flex-1 leading-none">
                 Add a comment
               </span>
-              <span className="text-white/35 text-[10px] leading-none">😊</span>
-              <span className="text-white/35 text-[8px] font-black leading-none">
+              <span className="text-white/40 text-[10px] leading-none">😊</span>
+              <span className="text-white/40 text-[8px] font-black leading-none">
                 GIF
               </span>
             </div>
@@ -673,108 +677,6 @@ function SolutionReveal() {
             See how it works
           </PrimaryButton>
         </FadeIn>
-      </div>
-    </section>
-  );
-}
-
-/* ─── Pipeline ────────────────────────────────────────────────────────────── */
-
-function PipelineSection() {
-  const stepIcons = [Layers, Lightbulb, CheckCircle, Bot, Rocket];
-
-  return (
-    <section id="pipeline" className="mx-auto max-w-6xl px-6 py-20 md:py-32">
-      <FadeIn className="mb-16 md:mb-20 text-center">
-        <SectionLabel variant="accent">{PIPELINE.label}</SectionLabel>
-        <h2 className="mb-6 text-[36px] sm:text-[46px] md:text-[72px] font-[900] leading-[1.1] md:leading-[1] tracking-[-0.03em] text-[var(--text-primary)]">
-          {PIPELINE.headlineLine1}
-          <br />
-          <span className="text-[var(--accent-primary)]">
-            {PIPELINE.headlineLine2}
-          </span>
-        </h2>
-        <p className="text-[17px] md:text-[19px] font-medium text-[var(--text-secondary)] max-w-2xl mx-auto">
-          {PIPELINE.subheadline}
-        </p>
-      </FadeIn>
-
-      <div className="relative">
-        {/* Modern Timeline Track */}
-        <div
-          aria-hidden
-          className="absolute inset-y-4 left-[30px] md:left-1/2 w-[2px] -translate-x-1/2"
-          style={{
-            background: `linear-gradient(to bottom, transparent, ${O(0.3)} 15%, ${O(0.3)} 85%, transparent)`,
-          }}
-        />
-
-        <div className="space-y-12 md:space-y-24">
-          {PIPELINE.steps.map((step, i) => {
-            const even = i % 2 === 1;
-            const Icon = stepIcons[i] || CheckCircle;
-
-            return (
-              <FadeIn
-                key={step.num}
-                className={`flex flex-row items-start md:items-center gap-8 md:gap-0 ${even ? "md:flex-row-reverse" : ""}`}
-              >
-                {/* Visual Content */}
-                <div
-                  className={`flex-1 md:max-w-[calc(50%-70px)] ${even ? "md:pl-16" : "md:pr-16"}`}
-                >
-                  <div className="group relative rounded-[1.5rem] md:rounded-[2rem] border border-white/5 bg-gradient-to-br from-white/[0.04] to-transparent p-6 md:p-10 shadow-2xl transition-all hover:border-[var(--accent-primary)]/40 hover:bg-white/[0.06] hover:-translate-y-1 overflow-hidden">
-                    <div className="absolute top-0 right-0 w-32 h-32 bg-[var(--accent-primary)]/5 blur-3xl rounded-full -mr-10 -mt-10 group-hover:bg-[var(--accent-primary)]/10 transition-colors" />
-
-                    <div className="flex items-center gap-4 mb-5 md:mb-6">
-                      <div className="flex h-12 w-12 md:h-14 md:w-14 items-center justify-center rounded-xl bg-[var(--bg-base)] border border-white/10 shadow-inner group-hover:scale-110 transition-transform duration-500">
-                        <Icon className="h-6 w-6 md:h-7 md:w-7 text-[var(--accent-primary)]" />
-                      </div>
-                      <div className="flex flex-col">
-                        <span className="text-[9px] md:text-[10px] font-black uppercase tracking-[0.2em] text-[var(--accent-primary)] mb-1">
-                          Step {step.num}
-                        </span>
-                        <h3 className="text-[18px] md:text-[22px] font-black text-[var(--text-primary)] leading-tight tracking-tight">
-                          {step.title}
-                        </h3>
-                      </div>
-                    </div>
-
-                    <p className="mb-5 md:mb-6 text-[14px] md:text-[16px] leading-relaxed text-[var(--text-secondary)] font-medium">
-                      {step.body}
-                    </p>
-
-                    {step.pill && (
-                      <div
-                        className={`inline-flex items-center gap-2.5 rounded-xl px-3.5 py-1.5 md:px-4 md:py-2 text-[10px] md:text-[11px] font-black uppercase tracking-wider ${
-                          step.pillVariant === "success"
-                            ? "border border-[var(--accent-success)]/30 bg-[var(--accent-success)]/5 text-[var(--accent-success)]"
-                            : `border border-[var(--accent-primary)]/30 bg-[var(--accent-primary)]/5 text-[var(--accent-primary)]`
-                        }`}
-                      >
-                        <Zap className="w-3 h-3 md:w-3.5 md:h-3.5" />
-                        {step.pill}
-                      </div>
-                    )}
-                  </div>
-                </div>
-
-                {/* Vertical Step Number */}
-                <div className="shrink-0 flex items-center justify-center w-[60px] md:w-[140px] relative z-10 order-first md:order-none">
-                  <div
-                    className="flex h-10 w-10 md:h-16 md:w-16 items-center justify-center rounded-lg md:rounded-2xl border-[2px] md:border-[3px] bg-[#0c0c0e] text-[16px] md:text-[20px] font-[900] text-[var(--text-primary)] shadow-[0_0_20px_rgba(0,0,0,0.8)] transition-all duration-500 hover:border-[var(--accent-primary)] hover:text-[var(--accent-primary)] hover:scale-110"
-                    style={{ borderColor: "var(--bg-border)" }}
-                  >
-                    {step.num}
-                  </div>
-                </div>
-
-                {/* Spacer */}
-                <div className="hidden md:block md:flex-1" />
-              </FadeIn>
-            );
-          })}
-        </div>
       </div>
     </section>
   );

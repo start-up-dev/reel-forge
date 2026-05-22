@@ -8,13 +8,14 @@ All copy written in advance. Post according to the Board 6 schedule.
 
 > Stop manually creating Facebook content. ReelForge connects to your page, learns your brand, and produces a full week of human-reviewed videos — then posts them automatically. Minutes of setup. $5 trial.
 
-*(Characters: ~213 — leaves room for edits)*
+_(Characters: ~213 — leaves room for edits)_
 
 ---
 
 ## Twitter / X — 8-Tweet Launch Thread
 
 **Tweet 1 — Hook (problem)**
+
 > Most small business owners know they should be posting on Facebook.
 >
 > Most haven't posted in weeks.
@@ -26,6 +27,7 @@ All copy written in advance. Post according to the Board 6 schedule.
 ---
 
 **Tweet 2 — The villain**
+
 > The usual process:
 >
 > → Figure out what to post
@@ -41,6 +43,7 @@ All copy written in advance. Post according to the Board 6 schedule.
 ---
 
 **Tweet 3 — The solution**
+
 > ReelForge flips it.
 >
 > Connect your Facebook page. We read your page + website and build your full brand profile — niche, tone, audience, visual style.
@@ -52,6 +55,7 @@ All copy written in advance. Post according to the Board 6 schedule.
 ---
 
 **Tweet 4 — The plan step**
+
 > From there: we generate a full week of video topics and scripts tailored to your brand.
 >
 > You review the plan. Approve it.
@@ -61,6 +65,7 @@ All copy written in advance. Post according to the Board 6 schedule.
 ---
 
 **Tweet 5 — The production step**
+
 > After you approve:
 >
 > Our team produces every video — AI-drafted scripts, generated clips, human-reviewed before anything goes out.
@@ -72,6 +77,7 @@ All copy written in advance. Post according to the Board 6 schedule.
 ---
 
 **Tweet 6 — The output (with video)**
+
 > Here's what a finished ReelForge video looks like for a real estate agent:
 >
 > [embed sample video]
@@ -82,6 +88,7 @@ All copy written in advance. Post according to the Board 6 schedule.
 ---
 
 **Tweet 7 — Who it's for**
+
 > Built for local service professionals who need to stay active on Facebook but have nothing to film.
 >
 > Real estate agents. Insurance advisors. Coaches. Mortgage brokers. Financial planners.
@@ -91,6 +98,7 @@ All copy written in advance. Post according to the Board 6 schedule.
 ---
 
 **Tweet 8 — CTA**
+
 > Try it for $5.
 >
 > One full week. 7 videos. Human-reviewed. Auto-posted to your Facebook page.
@@ -117,6 +125,7 @@ I spent the last few months building ReelForge, and I wanted to share some thing
 **What I built:** You connect your Facebook page. We read the page (and your website if you have one) and propose a full brand profile — niche, tone, target audience, visual style. You review it and correct anything conversationally. No forms. Then we generate a week-long content plan. You approve it. From there, we produce every video, a human on our team reviews each one, and they auto-post to your Facebook page. You get an email each time one is ready.
 
 **What surprised me:**
+
 1. The agentic onboarding was the feature people reacted to most. "You figured out my brand from my Facebook page" landed harder than the video generation itself.
 2. Human-in-the-loop turned out to be a stronger selling point than I expected. People are tired of raw AI slop. Saying "our team reviews every video before it goes live" changed the conversion conversation.
 3. The $5 trial pricing filters out tire-kickers without scaring off real buyers. Anything free just attracts people who will never pay.
@@ -179,17 +188,20 @@ I've been building in public-ish and wanted to write a real post about where thi
 **Why this niche:** Service professionals need constant authority content. They have nothing photogenic to film. They hate being on camera. And $49/mo is meaningless against one closed deal. The problem is real and recurring.
 
 **The honest numbers right now:**
+
 - MRR: $0 (launching this week)
 - Run cost per user/week: ~$8–12 (generation + assembly + storage)
 - Margin at $49/mo: positive if users generate less than the plan allows
 - Trial price: $5 for a full week (7 videos) — filters tire-kickers, covers partial costs
 
 **What I got right:**
+
 - Agentic onboarding: we read your Facebook page and propose the brand profile. No setup forms. This is the feature that makes demos land.
 - Human-in-the-loop: every video gets reviewed before posting. In a market full of raw AI output, this is a real differentiator.
 - Honest delivery expectations: videos are delivered across the week (not instant). Setting this expectation early prevents churn.
 
 **What I'm still figuring out:**
+
 - First paying customer. Launching this week across Product Hunt, HN, Reddit, and direct Facebook outreach to quiet business pages.
 - Whether service pros or faceless digital brands convert faster (my bet: faceless brands first, service pros for LTV).
 

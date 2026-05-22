@@ -7,7 +7,7 @@ export const Root: React.FC = () => (
   <Composition
     id="ReelForgeLaunch"
     component={Main}
-    durationInFrames={1440}
+    durationInFrames={538}
     fps={30}
     width={1920}
     height={1080}

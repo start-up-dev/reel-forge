@@ -1,14 +1,19 @@
 import React from "react";
 import { useCurrentFrame, interpolate } from "remotion";
 import { CalendarCell } from "./CalendarCell";
-import { LIFE_COACH_TITLES, POST_TIMES, getAppearFrame } from "../data/calendar-data";
-
-const DAYS_OF_WEEK = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
+import {
+  WEEK_TITLES,
+  WEEK_DAYS,
+  WEEK_DATES,
+  WEEK_TIMES,
+  WEEK_STYLES,
+  getAppearFrame,
+} from "../data/calendar-data";
 
 export const MonthlyCalendar: React.FC = () => {
   const frame = useCurrentFrame();
 
-  const headerFade = interpolate(frame, [0, 22], [0, 1], {
+  const headerFade = interpolate(frame, [0, 20], [0, 1], {
     extrapolateLeft: "clamp",
     extrapolateRight: "clamp",
   });
@@ -17,124 +22,86 @@ export const MonthlyCalendar: React.FC = () => {
     <div
       style={{
         position: "absolute",
-        left: 80,
-        right: 80,
-        top: 30,
-        bottom: 90,
+        inset: 0,
         display: "flex",
         flexDirection: "column",
+        alignItems: "center",
+        justifyContent: "center",
+        gap: 44,
       }}
     >
-      {/* Month + year header */}
+      {/* Header — centered, large and readable */}
       <div
         style={{
-          display: "flex",
-          alignItems: "baseline",
-          gap: 10,
-          height: 50,
-          marginBottom: 10,
-          flexShrink: 0,
+          textAlign: "center",
           opacity: headerFade,
         }}
       >
-        <span
+        <div
           style={{
-            fontFamily: "'Inter', sans-serif",
-            fontSize: 30,
-            fontWeight: 800,
-            color: "#F4F4F8",
-            letterSpacing: "-0.02em",
+            display: "flex",
+            alignItems: "baseline",
+            gap: 14,
+            justifyContent: "center",
+            marginBottom: 12,
           }}
         >
-          June
-        </span>
-        <span
-          style={{
-            fontFamily: "'Inter', sans-serif",
-            fontSize: 30,
-            fontWeight: 800,
-            color: "#3a3a44",
-            letterSpacing: "-0.02em",
-          }}
-        >
-          2026
-        </span>
-        <span
-          style={{
-            fontFamily: "'Inter', sans-serif",
-            fontSize: 12,
-            fontWeight: 500,
-            color: "#2a2a32",
-            letterSpacing: "0.04em",
-            marginLeft: 8,
-          }}
-        >
-          · Content Calendar
-        </span>
-      </div>
-
-      {/* Day-of-week headers */}
-      <div
-        style={{
-          display: "grid",
-          gridTemplateColumns: "repeat(7, 1fr)",
-          gap: 8,
-          marginBottom: 8,
-          flexShrink: 0,
-          opacity: headerFade,
-        }}
-      >
-        {DAYS_OF_WEEK.map((d) => (
-          <div
-            key={d}
+          <span
             style={{
               fontFamily: "'Inter', sans-serif",
-              fontSize: 10,
-              fontWeight: 700,
-              color: "#2e2e38",
-              textTransform: "uppercase",
-              letterSpacing: "0.1em",
-              height: 28,
-              display: "flex",
-              alignItems: "center",
-              paddingLeft: 4,
+              fontSize: 44,
+              fontWeight: 900,
+              color: "#F4F4F8",
+              letterSpacing: "-0.03em",
             }}
           >
-            {d}
-          </div>
-        ))}
+            Week 1
+          </span>
+          <span
+            style={{
+              fontFamily: "'Inter', sans-serif",
+              fontSize: 44,
+              fontWeight: 900,
+              color: "#2e2e38",
+              letterSpacing: "-0.03em",
+            }}
+          >
+            · June 2026
+          </span>
+        </div>
+        <div
+          style={{
+            fontFamily: "'Inter', sans-serif",
+            fontSize: 20,
+            fontWeight: 600,
+            color: "#52525b",
+            letterSpacing: "0.06em",
+            textTransform: "uppercase",
+          }}
+        >
+          Life Coach · 1 post per day
+        </div>
       </div>
 
-      {/* 5 × 7 cell grid */}
+      {/* 7-column card grid — fixed 3:4 ratio height */}
       <div
         style={{
-          flex: 1,
           display: "grid",
           gridTemplateColumns: "repeat(7, 1fr)",
-          gridTemplateRows: "repeat(5, 1fr)",
-          gap: 8,
+          gap: 16,
+          width: 1760,
+          height: 322,
         }}
       >
-        {/* Days 1–30 with video cards */}
-        {Array.from({ length: 30 }, (_, i) => (
+        {WEEK_TITLES.map((title, i) => (
           <CalendarCell
             key={i}
-            day={i + 1}
-            title={LIFE_COACH_TITLES[i]}
-            postTime={POST_TIMES[i]}
+            dayName={WEEK_DAYS[i]}
+            date={WEEK_DATES[i]}
+            title={title}
+            postTime={WEEK_TIMES[i]}
+            style={WEEK_STYLES[i]}
             appearAtFrame={getAppearFrame(i)}
-          />
-        ))}
-
-        {/* Trailing empty cells — row 5, cols 3–7 */}
-        {Array.from({ length: 5 }, (_, i) => (
-          <div
-            key={`trail-${i}`}
-            style={{
-              background: "#08080b",
-              border: "1px solid rgba(255,255,255,0.02)",
-              borderRadius: 8,
-            }}
           />
         ))}
       </div>

@@ -9,10 +9,10 @@ import {
 import { MonthlyCalendar } from "../components/MonthlyCalendar";
 import { LAST_CARD_FRAME } from "../data/calendar-data";
 
-const APPROVE_IN = 90;
-const CLICK_FRAME = 158;
-const OVERLAY_OUT = 174;
-const COUNTER_FRAME = LAST_CARD_FRAME + 22;
+const APPROVE_IN = 18;
+const CLICK_FRAME = 58;
+const OVERLAY_OUT = 70;
+const COUNTER_FRAME = LAST_CARD_FRAME + 8;
 
 export const SceneCalendar: React.FC = () => {
   const frame = useCurrentFrame();
@@ -21,9 +21,9 @@ export const SceneCalendar: React.FC = () => {
   // Eyebrow label — fades in then out as overlay arrives
   const labelOpacity = interpolate(
     frame,
-    [4, 22, APPROVE_IN, APPROVE_IN + 18],
+    [4, 14, APPROVE_IN, APPROVE_IN + 18],
     [0, 1, 1, 0],
-    { extrapolateLeft: "clamp", extrapolateRight: "clamp" }
+    { extrapolateLeft: "clamp", extrapolateRight: "clamp" },
   );
 
   // Dark overlay that dims the calendar during the approve moment
@@ -31,14 +31,14 @@ export const SceneCalendar: React.FC = () => {
     frame,
     [APPROVE_IN, APPROVE_IN + 18, CLICK_FRAME + 8, OVERLAY_OUT + 24],
     [0, 0.78, 0.78, 0],
-    { extrapolateLeft: "clamp", extrapolateRight: "clamp" }
+    { extrapolateLeft: "clamp", extrapolateRight: "clamp" },
   );
 
-  // Approve button springs in
+  // Approve button springs in — snappy to match compressed timing
   const buttonP = spring({
-    frame: frame - APPROVE_IN - 8,
+    frame: frame - APPROVE_IN,
     fps,
-    config: { stiffness: 150, damping: 20 },
+    config: { stiffness: 300, damping: 22 },
   });
 
   // After click: button fades out with overlay
@@ -71,7 +71,7 @@ export const SceneCalendar: React.FC = () => {
           frame,
           [CLICK_FRAME, CLICK_FRAME + 3, CLICK_FRAME + 14],
           [0, 0.5, 0],
-          { extrapolateLeft: "clamp", extrapolateRight: "clamp" }
+          { extrapolateLeft: "clamp", extrapolateRight: "clamp" },
         )
       : 0;
 
@@ -118,14 +118,18 @@ export const SceneCalendar: React.FC = () => {
       <div
         style={{
           position: "absolute",
-          top: 14,
-          left: 80,
+          bottom: 320,
+          left: 0,
+          right: 0,
+          display: "flex",
+          justifyContent: "center",
+          alignItems: "center",
           fontFamily: "'Inter', sans-serif",
-          fontSize: 10,
+          fontSize: 24,
           fontWeight: 700,
           color: "#f55c2a",
           textTransform: "uppercase",
-          letterSpacing: "0.18em",
+          letterSpacing: "0.16em",
           opacity: labelOpacity,
         }}
       >
@@ -171,19 +175,21 @@ export const SceneCalendar: React.FC = () => {
             }}
           />
 
-          <div style={{ transform: `scale(${buttonScale})`, textAlign: "center" }}>
+          <div
+            style={{ transform: `scale(${buttonScale})`, textAlign: "center" }}
+          >
             {/* Context line above button */}
             <div
               style={{
                 fontFamily: "'Inter', sans-serif",
-                fontSize: 15,
+                fontSize: 18,
                 color: "#52525b",
                 fontWeight: 500,
                 marginBottom: 24,
                 letterSpacing: "0.02em",
               }}
             >
-              30 videos · June 2026 · 1 post / day
+              7 videos · Week 1 · June 2026
             </div>
 
             {/* Button */}
@@ -211,7 +217,9 @@ export const SceneCalendar: React.FC = () => {
               >
                 Approve Plan
               </span>
-              <span style={{ fontSize: 28, color: "rgba(255,255,255,0.85)" }}>→</span>
+              <span style={{ fontSize: 28, color: "rgba(255,255,255,0.85)" }}>
+                →
+              </span>
             </div>
           </div>
         </div>
@@ -235,7 +243,7 @@ export const SceneCalendar: React.FC = () => {
         <div
           style={{
             position: "absolute",
-            bottom: 22,
+            bottom: 200,
             left: 0,
             right: 0,
             display: "flex",
@@ -248,10 +256,10 @@ export const SceneCalendar: React.FC = () => {
         >
           {(
             [
-              { text: "30 videos.", color: "#F4F4F8" },
-              { text: "·", color: "#2a2a32" },
+              { text: "7 videos.", color: "#F4F4F8" },
+              { text: "·", color: "#3a3a44" },
               { text: "One approval.", color: "#F4F4F8" },
-              { text: "·", color: "#2a2a32" },
+              { text: "·", color: "#3a3a44" },
               { text: "Zero editing.", color: "#34D399" },
             ] as const
           ).map(({ text, color }, i) => (
@@ -259,10 +267,10 @@ export const SceneCalendar: React.FC = () => {
               key={i}
               style={{
                 fontFamily: "'Inter', sans-serif",
-                fontSize: 20,
-                fontWeight: text === "·" ? 400 : 800,
+                fontSize: text === "·" ? 28 : 32,
+                fontWeight: text === "·" ? 400 : 900,
                 color,
-                letterSpacing: text === "·" ? "0" : "-0.02em",
+                letterSpacing: text === "·" ? "0" : "-0.03em",
               }}
             >
               {text}
