@@ -9,71 +9,71 @@ import {
 } from "remotion";
 import { Heart, MessageCircle, Share2, Bookmark, Check } from "lucide-react";
 
-const R2 = "https://pub-425a4c402193444fb20eeb6725aa6557.r2.dev/videos";
+const LOCAL = (name: string) => staticFile(`launch_assets/${name}`);
 
 const PHONES = [
   {
-    style: "Cinematic",
-    niche: "Personal Finance",
-    creator: "Wealth Coach Pro",
-    hook: "3 money habits that changed everything",
+    style: "CMO",
+    niche: "Marketing",
+    creator: "ReelForge CMO",
+    hook: "How we grew to 50K views in 30 days",
     gradient: "linear-gradient(160deg, #0f172a 0%, #1e3a5f 100%)",
     accent: "#4a90e2",
-    videoUrl: `${R2}/Cinematic.mp4`,
+    videoUrl: LOCAL("ReelForgeCMO.mp4"),
   },
   {
-    style: "UGC",
-    niche: "Life Coach",
-    creator: "ReelForge",
-    hook: "AI Posts Your Reels While You Sleep",
+    style: "Coaching",
+    niche: "Business Coach",
+    creator: "Business Coach",
+    hook: "The $10K client acquisition system",
     gradient: "linear-gradient(160deg, #1a0505 0%, #3d1a0a 100%)",
     accent: "#f55c2a",
-    videoUrl: staticFile("launch_assets/output.mp4"),
+    videoUrl: LOCAL("BuisnessCoach.mp4"),
   },
   {
-    style: "Tutorial",
-    niche: "AI & Tech",
-    creator: "AI Accelerator",
-    hook: "5 AI tools you probably don't know",
+    style: "Real Estate",
+    niche: "Real Estate",
+    creator: "Property Pro",
+    hook: "3 things buyers never tell you",
+    gradient: "linear-gradient(160deg, #0a1a0f 0%, #1a3020 100%)",
+    accent: "#34d399",
+    videoUrl: LOCAL("RealEstate.mp4"),
+  },
+  {
+    style: "CMO",
+    niche: "Marketing",
+    creator: "ReelForge CMO",
+    hook: "AI-generated content that actually converts",
     gradient: "linear-gradient(160deg, #0d0d1a 0%, #1a1040 100%)",
     accent: "#a78bfa",
-    videoUrl: `${R2}/learn ai.mp4`,
+    videoUrl: LOCAL("ReelForgeCMO.mp4"),
   },
   {
-    style: "Story",
-    niche: "Career Growth",
-    creator: "Career Catalyst",
-    hook: "The interview mistake that cost me the job",
-    gradient: "linear-gradient(160deg, #0f1a0a 0%, #1e3d10 100%)",
-    accent: "#34d399",
-    videoUrl: `${R2}/interview mistake.mp4`,
-  },
-  {
-    style: "Cinematic",
-    niche: "Fitness",
-    creator: "Body Blueprint",
-    hook: "Why you're not losing weight (honest answer)",
+    style: "Coaching",
+    niche: "Business Coach",
+    creator: "Business Coach",
+    hook: "Stop trading time for money",
     gradient: "linear-gradient(160deg, #001a1a 0%, #003d3d 100%)",
     accent: "#2dd4bf",
-    videoUrl: `${R2}/createdbyreelforge.mp4`,
+    videoUrl: LOCAL("BuisnessCoach.mp4"),
   },
   {
-    style: "UGC",
-    niche: "Daily Routine",
-    creator: "Routine Mastery",
-    hook: "The morning that made me $10k",
+    style: "Real Estate",
+    niche: "Real Estate",
+    creator: "Property Pro",
+    hook: "Why most homes sit on the market too long",
     gradient: "linear-gradient(160deg, #1a1500 0%, #3d3000 100%)",
     accent: "#fbbf24",
-    videoUrl: `${R2}/daily-routine.mp4`,
+    videoUrl: LOCAL("RealEstate.mp4"),
   },
   {
-    style: "Tutorial",
-    niche: "Business",
-    creator: "Scale Coach",
-    hook: "How to scale your idea to $10k/month",
+    style: "CMO",
+    niche: "Marketing",
+    creator: "ReelForge CMO",
+    hook: "Your Facebook page on autopilot",
     gradient: "linear-gradient(160deg, #0a1a2e 0%, #1a2e4a 100%)",
     accent: "#4a90e2",
-    videoUrl: `${R2}/learn ai.mp4`,
+    videoUrl: LOCAL("ReelForgeCMO.mp4"),
   },
 ];
 
@@ -168,7 +168,16 @@ function PhoneCard({
             background: "#000",
           }}
         >
-          {/* Video or gradient background */}
+          {/* Gradient fallback — sits behind video */}
+          <div
+            style={{
+              position: "absolute",
+              inset: 0,
+              background: phone.gradient,
+              zIndex: 0,
+            }}
+          />
+          {/* Video — on top of gradient */}
           <video
             src={phone.videoUrl}
             autoPlay
@@ -181,19 +190,10 @@ function PhoneCard({
               width: "100%",
               height: "100%",
               objectFit: "cover",
+              zIndex: 1,
             }}
             onError={(e) => {
-              // fallback: hide video, show gradient
               (e.target as HTMLVideoElement).style.display = "none";
-            }}
-          />
-          {/* Gradient fallback (always behind video) */}
-          <div
-            style={{
-              position: "absolute",
-              inset: 0,
-              background: phone.gradient,
-              zIndex: 0,
             }}
           />
 

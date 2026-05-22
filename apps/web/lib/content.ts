@@ -29,7 +29,7 @@ export const NAV_CTA = {
 // ─── Hero ─────────────────────────────────────────────────────────────────────
 
 export const HERO = {
-  eyebrow: "7 Facebook videos. Auto-posted. You approved once.",
+  eyebrow: "Videos. Auto-posted. You approved once.",
   headlineLine1: "Your Facebook Page,",
   headlineLine2: "On Autopilot.",
   subheadline:

@@ -55,14 +55,14 @@ export const MonthlyCalendar: React.FC = () => {
               letterSpacing: "-0.03em",
             }}
           >
-            Week 1
+            First Week
           </span>
           <span
             style={{
               fontFamily: "'Inter', sans-serif",
               fontSize: 44,
               fontWeight: 900,
-              color: "#2e2e38",
+              color: "#F4F4F8",
               letterSpacing: "-0.03em",
             }}
           >
@@ -72,7 +72,7 @@ export const MonthlyCalendar: React.FC = () => {
         <div
           style={{
             fontFamily: "'Inter', sans-serif",
-            fontSize: 20,
+            fontSize: 24,
             fontWeight: 600,
             color: "#52525b",
             letterSpacing: "0.06em",

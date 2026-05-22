@@ -5,6 +5,8 @@ import {
   useVideoConfig,
   spring,
   interpolate,
+  Img,
+  staticFile,
 } from "remotion";
 
 const URL_TEXT = "aiReelForge.com";
@@ -14,8 +16,9 @@ export const SceneCTA: React.FC = () => {
   const frame = useCurrentFrame();
   const { fps } = useVideoConfig();
 
-  const line1P = spring({ frame, fps, config: { stiffness: 130, damping: 22 } });
-  const line2P = spring({ frame: frame - 10, fps, config: { stiffness: 130, damping: 22 } });
+  const logoP = spring({ frame, fps, config: { stiffness: 140, damping: 22 } });
+  const line1P = spring({ frame: frame - 8, fps, config: { stiffness: 130, damping: 22 } });
+  const line2P = spring({ frame: frame - 18, fps, config: { stiffness: 130, damping: 22 } });
   const buttonP = spring({ frame: frame - 30, fps, config: { stiffness: 160, damping: 22 } });
 
   const dividerProgress = interpolate(frame, [85, 115], [0, 1], {
@@ -63,6 +66,24 @@ export const SceneCTA: React.FC = () => {
           gap: 0,
         }}
       >
+        {/* Logo */}
+        <div
+          style={{
+            marginBottom: 40,
+            opacity: logoP,
+            transform: `scale(${interpolate(logoP, [0, 1], [0.85, 1])}) translateY(${interpolate(logoP, [0, 1], [20, 0])}px)`,
+          }}
+        >
+          <Img
+            src={staticFile("launch_assets/logo.png")}
+            style={{
+              height: 64,
+              width: "auto",
+              mixBlendMode: "screen",
+            }}
+          />
+        </div>
+
         {/* Headline line 1 */}
         <div
           style={{

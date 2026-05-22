@@ -5,6 +5,8 @@ import {
   useVideoConfig,
   spring,
   interpolate,
+  Img,
+  staticFile,
 } from "remotion";
 import { MonthlyCalendar } from "../components/MonthlyCalendar";
 import { LAST_CARD_FRAME } from "../data/calendar-data";
@@ -113,6 +115,28 @@ export const SceneCalendar: React.FC = () => {
       />
 
       <MonthlyCalendar />
+
+      {/* Logo — top center, fades with eyebrow label */}
+      <div
+        style={{
+          position: "absolute",
+          top: 200,
+          left: 0,
+          right: 0,
+          display: "flex",
+          justifyContent: "center",
+          opacity: labelOpacity,
+        }}
+      >
+        <Img
+          src={staticFile("launch_assets/logo.png")}
+          style={{
+            height: 52,
+            width: "auto",
+            mixBlendMode: "screen",
+          }}
+        />
+      </div>
 
       {/* Eyebrow label */}
       <div

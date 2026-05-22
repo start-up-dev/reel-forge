@@ -1,5 +1,12 @@
 import React from "react";
-import { AbsoluteFill, Sequence, useCurrentFrame, interpolate } from "remotion";
+import {
+  AbsoluteFill,
+  Sequence,
+  useCurrentFrame,
+  interpolate,
+  Audio,
+  staticFile,
+} from "remotion";
 import { SceneCalendar } from "./scenes/SceneCalendar";
 import { SceneShowcase } from "./scenes/SceneShowcase";
 import { SceneCTA } from "./scenes/SceneCTA";
@@ -25,6 +32,12 @@ const FadeTransition: React.FC<{ duration: number }> = ({ duration }) => {
 
 export const Main: React.FC = () => (
   <AbsoluteFill style={{ background: "#09090b" }}>
+    <Audio
+      src={staticFile("launch_assets/launch-video.mp3")}
+      volume={0.8}
+      startFrom={250}
+    />
+
     <Sequence from={0} durationInFrames={178}>
       <SceneCalendar />
     </Sequence>

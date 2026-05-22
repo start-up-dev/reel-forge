@@ -101,7 +101,9 @@ export const CalendarCell: React.FC<WeekCardProps> = ({
       <div
         style={{
           height: 1,
-          background: active ? "rgba(245,92,42,0.18)" : "rgba(255,255,255,0.04)",
+          background: active
+            ? "rgba(245,92,42,0.18)"
+            : "rgba(255,255,255,0.04)",
           marginBottom: 14,
           opacity: active ? p : 1,
         }}
@@ -113,7 +115,7 @@ export const CalendarCell: React.FC<WeekCardProps> = ({
           style={{
             flex: 1,
             fontFamily: "'Inter', sans-serif",
-            fontSize: 15,
+            fontSize: 24,
             fontWeight: 700,
             color: "#E4E4F0",
             lineHeight: 1.5,
@@ -125,10 +127,39 @@ export const CalendarCell: React.FC<WeekCardProps> = ({
           {title}
         </div>
       ) : (
-        <div style={{ flex: 1, display: "flex", flexDirection: "column", gap: 8, paddingTop: 2 }}>
-          <div style={{ height: 10, borderRadius: 4, background: "rgba(255,255,255,0.05)", width: "90%" }} />
-          <div style={{ height: 10, borderRadius: 4, background: "rgba(255,255,255,0.04)", width: "72%" }} />
-          <div style={{ height: 10, borderRadius: 4, background: "rgba(255,255,255,0.03)", width: "82%" }} />
+        <div
+          style={{
+            flex: 1,
+            display: "flex",
+            flexDirection: "column",
+            gap: 8,
+            paddingTop: 2,
+          }}
+        >
+          <div
+            style={{
+              height: 10,
+              borderRadius: 4,
+              background: "rgba(255,255,255,0.05)",
+              width: "90%",
+            }}
+          />
+          <div
+            style={{
+              height: 10,
+              borderRadius: 4,
+              background: "rgba(255,255,255,0.04)",
+              width: "72%",
+            }}
+          />
+          <div
+            style={{
+              height: 10,
+              borderRadius: 4,
+              background: "rgba(255,255,255,0.03)",
+              width: "82%",
+            }}
+          />
         </div>
       )}
 
@@ -138,8 +169,8 @@ export const CalendarCell: React.FC<WeekCardProps> = ({
           style={{
             display: "flex",
             flexDirection: "column",
-            gap: 8,
-            marginTop: 14,
+            gap: 20,
+            marginTop: 10,
             opacity: p,
           }}
         >
@@ -156,7 +187,7 @@ export const CalendarCell: React.FC<WeekCardProps> = ({
             <span
               style={{
                 fontFamily: "'Inter', sans-serif",
-                fontSize: 11,
+                fontSize: 18,
                 fontWeight: 700,
                 color: "#f55c2a",
                 letterSpacing: "0.04em",
