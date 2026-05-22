@@ -17,6 +17,7 @@ export interface PlanProgressState {
   failedCount: number;
   totalCount: number;
   isBatchComplete: boolean;
+  isBatchFailed: boolean;
   planStatus: string | null;
 }
 
@@ -31,6 +32,7 @@ export function usePlanProgress(planId: string, totalVideos: number): PlanProgre
     failedCount: 0,
     totalCount: totalVideos,
     isBatchComplete: false,
+    isBatchFailed: false,
     planStatus: null,
   });
 
@@ -100,7 +102,8 @@ export function usePlanProgress(planId: string, totalVideos: number): PlanProgre
           const completedCount = [...next.values()].filter((v) => v.status === "COMPLETE").length;
           const failedCount = [...next.values()].filter((v) => v.status === "FAILED").length;
           const isBatchComplete = planStatus === "complete";
-          return { ...prev, videoStatuses: next, completedCount, failedCount, planStatus, isBatchComplete };
+          const isBatchFailed = planStatus === "failed";
+          return { ...prev, videoStatuses: next, completedCount, failedCount, planStatus, isBatchComplete, isBatchFailed };
         });
         return;
       }
@@ -129,6 +132,11 @@ export function usePlanProgress(planId: string, totalVideos: number): PlanProgre
           completedCount: (event.successCount as number) ?? prev.completedCount,
           failedCount: (event.failCount as number) ?? prev.failedCount,
         }));
+        return;
+      }
+
+      if (event.type === "BATCH_FAILED") {
+        setState((prev) => ({ ...prev, isBatchFailed: true, planStatus: "failed" }));
       }
     }
 

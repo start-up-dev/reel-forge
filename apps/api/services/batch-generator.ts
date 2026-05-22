@@ -464,15 +464,12 @@ export async function startBatchGeneration(planId: string, userId: string): Prom
   } catch (err) {
     await db
       .update(contentPlans)
-      .set({ status: "complete", updatedAt: new Date() })
+      .set({ status: "failed", updatedAt: new Date() })
       .where(eq(contentPlans.id, planId))
       .catch(() => { /* best-effort */ });
 
     emitPlanEvent(planId, {
-      type: "BATCH_COMPLETE",
-      totalVideos: 0,
-      successCount: 0,
-      failCount: 0,
+      type: "BATCH_FAILED",
       message: err instanceof Error ? err.message : "Batch generation failed.",
     });
   }

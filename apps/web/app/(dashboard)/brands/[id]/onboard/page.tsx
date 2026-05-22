@@ -331,7 +331,9 @@ export default function BrandOnboardPage() {
         <p className="text-sm text-[var(--text-muted)]">
           {analyzingWebsite
             ? "Reading your website…"
-            : "Claude is analysing your channel…"}
+            : channel
+              ? "Claude is analysing your channel…"
+              : "Claude is building your brand profile…"}
         </p>
       </div>
     );
@@ -379,7 +381,9 @@ export default function BrandOnboardPage() {
       )}
 
       <div className="mb-6">
-        <h1 className="text-xl font-bold text-[var(--text-primary)]">Claude analysed your channel</h1>
+        <h1 className="text-xl font-bold text-[var(--text-primary)]">
+          {channel ? "Claude analysed your channel" : "Claude built your brand profile"}
+        </h1>
         <p className="mt-1 text-sm text-[var(--text-muted)]">{suggestion.reasoning}</p>
       </div>
 

@@ -233,7 +233,6 @@ function DraftCell({
             {topic.angle}
           </p>
         )}
-
       </div>
 
       {/* Footer */}
@@ -352,7 +351,10 @@ function PipelineCard({
 
           {/* Video preview for ready/posted */}
           {(bucket === "ready" || bucket === "posted") && outputUrl && (
-            <div className="relative -mx-3 overflow-hidden bg-[var(--bg-elevated)]" style={{ height: "140px" }}>
+            <div
+              className="relative -mx-3 overflow-hidden bg-[var(--bg-elevated)]"
+              style={{ height: "220px" }}
+            >
               <video
                 ref={videoRef}
                 src={outputUrl}
@@ -404,7 +406,9 @@ function PipelineCard({
             ) : postInfo ? (
               <div className={`flex items-center gap-1 ${postInfo.color}`}>
                 {postInfo.icon}
-                <span className="text-[10px] font-medium">{postInfo.label}</span>
+                <span className="text-[10px] font-medium">
+                  {postInfo.label}
+                </span>
               </div>
             ) : null}
           </div>
@@ -675,7 +679,11 @@ function PipelineView({
                     video={video}
                     bucket={col.key}
                     planPostType={planPostType}
-                    onPost={video && onPostVideo ? () => onPostVideo(video.id) : undefined}
+                    onPost={
+                      video && onPostVideo
+                        ? () => onPostVideo(video.id)
+                        : undefined
+                    }
                   />
                 ))}
               </div>
@@ -780,7 +788,11 @@ function CalendarView({
                       bucket={bucket}
                       planPostType={planPostType}
                       compact
-                      onPost={video && onPostVideo ? () => onPostVideo(video.id) : undefined}
+                      onPost={
+                        video && onPostVideo
+                          ? () => onPostVideo(video.id)
+                          : undefined
+                      }
                     />
                   </div>
                 );
@@ -945,12 +957,15 @@ function PlanSummaryStrip({
   );
   const pct = totalVideos > 0 ? Math.round((completed / totalVideos) * 100) : 0;
 
-  // All done when SSE says so, or when all loaded videos are in a terminal state
+  // All done only when everything is in a terminal state — never trust isBatchComplete alone
+  // because the batch generator can mark a plan complete on crash while videos are still running.
   const videosAllDone =
     videos.length > 0 &&
     videos.every((v) => v.status === "COMPLETE" || v.status === "FAILED");
-  const allDone = progress.isBatchComplete || (videosAllDone && generating === 0);
+  const allDone =
+    (progress.isBatchComplete || videosAllDone) && generating === 0;
   const readyCount = videos.filter((v) => v.status === "COMPLETE").length;
+  const batchCrashedWithOrphans = progress.isBatchFailed && generating > 0;
 
   useEffect(() => {
     if (progress.videoStatuses.size > 0 || progress.isBatchComplete) return;
@@ -967,6 +982,20 @@ function PlanSummaryStrip({
     );
     setRetrying(false);
     onRetry();
+  }
+
+  if (batchCrashedWithOrphans) {
+    return (
+      <div className="mb-6 flex items-center justify-between rounded-2xl border border-[var(--accent-warning)]/20 bg-[var(--accent-warning)]/5 px-5 py-3">
+        <div className="flex items-center gap-2 text-sm font-semibold text-[var(--accent-warning)]">
+          <XCircle className="h-4 w-4" />
+          Generation interrupted — {generating} video{generating !== 1 ? "s" : ""} still processing, {readyCount} ready
+        </div>
+        <Button size="sm" variant="secondary" onClick={() => void handleRetry()} loading={retrying}>
+          Retry
+        </Button>
+      </div>
+    );
   }
 
   if (allDone) {
@@ -1091,10 +1120,10 @@ export default function ContentPlanPage() {
   }, [loadPlan]);
 
   useEffect(() => {
-    if (progress.isBatchComplete) {
+    if (progress.isBatchComplete || progress.isBatchFailed) {
       void loadPlan();
     }
-  }, [progress.isBatchComplete, loadPlan]);
+  }, [progress.isBatchComplete, progress.isBatchFailed, loadPlan]);
 
   async function handleRegenerate() {
     setRegenerating(true);

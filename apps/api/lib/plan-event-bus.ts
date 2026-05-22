@@ -1,7 +1,7 @@
 import { EventEmitter } from "events";
 
 export interface PlanEvent {
-  type: "VIDEO_UPDATE" | "BATCH_COMPLETE" | "ERROR";
+  type: "VIDEO_UPDATE" | "BATCH_COMPLETE" | "BATCH_FAILED" | "ERROR";
   videoId?: string;
   title?: string;
   status?: string;
@@ -50,7 +50,7 @@ export function emitPlanEvent(planId: string, event: PlanEvent): void {
     emitter.emit("event", event);
   }
 
-  if (event.type === "BATCH_COMPLETE") {
+  if (event.type === "BATCH_COMPLETE" || event.type === "BATCH_FAILED") {
     completedPlans.add(planId);
     setTimeout(() => {
       emitters.delete(planId);
