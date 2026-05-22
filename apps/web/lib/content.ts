@@ -60,6 +60,7 @@ export const SHOWCASE = {
     {
       style: "Cinematic",
       niche: "Personal Finance",
+      creatorName: "Wealth Coach Pro",
       platform: "Facebook",
       views: "2.4M views",
       hook: "3 money habits that changed everything",
@@ -71,6 +72,7 @@ export const SHOWCASE = {
     {
       style: "UGC",
       niche: "Daily Routine",
+      creatorName: "Routine Mastery",
       platform: "Facebook",
       views: "890K views",
       hook: "The morning that made me $10k",
@@ -82,6 +84,7 @@ export const SHOWCASE = {
     {
       style: "Tutorial",
       niche: "AI & Tech",
+      creatorName: "AI Accelerator",
       platform: "Facebook",
       views: "1.1M views",
       hook: "5 AI tools you probably don't know about",
@@ -93,6 +96,7 @@ export const SHOWCASE = {
     {
       style: "Story",
       niche: "Career Growth",
+      creatorName: "Career Catalyst",
       platform: "Facebook",
       views: "3.2M views",
       hook: "The interview mistake that cost me the job",
@@ -104,6 +108,7 @@ export const SHOWCASE = {
     {
       style: "Cinematic",
       niche: "Fact Check",
+      creatorName: "Truth Decoded",
       platform: "Facebook",
       views: "560K views",
       hook: "The history 'fact' everyone gets completely wrong",
@@ -115,6 +120,7 @@ export const SHOWCASE = {
     {
       style: "UGC",
       niche: "Fitness",
+      creatorName: "Body Blueprint",
       platform: "Facebook",
       views: "1.8M views",
       hook: "Why you're not losing weight (honest answer)",
@@ -126,6 +132,7 @@ export const SHOWCASE = {
     {
       style: "Tutorial",
       niche: "Business",
+      creatorName: "Scale Coach",
       platform: "Facebook",
       views: "420K views",
       hook: "How to scale your idea to $10k/month",
@@ -137,6 +144,7 @@ export const SHOWCASE = {
     {
       style: "Cinematic",
       niche: "Self-Improvement",
+      creatorName: "Growth Mindset",
       platform: "Facebook",
       views: "2.1M views",
       hook: "Stop caring what people think — here's how",
@@ -148,6 +156,7 @@ export const SHOWCASE = {
     {
       style: "Story",
       niche: "Mindset",
+      creatorName: "Peak Performer",
       platform: "Facebook",
       views: "1.5M views",
       hook: "The habit that separates winners from everyone else",
@@ -159,6 +168,7 @@ export const SHOWCASE = {
     {
       style: "UGC",
       niche: "Creator Economy",
+      creatorName: "Creator Launch",
       platform: "Facebook",
       views: "950K views",
       hook: "I automated my entire content channel. Here's how.",
@@ -170,6 +180,7 @@ export const SHOWCASE = {
     {
       style: "Tutorial",
       niche: "Real Estate",
+      creatorName: "Property Profits",
       platform: "Facebook",
       views: "670K views",
       hook: "3 mistakes that kill first-time buyers",
@@ -181,6 +192,7 @@ export const SHOWCASE = {
     {
       style: "Cinematic",
       niche: "History",
+      creatorName: "History Unlocked",
       platform: "Facebook",
       views: "4.5M views",
       hook: "The truth about the Roman Empire nobody tells you",
@@ -206,7 +218,7 @@ export const PROOF_STATS = [
 export const PROBLEM = {
   label: "The real cost of doing it manually",
   headlineLine1: "The algorithm wants daily content.",
-  headlineLine2: "You have",
+  headlineLine2: "but You have",
   headlineAccent: "a life.",
   body: [
     "Posting daily means 2–4 hours per video — scripting, recording, editing, captioning, scheduling.",
@@ -215,18 +227,18 @@ export const PROBLEM = {
   cards: [
     {
       iconKey: "clock",
-      title: "2–4 hours. Every single day.",
-      body: "Not a content strategy — a second job you didn't sign up for. Miss a day and the algorithm makes you pay.",
+      title: "Video takes 2–4 hours. Every single day.",
+      //body: "Not a content strategy — a second job you didn't sign up for. Miss a day and the algorithm makes you pay.",
     },
     {
       iconKey: "trending-down",
-      title: "Consistency is the whole game.",
-      body: "Skip 3 days, lose 3 weeks of momentum. The algorithm only rewards the ones who show up — every day, without fail.",
+      title: "If Skip 3 days, lose 3 weeks of momentum.",
+      //body: "Skip 3 days, lose 3 weeks of momentum. The algorithm only rewards the ones who show up — every day, without fail.",
     },
     {
       iconKey: "flame",
-      title: "Burnout is the real enemy.",
-      body: "You started because you loved it. By the fifteenth edit of the week, love becomes obligation — and then you go quiet.",
+      title: "You started to create. Not to grind.",
+      //body: "You started because you loved it. By the fifteenth edit of the week, love becomes obligation — and then you go quiet.",
     },
   ],
 };
@@ -241,8 +253,17 @@ export const SOLUTION = {
     "No scripting. No recording. No editing. No scheduling. Just... done.",
   ],
   closer: "That's not a dream. That's ReelForge.",
-  pipelineNodes: ["Your Brand", "AI Week Plan", "One Approval", "Auto-Generated", "Auto-Posted"],
-  inlineCta: { label: "See the full pipeline", href: "#pipeline" },
+  pipelineNodes: [
+    "Your Brand",
+    "AI Week Plan",
+    "One Approval",
+    "Auto-Generated",
+    "Auto-Posted",
+  ],
+  inlineCta: {
+    label: "See the full pipeline",
+    href: "/blog/how-to-create-facebook-videos-automatically",
+  },
 };
 
 // ─── Pipeline ─────────────────────────────────────────────────────────────────
@@ -404,7 +425,7 @@ export const FAQ = {
     {
       question: "What kind of videos does ReelForge create?",
       answer:
-        "ReelForge creates short-form vertical videos (1080×1920) formatted for Facebook Reels and video posts. Each video is scripted with a hook, body content, and a call to action — tailored to your niche. Styles include cinematic, UGC-style, tutorial, and story formats. Every video comes with burned-in subtitles and is assembled as a finished MP4, ready to post.",
+        "ReelForge creates short-form vertical videos formatted for Facebook Reels and video posts. Each video is scripted with a hook, body content, and a call to action — tailored to your niche. Styles include cinematic, UGC-style, tutorial, and story formats. Every video comes with burned-in subtitles and is assembled as a finished MP4, ready to post.",
     },
     {
       question: "Will the videos look obviously AI-generated?",

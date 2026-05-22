@@ -12,12 +12,16 @@ import {
   Zap,
   CheckCircle,
   XCircle,
-  Play,
+  X,
+  Search,
+  Heart,
+  MessageCircle,
+  Share2,
+  Bookmark,
   Lightbulb,
   Bot,
   Rocket,
   Check,
-  Activity,
   ShieldCheck,
   Sparkles,
   ZapIcon,
@@ -120,15 +124,12 @@ export default async function RootPage() {
       <JsonLd />
       <div className="min-h-screen overflow-x-hidden bg-[var(--bg-base)] text-[var(--text-primary)] selection:bg-[var(--accent-primary)] selection:text-white">
         <StickyNav />
-        <HeroSection />
-
-        {/* Reordered Showcase right after Hero */}
-        <ShowcaseSection />
+        <HeroShowcaseSection />
 
         {/* <ProofStrip /> */}
         <ProblemSection />
         <SolutionReveal />
-        <PipelineSection />
+        {/* <PipelineSection /> */}
         <BeforeAfterSection />
         <PricingSection />
         <FAQSection />
@@ -198,12 +199,14 @@ function PrimaryButton({
   );
 }
 
-/* ─── Hero ────────────────────────────────────────────────────────────────── */
+/* ─── Hero + Built with ReelForge (merged) ────────────────────────────────── */
 
-function HeroSection() {
+function HeroShowcaseSection() {
+  const repeatedVideos = [...SHOWCASE.videos, ...SHOWCASE.videos];
+
   return (
-    <section className="relative flex flex-col items-center justify-start overflow-hidden pt-28 pb-12 md:pt-32 md:pb-16">
-      {/* Background elements */}
+    <section id="showcase" className="relative overflow-hidden pt-28 md:pt-32">
+      {/* Background glow */}
       <div className="absolute top-0 left-1/2 -translate-x-1/2 w-full max-w-[1000px] h-[600px] pointer-events-none z-0">
         <div
           className="absolute inset-0 rounded-full blur-[80px] md:blur-[120px] opacity-20"
@@ -213,7 +216,8 @@ function HeroSection() {
         />
       </div>
 
-      <div className="relative z-10 mx-auto max-w-5xl px-6 text-center">
+      {/* ── Hero text ── */}
+      <div className="relative z-10 mx-auto max-w-5xl px-6 text-center pb-12 md:pb-16">
         <FadeIn delay={0.1}>
           <div className="mb-8 md:mb-10 inline-flex items-center gap-3 rounded-full border border-white/10 bg-white/[0.03] px-5 py-2 backdrop-blur-md shadow-2xl">
             <div className="flex h-2 w-2 relative">
@@ -310,103 +314,112 @@ function HeroSection() {
           </div>
         </FadeIn>
       </div>
-    </section>
-  );
-}
 
-/* ─── Video Showcase ──────────────────────────────────────────────────────── */
-
-function ShowcaseSection() {
-  const repeatedVideos = [...SHOWCASE.videos, ...SHOWCASE.videos];
-
-  return (
-    <section
-      id="showcase"
-      className="pb-20 pt-10 md:pb-32 md:pt-16 overflow-hidden bg-gradient-to-b from-[var(--bg-base)] via-[var(--bg-surface)] to-[var(--bg-base)]"
-    >
-      <div className="mx-auto max-w-6xl px-6">
-        <FadeIn className="mb-16 md:mb-20 text-center">
-          <SectionLabel variant="accent">{SHOWCASE.label}</SectionLabel>
-          <h2 className="mb-6 whitespace-pre-line text-[32px] sm:text-[42px] font-[900] leading-tight tracking-tight text-[var(--text-primary)] md:text-[64px]">
-            {SHOWCASE.headline}
-          </h2>
-          <p className="mx-auto max-w-xl text-[16px] md:text-[18px] text-[var(--text-secondary)] leading-relaxed">
-            {SHOWCASE.subheadline}
-          </p>
-        </FadeIn>
-      </div>
-
-      {/* Infinite Auto-scrolling Marquee */}
-      <div className="relative w-full overflow-hidden py-4 md:py-8">
-        <div className="absolute left-0 top-0 bottom-0 z-10 w-12 md:w-64 bg-gradient-to-r from-[var(--bg-base)] to-transparent pointer-events-none" />
-        <div className="absolute right-0 top-0 bottom-0 z-10 w-12 md:w-64 bg-gradient-to-l from-[var(--bg-base)] to-transparent pointer-events-none" />
-
-        <div className="flex w-max animate-scroll items-end justify-center gap-6 md:gap-12 px-4 md:px-10 hover:[animation-play-state:paused]">
-          {repeatedVideos.map((v, i) => {
-            // Organic vertical offsets
-            const offsets = [
-              0, -60, -20, -100, -10, -50, -30, -80, -15, -70, -40, -90,
-            ];
-            return (
-              <div
-                key={i}
-                className="shrink-0 transition-transform duration-500"
-                style={{
-                  marginBottom: `${Math.abs(offsets[i % offsets.length] ?? 0)}px`,
-                }}
-              >
-                <PhoneFrame video={v} />
-              </div>
-            );
-          })}
+      {/* ── Built with ReelForge / Showcase ── */}
+      <div className="bg-gradient-to-b from-[var(--bg-base)] via-[var(--bg-surface)] to-[var(--bg-base)]">
+        <div className="mx-auto max-w-6xl px-6 pt-16 md:pt-20">
+          <FadeIn className="mb-12 md:mb-16 text-center">
+            <SectionLabel variant="accent">{SHOWCASE.label}</SectionLabel>
+          </FadeIn>
         </div>
-      </div>
 
-      <FadeIn delay={0.2} className="mt-8 text-center px-6">
-        <div className="flex flex-col sm:flex-row items-center justify-center gap-3">
+        {/* Infinite scrolling marquee */}
+        <div className="relative w-full overflow-hidden py-4 md:py-8">
+          <div className="absolute left-0 top-0 bottom-0 z-10 w-12 md:w-64 bg-gradient-to-r from-[var(--bg-base)] to-transparent pointer-events-none" />
+          <div className="absolute right-0 top-0 bottom-0 z-10 w-12 md:w-64 bg-gradient-to-l from-[var(--bg-base)] to-transparent pointer-events-none" />
+
+          <div className="flex w-max animate-scroll items-end justify-center gap-5 md:gap-10 px-4 md:px-10 hover:[animation-play-state:paused]">
+            {repeatedVideos.map((v, i) => {
+              const offsets = [
+                0, -60, -20, -100, -10, -50, -30, -80, -15, -70, -40, -90,
+              ];
+              return (
+                <div
+                  key={i}
+                  className="shrink-0"
+                  style={{
+                    marginBottom: `${Math.abs(offsets[i % offsets.length] ?? 0)}px`,
+                  }}
+                >
+                  <FacebookReelsFrame video={v} index={i} />
+                </div>
+              );
+            })}
+          </div>
+        </div>
+
+        <FadeIn delay={0.2} className="mt-6 pb-20 md:pb-28 text-center px-6">
           <div className="inline-flex items-center gap-2 px-5 py-3 rounded-full bg-[var(--accent-success)]/5 border border-[var(--accent-success)]/20 backdrop-blur-md">
             <ShieldCheck className="w-4 h-4 text-[var(--accent-success)] shrink-0" />
             <p className="text-[12px] md:text-[13px] font-bold text-[var(--accent-success)]">
               {SHOWCASE.trustBadge}
             </p>
           </div>
-        </div>
-      </FadeIn>
+        </FadeIn>
+      </div>
     </section>
   );
 }
 
-function PhoneFrame({ video }: { video: (typeof SHOWCASE.videos)[number] }) {
-  const platformColor: Record<string, string> = {
-    Facebook: "#1877F2",
-  };
-  const dotColor = platformColor[video.platform] ?? "#1877F2";
+const REEL_LIKES = [
+  "2.4K",
+  "18K",
+  "892",
+  "5.1K",
+  "341",
+  "12K",
+  "2.8K",
+  "9.3K",
+  "4.7K",
+  "1.1K",
+  "6.2K",
+  "3.5K",
+];
+const REEL_COMMENTS = [
+  "128",
+  "842",
+  "67",
+  "234",
+  "48",
+  "391",
+  "156",
+  "507",
+  "213",
+  "89",
+  "312",
+  "178",
+];
+
+function FacebookReelsFrame({
+  video,
+  index,
+}: {
+  video: (typeof SHOWCASE.videos)[number];
+  index: number;
+}) {
+  const likes = REEL_LIKES[index % REEL_LIKES.length];
+  const comments = REEL_COMMENTS[index % REEL_COMMENTS.length];
 
   return (
-    <div className="group relative w-[230px] sm:w-[260px] md:w-[300px]">
-      {/* Dynamic Glow */}
+    <div className="group relative w-[210px] sm:w-[235px] md:w-[258px]">
+      {/* Hover glow */}
       <div
-        className="absolute inset-0 -z-10 rounded-[3rem] blur-3xl opacity-0 group-hover:opacity-40 transition-opacity duration-500"
+        className="absolute inset-0 -z-10 rounded-[3rem] blur-3xl opacity-0 group-hover:opacity-30 transition-opacity duration-500"
         style={{
           background: `radial-gradient(circle, ${video.accentColor} 0%, transparent 70%)`,
         }}
       />
 
-      {/* Phone body */}
-      <div className="relative overflow-hidden rounded-[2.5rem] md:rounded-[3rem] border-[6px] md:border-[8px] border-[#18181b] bg-[#09090b] shadow-[0_30px_80px_rgba(0,0,0,0.8)] md:shadow-[0_40px_100px_rgba(0,0,0,0.8)] transition-all duration-500 group-hover:-translate-y-4 group-hover:scale-[1.02] group-hover:shadow-[0_60px_120px_rgba(0,0,0,0.9)] group-hover:border-[#27272a]">
+      {/* Phone shell */}
+      <div className="relative overflow-hidden rounded-[2.5rem] border-[6px] border-[#18181b] bg-black shadow-[0_30px_80px_rgba(0,0,0,0.8)] transition-all duration-500 group-hover:-translate-y-4 group-hover:scale-[1.02] group-hover:shadow-[0_60px_120px_rgba(0,0,0,0.9)] group-hover:border-[#27272a]">
         {/* Notch */}
-        <div className="relative z-10 flex justify-center pt-2 md:pt-3 pb-2 md:pb-2.5">
-          <div className="h-1 md:h-1.5 w-12 md:w-16 rounded-full bg-[#27272a] group-hover:bg-[#3f3f46] transition-colors" />
+        <div className="flex justify-center pt-2 pb-1.5">
+          <div className="h-1.5 w-14 rounded-full bg-[#27272a] group-hover:bg-[#3f3f46] transition-colors" />
         </div>
 
         {/* Screen */}
-        <div
-          className="relative mx-1 mb-1 md:mx-1.5 md:mb-1.5 overflow-hidden rounded-[2rem] md:rounded-[2.2rem] h-[400px] sm:h-[460px] md:h-[520px]"
-          style={{
-            background: `linear-gradient(160deg, ${video.gradientFrom}, ${video.gradientTo})`,
-          }}
-        >
-          {/* Video or texture fallback */}
+        <div className="relative mx-1 mb-1 overflow-hidden rounded-[1rem] h-[370px] sm:h-[415px] md:h-[456px] bg-black">
+          {/* Video */}
           {video.videoUrl ? (
             <video
               src={video.videoUrl}
@@ -418,46 +431,86 @@ function PhoneFrame({ video }: { video: (typeof SHOWCASE.videos)[number] }) {
               className="absolute inset-0 h-full w-full object-cover"
             />
           ) : (
-            <div className="absolute inset-0 opacity-10 mix-blend-overlay bg-[url('https://www.transparenttextures.com/patterns/cubes.png')]" />
+            <div
+              className="absolute inset-0"
+              style={{
+                background: `linear-gradient(160deg, ${video.gradientFrom}, ${video.gradientTo})`,
+              }}
+            />
           )}
 
-          {/* Style badge */}
+          {/* Top + bottom gradient scrim */}
+          <div className="absolute inset-0 bg-gradient-to-b from-black/65 via-transparent via-[45%] to-black/80 z-10" />
+          {/* ── Right engagement column ── */}
           <div
-            className="absolute left-3 top-3 md:left-4 md:top-4 z-20 rounded-full px-2.5 py-0.5 md:px-3 md:py-1 text-[9px] md:text-[10px] font-black uppercase tracking-widest text-white shadow-xl backdrop-blur-xl border border-white/10"
-            style={{ background: video.accentColor + "aa" }}
+            className="absolute right-2.5 z-20 flex flex-col items-center gap-3.5"
+            style={{ bottom: "96px" }}
           >
-            {video.style}
+            <div className="flex flex-col items-center gap-0.5">
+              <Heart className="w-[22px] h-[22px] text-white drop-shadow-lg" />
+              <span className="text-white text-[8px] font-bold drop-shadow">
+                {likes}
+              </span>
+            </div>
+            <div className="flex flex-col items-center gap-0.5">
+              <MessageCircle className="w-[22px] h-[22px] text-white drop-shadow-lg" />
+              <span className="text-white text-[8px] font-bold drop-shadow">
+                {comments}
+              </span>
+            </div>
+            <div className="flex flex-col items-center gap-0.5">
+              <Share2 className="w-[22px] h-[22px] text-white drop-shadow-lg" />
+              <span className="text-white text-[8px] font-bold drop-shadow">
+                Share
+              </span>
+            </div>
+            <Bookmark className="w-[22px] h-[22px] text-white drop-shadow-lg" />
           </div>
 
-          {/* Subtitle bar */}
-          <div className="absolute bottom-0 left-0 right-0 z-20 bg-gradient-to-t from-black via-black/60 to-transparent px-4 md:px-6 pb-6 md:pb-8 pt-16 md:pt-20">
-            <div className="flex items-center justify-between mb-3 md:mb-4">
-              <div className="flex items-center gap-1.5 md:gap-2">
-                <div
-                  className="w-4 h-4 md:w-5 md:h-5 rounded-full flex items-center justify-center"
-                  style={{ background: dotColor }}
-                >
-                  <Play className="w-1.5 h-1.5 md:w-2 md:h-2 fill-white text-white translate-x-0.25" />
-                </div>
-                <span className="text-[9px] md:text-[10px] font-black uppercase text-white/60 tracking-tighter">
-                  {video.platform}
-                </span>
-              </div>
-              <div className="flex items-center gap-1 md:gap-1.5 text-[10px] md:text-[11px] font-black text-white/90">
-                <Activity className="h-3 md:h-3.5 w-3 md:w-3.5 text-[var(--accent-success)]" />
-                {video.views}
-              </div>
-            </div>
-            <div className="h-px w-full bg-white/10 mb-3 md:mb-4" />
-            <div className="text-center">
-              <span
-                className="rounded-lg px-3 py-1 md:px-4 md:py-1.5 text-[10px] md:text-[11px] font-black uppercase tracking-wider text-white shadow-2xl backdrop-blur-md border border-white/10"
-                style={{ background: video.accentColor + "30" }}
+          {/* ── Bottom creator info + caption ── */}
+          <div className="absolute bottom-0 left-0 right-[44px] z-20 px-3 pb-2.5">
+            {/* Creator row */}
+            <div className="flex items-center gap-1.5 mb-1">
+              <div
+                className="w-6 h-6 rounded-full flex items-center justify-center text-white text-[8px] font-black shrink-0 border border-white/20"
+                style={{ background: video.accentColor }}
               >
-                {video.niche}
+                {video.creatorName
+                  .split(" ")
+                  .slice(0, 2)
+                  .map((w) => w[0])
+                  .join("")}
+              </div>
+              <span className="text-white font-black text-[8px] drop-shadow leading-none">
+                {video.creatorName}
+              </span>
+              <div className="w-3 h-3 rounded-full bg-[#1877F2] flex items-center justify-center shrink-0">
+                <Check className="w-1.5 h-1.5 text-white stroke-[4]" />
+              </div>
+              <span className="text-white/50 text-[9px] font-bold">
+                · Follow
+              </span>
+            </div>
+            {/* Caption */}
+            <p className="text-white text-[10px] leading-snug mb-2 line-clamp-2 drop-shadow">
+              {video.hook} <span className="text-white/45">... more</span>
+            </p>
+            {/* Comment input */}
+            <div className="flex items-center gap-1.5 bg-white/[0.08] backdrop-blur-sm rounded-full px-2.5 py-1 border border-white/10">
+              <span className="text-white/40 text-[9px] flex-1 leading-none">
+                Add a comment
+              </span>
+              <span className="text-white/35 text-[10px] leading-none">😊</span>
+              <span className="text-white/35 text-[8px] font-black leading-none">
+                GIF
               </span>
             </div>
           </div>
+        </div>
+
+        {/* Bottom home indicator */}
+        <div className="flex justify-center py-2 bg-black">
+          <div className="h-1 w-16 rounded-full bg-[#27272a]" />
         </div>
       </div>
     </div>
@@ -483,7 +536,7 @@ function ProblemSection() {
       <div className="text-center mb-12 md:mb-20">
         <SectionLabel>{PROBLEM.label}</SectionLabel>
         <FadeIn>
-          <h2 className="mb-6 md:mb-8 text-[32px] sm:text-[42px] font-[900] leading-[1.1] md:leading-[1] tracking-[-0.03em] text-[var(--text-primary)] md:text-[72px]">
+          <h2 className="mb-6 md:mb-8 text-[32px] sm:text-[42px] font-[900] leading-[1.1] md:leading-[1] tracking-[-0.03em] text-[var(--text-primary)]">
             {PROBLEM.headlineLine1}
             <br />
             {PROBLEM.headlineLine2}{" "}
@@ -590,7 +643,7 @@ function SolutionReveal() {
               </div>
             </div>
           </div>
-          <h2 className="mb-6 md:mb-8 text-[32px] sm:text-[42px] md:text-[72px] font-[900] leading-[1.1] md:leading-[1] tracking-[-0.03em] text-[var(--text-primary)]">
+          <h2 className="mb-6 md:mb-8 text-[32px] sm:text-[42px] font-[900] leading-[1.1] md:leading-[1] tracking-[-0.03em] text-[var(--text-primary)]">
             {SOLUTION.headlineLine1}
             <br />
             <span className="text-transparent bg-clip-text bg-gradient-to-r from-[var(--accent-primary)] to-[var(--accent-secondary)]">

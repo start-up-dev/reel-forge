@@ -1,45 +1,48 @@
 import React from "react";
-import { AbsoluteFill, Sequence } from "remotion";
-import { Scene0_Hook } from "./scenes/Scene0_Hook";
-import { Scene1_Claim } from "./scenes/Scene1_Claim";
-import { Scene2_Pipeline } from "./scenes/Scene2_Pipeline";
-import { Scene3_OutputReel } from "./scenes/Scene3_OutputReel";
-import { Scene4_CTA } from "./scenes/Scene4_CTA";
+import { AbsoluteFill, Sequence, useCurrentFrame, interpolate } from "remotion";
+import { SceneCalendar } from "./scenes/SceneCalendar";
+import { SceneOutput } from "./scenes/SceneOutput";
+import { SceneCTA } from "./scenes/SceneCTA";
 
-// Timeline (30fps, 1350 frames = 45 seconds):
-//   0–89    Scene0_Hook        3s  kinetic typography hook
-//  90–239   Scene1_Claim       5s  time-counter comparison
-// 240–539   Scene2_Pipeline   10s  animated AI pipeline
-// 540–989   Scene3_OutputReel 15s  6-phone output reel
-// 990–1349  Scene4_CTA        12s  social proof + CTA
+// Timeline (30 fps, 1440 frames = 48 s):
+//   0–820   SceneCalendar  — empty calendar → approve → month fills → counter
+//  820–1110  SceneOutput   — dashboard screenshot + phone output proof
+// 1110–1440  SceneCTA      — "Your Facebook Page, On Autopilot." + $5 CTA
 
-export const Main: React.FC = () => {
+const FadeTransition: React.FC<{ duration: number }> = ({ duration }) => {
+  const frame = useCurrentFrame();
+  const mid = duration / 2;
+  const opacity = interpolate(frame, [0, mid, duration], [0, 1, 0], {
+    extrapolateLeft: "clamp",
+    extrapolateRight: "clamp",
+  });
   return (
-    <AbsoluteFill style={{ background: "#09090b" }}>
-      <Sequence from={0} durationInFrames={90}>
-        <Scene0_Hook />
-      </Sequence>
-
-      {/* hard-cut flash between Scene 0 and Scene 1 */}
-      <Sequence from={87} durationInFrames={5}>
-        <AbsoluteFill style={{ background: "#000000" }} />
-      </Sequence>
-
-      <Sequence from={90} durationInFrames={150}>
-        <Scene1_Claim />
-      </Sequence>
-
-      <Sequence from={240} durationInFrames={300}>
-        <Scene2_Pipeline />
-      </Sequence>
-
-      <Sequence from={540} durationInFrames={450}>
-        <Scene3_OutputReel />
-      </Sequence>
-
-      <Sequence from={990} durationInFrames={360}>
-        <Scene4_CTA />
-      </Sequence>
-    </AbsoluteFill>
+    <AbsoluteFill
+      style={{ background: "#000", opacity, pointerEvents: "none" }}
+    />
   );
 };
+
+export const Main: React.FC = () => (
+  <AbsoluteFill style={{ background: "#09090b" }}>
+    <Sequence from={0} durationInFrames={820}>
+      <SceneCalendar />
+    </Sequence>
+
+    <Sequence from={820} durationInFrames={290}>
+      <SceneOutput />
+    </Sequence>
+
+    <Sequence from={1110} durationInFrames={330}>
+      <SceneCTA />
+    </Sequence>
+
+    {/* Cross-fade transitions */}
+    <Sequence from={812} durationInFrames={20}>
+      <FadeTransition duration={20} />
+    </Sequence>
+    <Sequence from={1102} durationInFrames={20}>
+      <FadeTransition duration={20} />
+    </Sequence>
+  </AbsoluteFill>
+);
