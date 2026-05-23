@@ -67,7 +67,7 @@ export const SHOWCASE = {
       gradientFrom: "#0f172a",
       gradientTo: "#1e3a5f",
       accentColor: "#4a90e2",
-      videoUrl: `${R2}/Cinematic.mp4`,
+      videoUrl: `${R2}/BuisnessCoach.mp4`,
     },
     {
       style: "UGC",
@@ -139,7 +139,7 @@ export const SHOWCASE = {
       gradientFrom: "#0a1a2e",
       gradientTo: "#1a2e4a",
       accentColor: "#4a90e2",
-      videoUrl: `${R2}/learn ai.mp4`,
+      videoUrl: `${R2}/RealEstate.mp4`,
     },
     {
       style: "Cinematic",
