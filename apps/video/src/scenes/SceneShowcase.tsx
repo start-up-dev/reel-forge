@@ -47,7 +47,7 @@ const PHONES = [
     hook: "AI-generated content that actually converts",
     gradient: "linear-gradient(160deg, #0d0d1a 0%, #1a1040 100%)",
     accent: "#a78bfa",
-    videoUrl: LOCAL("ReelForgeCMO.mp4"),
+    videoUrl: LOCAL("ClaudeWrong.mp4"),
   },
   {
     style: "Coaching",
@@ -56,7 +56,7 @@ const PHONES = [
     hook: "Stop trading time for money",
     gradient: "linear-gradient(160deg, #001a1a 0%, #003d3d 100%)",
     accent: "#2dd4bf",
-    videoUrl: LOCAL("BuisnessCoach.mp4"),
+    videoUrl: LOCAL("createdbyreelforge.mp4"),
   },
   {
     style: "Real Estate",
@@ -65,7 +65,7 @@ const PHONES = [
     hook: "Why most homes sit on the market too long",
     gradient: "linear-gradient(160deg, #1a1500 0%, #3d3000 100%)",
     accent: "#fbbf24",
-    videoUrl: LOCAL("RealEstate.mp4"),
+    videoUrl: LOCAL("under-tree-english.mp4"),
   },
   {
     style: "CMO",
