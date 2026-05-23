@@ -292,3 +292,60 @@ The site is live: [link]
 Thanks for reading.
 
 — Mahbub
+
+---
+
+## Demo Video Script — Tight Cut (~90 sec)
+
+**Tool:** Screen Studio (Mac) — handles cursor zoom-on-click automatically. No manual keyframing.
+**Rule:** Never show a blank/loading screen in real time. Pre-record slow steps, speed up or jump-cut past them.
+
+---
+
+### Recording strategy
+
+Record each scene as a **separate take**. Assemble in Screen Studio or iMovie. This way you never waste a full recording because one scene went wrong.
+
+For any screen that requires waiting (Claude generating, pipeline running):
+- Pre-run it, record it at 4× or use a jump cut.
+- Never show the spinner in real time.
+
+---
+
+### Shot list
+
+| # | Screen | What you do | Cursor zoom | Narration | Duration |
+|---|---|---|---|---|---|
+| **1** | Title card (black + text) | Static | — | "3–5 hours a week making Facebook videos. Or — 5 minutes and you're done for the week." | 6s |
+| **2** | `/channels` — Connect Facebook | Click "Connect Facebook Page" → page appears in list | Zoom on click | "Connect your Facebook page." | 5s |
+| **3** | `/brands/[id]/onboard` — Claude proposal | Brand profile already populated on screen (pre-generated) | Zoom pan across niche → tone → audience fields | "We read your page and build your brand profile. No forms." | 8s |
+| **4** | Same page — one edit | Click tone field → type one word → click Save | Zoom on field | "Change anything you want." | 6s |
+| **5** | `/brands/[id]/plan/new` → calendar | 7-day calendar with topics visible | Slow zoom across calendar left-to-right | "Here's your week. Seven videos, one per day, written for your brand." | 8s |
+| **6** | Same page — approve | Click the Approve button | Zoom tight on button then click | "Approve it. That's your last decision for the week." | 5s |
+| **7** | `/brands/[id]/plan/[planId]/progress` | Show 2–3 video rows ticking to ✓ Complete — **pre-recorded, sped up 4×** | No zoom — let the progress speak | "Our team produces and reviews every video before it goes live." | 8s |
+| **8** | Email client | Email: "Your video 'X' is ready" — zoom in on subject line | Zoom on subject | "You get an email the moment each one is ready." | 5s |
+| **9** | Video library → video plays | Click play on a finished video — let it run | Zoom on play button click | *(no narration — let the video play)* | 15s |
+| **10** | Pricing page | Scroll to $5 trial card | Zoom on "$5" | "Try a full week for $5. Seven videos, human-reviewed, auto-posted to Facebook." | 8s |
+
+**Total: ~74 seconds.** Add a 10–15 sec opening hook if submitting to YouTube; leave it tight for Twitter/PH.
+
+---
+
+### Cursor zoom notes for Screen Studio
+
+- Screen Studio zooms automatically on click — just **click deliberately and pause 0.5s** after each click so the zoom has time to settle before you move the cursor.
+- After a click, **move the cursor slowly** to the next target — fast cursor movement looks jittery at zoom level.
+- On scenes 3 and 5 (pan across content), do a slow, intentional mouse drag across the fields — Screen Studio will follow the cursor smoothly.
+- Disable zoom for scene 7 (the sped-up pipeline) — the auto-zoom on a 4× speed clip looks wrong.
+
+---
+
+### 30-sec cut (Product Hunt GIF / Twitter lead media)
+
+Use scenes 5 → 6 → 7 → 9:
+- Calendar view (5s)
+- Approve click (3s)
+- Pipeline ticking to complete, 4× speed (7s)
+- Finished video playing (15s)
+
+Export as MP4 (not GIF — GIF compression will kill the video quality).

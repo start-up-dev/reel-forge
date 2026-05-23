@@ -7,6 +7,7 @@ import {
   interpolate,
   staticFile,
   Img,
+  OffthreadVideo,
 } from "remotion";
 import { Heart, MessageCircle, Share2, Bookmark, Check } from "lucide-react";
 
@@ -178,13 +179,10 @@ function PhoneCard({
               zIndex: 0,
             }}
           />
-          {/* Video — on top of gradient */}
-          <video
+          {/* Video — OffthreadVideo extracts frames via FFmpeg, no render timeout */}
+          <OffthreadVideo
             src={phone.videoUrl}
-            autoPlay
             muted
-            loop
-            playsInline
             style={{
               position: "absolute",
               inset: 0,
@@ -192,9 +190,6 @@ function PhoneCard({
               height: "100%",
               objectFit: "cover",
               zIndex: 1,
-            }}
-            onError={(e) => {
-              (e.target as HTMLVideoElement).style.display = "none";
             }}
           />
 

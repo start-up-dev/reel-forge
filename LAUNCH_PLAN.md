@@ -94,9 +94,10 @@ Lets users add their brand website during onboarding so Claude has real, specifi
 
 ### Video assets (non-negotiable)
 
-- [ ] Create 3 sample output videos for ICP niches — a real estate agent, an insurance/financial advisor, and a coach/consultant. **This is your #1 conversion tool — do it first.**
+- [x] Create 3 sample output videos for ICP niches — a real estate agent, an insurance/financial advisor, and a coach/consultant. **This is your #1 conversion tool — do it first.**
 - [ ] Record a 3–5 min narrated demo: onboarding → approve plan → finished videos delivered + posted. Title it "Minutes of setup → a full week of Facebook videos."
 - [ ] Cut a 30-sec GIF/clip of the dashboard (calendar plan + pipeline progress view) for Product Hunt & Twitter.
+- [x] Remotion Launch Video
 
 ### Static assets
 
