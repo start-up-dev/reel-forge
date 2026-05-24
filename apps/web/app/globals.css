@@ -124,5 +124,12 @@
 
   .animate-scroll {
     animation: scroll 80s linear infinite;
+    will-change: transform;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .animate-scroll {
+      animation: none;
+    }
   }
 }

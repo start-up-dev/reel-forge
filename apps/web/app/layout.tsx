@@ -88,12 +88,27 @@ export default function RootLayout({
       }}
     >
       <html lang="en" className="dark">
+        <head>
+          {/* Preconnect to R2 CDN so video requests start sooner once in viewport */}
+          <link
+            rel="preconnect"
+            href="https://pub-425a4c402193444fb20eeb6725aa6557.r2.dev"
+          />
+          <link
+            rel="dns-prefetch"
+            href="https://pub-425a4c402193444fb20eeb6725aa6557.r2.dev"
+          />
+        </head>
         <body
           className={`${inter.variable} ${jetbrainsMono.variable} font-sans`}
         >
           {children}
         </body>
-        <Script src="https://scripts.simpleanalyticscdn.com/latest.js" />
+        {/* lazyOnload — analytics must never block rendering */}
+        <Script
+          src="https://scripts.simpleanalyticscdn.com/latest.js"
+          strategy="lazyOnload"
+        />
       </html>
     </ClerkProvider>
   );

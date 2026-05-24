@@ -295,57 +295,125 @@ Thanks for reading.
 
 ---
 
-## Demo Video Script — Tight Cut (~90 sec)
+## Demo Video Script + Scenes
 
-**Tool:** Screen Studio (Mac) — handles cursor zoom-on-click automatically. No manual keyframing.
-**Rule:** Never show a blank/loading screen in real time. Pre-record slow steps, speed up or jump-cut past them.
-
----
-
-### Recording strategy
-
-Record each scene as a **separate take**. Assemble in Screen Studio or iMovie. This way you never waste a full recording because one scene went wrong.
-
-For any screen that requires waiting (Claude generating, pipeline running):
-- Pre-run it, record it at 4× or use a jump cut.
-- Never show the spinner in real time.
+**Format:** UGC founder-story. Talking head (you on camera) mixed with screen recording.
+**Tool:** Screen Studio for screen sections. Phone camera or webcam for talking head.
+**Total target:** ~90 sec.
+**Rule:** Never show a loading/blank screen in real time. Pre-run slow steps and speed up or jump-cut past them.
 
 ---
 
-### Shot list
+### Script
 
-| # | Screen | What you do | Cursor zoom | Narration | Duration |
-|---|---|---|---|---|---|
-| **1** | Title card (black + text) | Static | — | "3–5 hours a week making Facebook videos. Or — 5 minutes and you're done for the week." | 6s |
-| **2** | `/channels` — Connect Facebook | Click "Connect Facebook Page" → page appears in list | Zoom on click | "Connect your Facebook page." | 5s |
-| **3** | `/brands/[id]/onboard` — Claude proposal | Brand profile already populated on screen (pre-generated) | Zoom pan across niche → tone → audience fields | "We read your page and build your brand profile. No forms." | 8s |
-| **4** | Same page — one edit | Click tone field → type one word → click Save | Zoom on field | "Change anything you want." | 6s |
-| **5** | `/brands/[id]/plan/new` → calendar | 7-day calendar with topics visible | Slow zoom across calendar left-to-right | "Here's your week. Seven videos, one per day, written for your brand." | 8s |
-| **6** | Same page — approve | Click the Approve button | Zoom tight on button then click | "Approve it. That's your last decision for the week." | 5s |
-| **7** | `/brands/[id]/plan/[planId]/progress` | Show 2–3 video rows ticking to ✓ Complete — **pre-recorded, sped up 4×** | No zoom — let the progress speak | "Our team produces and reviews every video before it goes live." | 8s |
-| **8** | Email client | Email: "Your video 'X' is ready" — zoom in on subject line | Zoom on subject | "You get an email the moment each one is ready." | 5s |
-| **9** | Video library → video plays | Click play on a finished video — let it run | Zoom on play button click | *(no narration — let the video play)* | 15s |
-| **10** | Pricing page | Scroll to $5 trial card | Zoom on "$5" | "Try a full week for $5. Seven videos, human-reviewed, auto-posted to Facebook." | 8s |
-
-**Total: ~74 seconds.** Add a 10–15 sec opening hook if submitting to YouTube; leave it tight for Twitter/PH.
-
----
-
-### Cursor zoom notes for Screen Studio
-
-- Screen Studio zooms automatically on click — just **click deliberately and pause 0.5s** after each click so the zoom has time to settle before you move the cursor.
-- After a click, **move the cursor slowly** to the next target — fast cursor movement looks jittery at zoom level.
-- On scenes 3 and 5 (pan across content), do a slow, intentional mouse drag across the fields — Screen Studio will follow the cursor smoothly.
-- Disable zoom for scene 7 (the sped-up pipeline) — the auto-zoom on a 4× speed clip looks wrong.
+> I found a way to make viral UGC videos at a cheaper cost (spoiler alert its less than a dollar)
+>
+> I have been building software for 8 years now. The biggest problem I face is distributing. I was never good at making videos, when I face camera my throat dry up. And shit I hate editing video. I feel its too boring and time consuming task for me. Also I suck at maybe thats the reason.
+>
+> Anyway after failing last couple of products I realized I need to fix my distribution but without spending tons of hours making content. That when it hit I could just setup an Ai pipeline like everyone else doing and be millionire in 5 days.
+>
+> But making videos is expensive, each 30-45 sec videos cost more then $10. Its cheaper if you earn a lot of money but expensive when you already broke. Also those required editing as well. So I decided to build my own engine that would produce complete video without touching anything.
+>
+> Here's how it works. First you connect you facebook page and add your website url. Then claude going to scrap all the data and create a brand identity for you. you can tweak one two things if you want, once finalized it will generate a character sheet image (ChatGPT) using the brand identity data. Now you can just press create plan it will generate a full week of content plan, you can review them edit them, once approved everything set to go.
+>
+> Also you can always try new topics, content ideas, get the viral format by pressing create video where you would have much more control of what you want to show in the video.
+>
+> Thats it, don't wait give it a Try.
 
 ---
 
-### 30-sec cut (Product Hunt GIF / Twitter lead media)
+### Scene breakdown
 
-Use scenes 5 → 6 → 7 → 9:
-- Calendar view (5s)
-- Approve click (3s)
-- Pipeline ticking to complete, 4× speed (7s)
-- Finished video playing (15s)
+**Scene 1 — Hook** `0:00–0:05` · *Talking head*
+- You on camera, straight to lens, deadpan delivery.
+- Line: *"I found a way to make viral UGC videos at a cheaper cost — spoiler alert, it's less than a dollar."*
+- Cut immediately after "dollar" — no pause.
 
-Export as MP4 (not GIF — GIF compression will kill the video quality).
+---
+
+**Scene 2 — The personal problem** `0:05–0:20` · *Talking head*
+- Casual, self-deprecating. This is the part people will relate to — keep the energy loose, not scripted.
+- Lines: *"I've been building software for 8 years. Biggest problem — distribution. I was never good at making videos, when I face a camera my throat dries up. And honestly I hate editing. It's boring, time-consuming, and I suck at it."*
+- B-roll option: 2-sec cut of you staring blankly at a camera or an empty editing timeline, then back to face.
+
+---
+
+**Scene 3 — The failed attempt + realization** `0:20–0:32` · *Talking head*
+- Deliver the "be a millionaire in 5 days" line with a smirk — it's the joke.
+- Lines: *"After failing a couple of products I realized I needed to fix distribution without spending hours on content. Then it hit me — just set up an AI pipeline like everyone else and be a millionaire in 5 days."*
+- Pause one beat on "5 days" for the punchline to land.
+
+---
+
+**Scene 4 — The cost problem** `0:32–0:42` · *Talking head or text overlay*
+- Lines: *"But existing AI video tools — each 30–45 second video costs more than $10. Expensive when you're already broke. And they still need editing. So I built my own engine. Complete video, no touching anything."*
+- Option: flash a quick screen grab of a competitor pricing page for 1–2 sec, then cut back to face.
+
+---
+
+**Scene 5 — Connect Facebook + website** `0:42–0:52` · *Screen recording*
+- Narration: *"First — connect your Facebook page and add your website URL."*
+- Show: `/channels` page → click "Connect Facebook Page" → OAuth → page appears in list → type website URL into the field → save.
+- Cursor zoom on each click. Move cursor slowly between targets.
+
+---
+
+**Scene 6 — Brand identity** `0:52–1:05` · *Screen recording*
+- Narration: *"Claude scrapes all the data and builds your brand identity. You can tweak a thing or two if you want."*
+- Show: `/brands/[id]/onboard` with the profile already populated (pre-generated before recording). Slow pan across niche → tone → audience fields. Click one field, type a change, save.
+- Cursor zoom on the edit.
+
+---
+
+**Scene 7 — Character sheet** `1:05–1:12` · *Screen recording*
+- Narration: *"Once finalized, it generates a character sheet — the visual identity for your brand."*
+- Show: character sheet image rendered on screen. Zoom in on the character image slowly.
+- Pre-generated. Do not record the generation in real time.
+
+---
+
+**Scene 8 — Content plan + approve** `1:12–1:25` · *Screen recording*
+- Narration: *"Press 'Create Plan' — full week of content, one video per day. Review them, edit if you want, then approve. Everything's set."*
+- Show: click Create Plan → calendar view with 7 topics visible → click one topic to show edit → click Approve button.
+- Cursor zoom on Approve click. Pause 0.5s after click.
+
+---
+
+**Scene 9 — Create video (manual control)** `1:25–1:33` · *Screen recording*
+- Narration: *"You can also hit 'Create Video' any time — new topics, viral formats, full control over what goes in."*
+- Show: click Create Video → video creation form briefly visible. Don't go deep — just show it exists.
+- Quick scene, 5–6 sec max.
+
+---
+
+**Scene 10 — Finished video plays** `1:33–1:48` · *Screen recording*
+- No narration — let the output video play for 10–12 sec.
+- Show: click play on a completed video in the library. Full screen or near-full screen.
+- This is the proof moment. Give it space.
+
+---
+
+**Scene 11 — CTA** `1:48–1:55` · *Talking head or text card*
+- Lines: *"That's it. Don't wait — give it a try."*
+- Cut to pricing page for 2 sec showing the $5 trial, then end.
+
+---
+
+### Notes
+
+- Record scenes 1–4 and 11 as **one continuous talking head take** if you can hit the timing — easier to edit than multiple cuts. Otherwise do each separately.
+- Record each screen scene as a **separate take**. One bad moment doesn't ruin the whole recording.
+- Scene 7 (character sheet) and the content plan generation — **pre-run these before recording**. Show the result, never the spinner.
+- Assemble in Screen Studio (handles zoom) or iMovie. Add captions — most people watch muted.
+
+---
+
+### 30-sec cut (Product Hunt / Twitter lead)
+
+Scenes 8 → 10 → 11:
+- Approve click on calendar (5s)
+- Finished video plays (15s)
+- "$5 trial" pricing card (5s)
+- CTA line (5s)
+
+Export as MP4 — not GIF.
