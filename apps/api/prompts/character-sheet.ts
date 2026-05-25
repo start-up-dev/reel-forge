@@ -18,7 +18,7 @@ const TONE_DESC: Record<string, string> = {
   dramatic: "bold and intense, strong presence",
 };
 
-export function buildCharacterSheetPrompt(brand: BrandProfileRow): string {
+export function buildCharacterSheetPrompt(brand: BrandProfileRow, feedback?: string): string {
   const styleDesc = VISUAL_STYLE_DESC[brand.visualStyle] ?? brand.visualStyle;
   const toneDesc = TONE_DESC[brand.tone] ?? brand.tone;
 
@@ -43,5 +43,5 @@ Requirements:
 - Character occupies approximately 80% of each cell
 - Plain white background between cells
 - Each cell is clearly labeled with its view name
-- No background scenery or props — white cell backgrounds only`.trim();
+- No background scenery or props — white cell backgrounds only${feedback ? `\n\nRefinement requested by creator: ${feedback}` : ""}`.trim();
 }

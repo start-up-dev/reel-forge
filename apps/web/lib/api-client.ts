@@ -350,9 +350,10 @@ export function createApiClient(getToken: () => Promise<string | null>) {
           method: "POST",
         });
       },
-      generateCharacterSheet(id: string): Promise<ApiResponse<{ characterSheetUrl: string }>> {
+      generateCharacterSheet(id: string, data?: { feedback?: string }): Promise<ApiResponse<{ characterSheetUrl: string }>> {
         return authedRequest(`/api/brand-profiles/${id}/generate-character-sheet`, {
           method: "POST",
+          ...(data ? { body: JSON.stringify(data) } : {}),
         });
       },
       characterSheetUrl(id: string): Promise<ApiResponse<{ url: string | null; generationCount: number }>> {

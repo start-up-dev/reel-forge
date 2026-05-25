@@ -3,24 +3,24 @@
 import { useState } from "react";
 import { useRouter, useParams } from "next/navigation";
 import Link from "next/link";
-import { Loader2, CalendarDays, Lock, ArrowUpRight, CheckCircle } from "lucide-react";
+import { Loader2, CalendarDays, Lock, ArrowUpRight, CheckCircle, Film } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@repo/ui/button";
 import { PlanType } from "@repo/types";
 import { useApiClient } from "@/lib/api-client";
 import { useUser } from "@/lib/hooks/use-user";
 
-type PostsPerDay = 1 | 3;
+type PlanMode = "single" | 1 | 3;
 
-interface CadenceOption {
-  value: PostsPerDay;
+interface WeekOption {
+  value: 1 | 3;
   label: string;
   sub: string;
   total: number;
   requiredPlan: "any" | "pro";
 }
 
-const CADENCE_OPTIONS: CadenceOption[] = [
+const WEEK_OPTIONS: WeekOption[] = [
   {
     value: 1,
     label: "1 video / day",
@@ -46,7 +46,7 @@ function PaywallOverlay() {
         </div>
         <h2 className="text-lg font-bold text-[var(--text-primary)]">Upgrade to start</h2>
         <p className="mt-2 text-sm text-[var(--text-muted)]">
-          You need a plan to generate a content calendar. Try Out gives you one full week to see how it works.
+          You need a plan to generate content. Try Out gives you one full week to see how it works.
         </p>
         <div className="mt-6 space-y-2">
           <Link
@@ -73,7 +73,7 @@ export default function NewContentPlanPage() {
   const router = useRouter();
   const api = useApiClient();
   const { user, loading: userLoading } = useUser();
-  const [selected, setSelected] = useState<PostsPerDay>(1);
+  const [selected, setSelected] = useState<PlanMode>("single");
   const [loading, setLoading] = useState(false);
 
   if (userLoading) {
@@ -97,6 +97,11 @@ export default function NewContentPlanPage() {
   const isTrial = trialPaid && plan !== PlanType.Starter && plan !== PlanType.Pro;
 
   async function handleGenerate() {
+    if (selected === "single") {
+      router.push(`/brands/${brandId}/video/new`);
+      return;
+    }
+
     setLoading(true);
     try {
       const result = await api.contentPlans.create({ brandProfileId: brandId, postsPerDay: selected });
@@ -113,12 +118,14 @@ export default function NewContentPlanPage() {
     }
   }
 
+  const isSingleSelected = selected === "single";
+
   return (
     <div className="mx-auto max-w-2xl px-4 py-10">
       <div className="mb-8">
-        <h1 className="text-2xl font-bold text-[var(--text-primary)]">Create Content Plan</h1>
+        <h1 className="text-2xl font-bold text-[var(--text-primary)]">Get Started</h1>
         <p className="mt-1 text-sm text-[var(--text-muted)]">
-          Claude will plan your full week. All videos generate at once — posting happens day by day automatically.
+          Create a single video to see how it works, or let Claude plan your full week at once.
         </p>
       </div>
 
@@ -128,7 +135,9 @@ export default function NewContentPlanPage() {
             Trial: {trialRemaining} of 7 credits remaining
           </p>
           <p className="mt-0.5 text-xs text-[var(--text-muted)]">
-            Creating a 1/day plan uses all 7 credits.{" "}
+            {selected === "single"
+              ? "Creating a single video uses 1 credit."
+              : "Creating a 1/day plan uses all 7 credits."}{" "}
             <Link href="/billing" className="underline hover:text-[var(--accent-primary)]">
               Upgrade
             </Link>{" "}
@@ -137,8 +146,39 @@ export default function NewContentPlanPage() {
         </div>
       )}
 
+      {/* Single video option */}
+      <button
+        type="button"
+        onClick={() => setSelected("single")}
+        className={`relative mb-3 w-full rounded-xl border p-5 text-left transition-all ${
+          isSingleSelected
+            ? "border-[var(--accent-primary)] bg-[var(--accent-primary)]/10"
+            : "border-[var(--bg-border)] bg-[var(--bg-elevated)] hover:border-[var(--accent-primary)]/40"
+        }`}
+      >
+        {isSingleSelected && (
+          <CheckCircle className="absolute right-3 top-3 h-4 w-4 text-[var(--accent-primary)]" />
+        )}
+        <div className="flex items-center gap-2">
+          <Film className="h-4 w-4 text-[var(--accent-primary)]" />
+          <p className="text-base font-semibold text-[var(--text-primary)]">Create a single video</p>
+          <span className="rounded-full bg-[var(--accent-primary)]/15 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-[var(--accent-primary)]">
+            Start here
+          </span>
+        </div>
+        <p className="mt-1 text-sm text-[var(--text-muted)]">
+          See the full pipeline in action · 1 video, instant results
+        </p>
+      </button>
+
+      {/* Week plan options */}
+      <div className="mb-2 px-1">
+        <p className="text-xs font-semibold uppercase tracking-wide text-[var(--text-muted)]">
+          Or plan a full week
+        </p>
+      </div>
       <div className="mb-8 grid gap-3 sm:grid-cols-2">
-        {CADENCE_OPTIONS.map((opt) => {
+        {WEEK_OPTIONS.map((opt) => {
           const locked = opt.requiredPlan === "pro" && !isPro;
           const isSelected = selected === opt.value && !locked;
 
@@ -191,16 +231,23 @@ export default function NewContentPlanPage() {
             <Loader2 className="h-4 w-4 animate-spin" />
             Claude is planning your week&hellip;
           </>
+        ) : isSingleSelected ? (
+          <>
+            <Film className="h-4 w-4" />
+            Create Video →
+          </>
         ) : (
           <>
             <CalendarDays className="h-4 w-4" />
-            Generate Week Plan
+            Generate Week Plan →
           </>
         )}
       </Button>
 
       <p className="mt-4 text-center text-xs text-[var(--text-muted)]">
-        All videos are generated upfront. Facebook handles the day-by-day posting automatically.
+        {isSingleSelected
+          ? "You'll pick the topic on the next screen."
+          : "All videos are generated upfront. Facebook handles the day-by-day posting automatically."}
       </p>
     </div>
   );

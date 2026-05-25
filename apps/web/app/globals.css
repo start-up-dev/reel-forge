@@ -133,3 +133,55 @@
     }
   }
 }
+
+/* ── Scroll-triggered animations (replaces framer-motion on landing page) ── */
+@layer base {
+  [data-fade-in] {
+    opacity: 0;
+    transform: translateY(20px);
+    transition:
+      opacity 0.6s cubic-bezier(0.21, 0.47, 0.32, 0.98),
+      transform 0.6s cubic-bezier(0.21, 0.47, 0.32, 0.98);
+  }
+
+  [data-fade-in].in-view {
+    opacity: 1;
+    transform: translateY(0);
+  }
+
+  [data-scale-in] {
+    opacity: 0;
+    transform: scale(0.95);
+    transition:
+      opacity 0.6s cubic-bezier(0.21, 0.47, 0.32, 0.98),
+      transform 0.6s cubic-bezier(0.21, 0.47, 0.32, 0.98);
+  }
+
+  [data-scale-in].in-view {
+    opacity: 1;
+    transform: scale(1);
+  }
+
+  [data-stagger-item] {
+    opacity: 0;
+    transform: translateY(20px);
+    transition:
+      opacity 0.5s cubic-bezier(0.21, 0.47, 0.32, 0.98),
+      transform 0.5s cubic-bezier(0.21, 0.47, 0.32, 0.98);
+  }
+
+  [data-stagger-item].in-view {
+    opacity: 1;
+    transform: translateY(0);
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    [data-fade-in],
+    [data-scale-in],
+    [data-stagger-item] {
+      opacity: 1 !important;
+      transform: none !important;
+      transition: none !important;
+    }
+  }
+}

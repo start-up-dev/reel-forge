@@ -487,7 +487,8 @@ export async function suggestBrandProfile(channelInfo: {
 Analyze the social media channel info provided and suggest a complete brand profile.
 Be specific and opinionated — give concrete suggestions, not generic ones.
 For colors, suggest hex codes that match the brand vibe.
-For characterDescription, be vivid and specific (2-3 sentences on appearance, personality, style).`;
+For characterDescription, be vivid and specific (2-3 sentences on appearance, personality, style).
+For visualStyle, prefer "realistic" for most brand, lifestyle, and personal-creator channels — it suits authentic UGC-style content. Only choose "cinematic" for documentary, editorial, or high-production channels where that aesthetic is clearly the core identity.`;
 
   const userContent = `Channel: "${channelInfo.pageName}" on ${channelInfo.platform}.
 ${channelInfo.websiteContext ? `\nWebsite brand context:\n${channelInfo.websiteContext}\n` : ""}

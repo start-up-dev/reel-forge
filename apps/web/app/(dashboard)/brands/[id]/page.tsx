@@ -17,7 +17,6 @@ import {
   Sparkles,
   ImageIcon,
   Film,
-  X,
 } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@repo/ui/button";
@@ -603,14 +602,6 @@ export default function BrandHubPage() {
   const [websiteIngesting, setWebsiteIngesting] = useState(false);
   const [confirmDelete, setConfirmDelete] = useState(false);
   const [deleting, setDeleting] = useState(false);
-  const [showQuickVideo, setShowQuickVideo] = useState(false);
-  const [quickTopic, setQuickTopic] = useState("");
-  const [quickVideoType, setQuickVideoType] = useState<
-    "talking" | "action_reel"
-  >("talking");
-  const [quickDuration, setQuickDuration] = useState(30);
-  const [quickCreating, setQuickCreating] = useState(false);
-
   const load = useCallback(async () => {
     const [brandResult, plansResult] = await Promise.all([
       withToast(() => api.brands.get(id), "Failed to load brand"),
@@ -681,28 +672,6 @@ export default function BrandHubPage() {
       toast.success(
         "Website analyzed — scripts will now use your brand details",
       );
-    }
-  }
-
-  async function handleQuickVideo() {
-    if (!brand || !quickTopic.trim()) return;
-    setQuickCreating(true);
-    const res = await withToast(
-      () =>
-        api.videos.generateSingle({
-          brandProfileId: brand.id,
-          topic: quickTopic.trim(),
-          videoType: quickVideoType,
-          targetDurationSeconds: quickDuration,
-        }),
-      "Failed to start video generation",
-    );
-    setQuickCreating(false);
-    if (res?.data) {
-      setShowQuickVideo(false);
-      setQuickTopic("");
-      toast.success("Video generation started!");
-      router.push("/library");
     }
   }
 
@@ -840,7 +809,7 @@ export default function BrandHubPage() {
                 <div className="flex items-center gap-2">
                   <button
                     type="button"
-                    onClick={() => setShowQuickVideo(true)}
+                    onClick={() => router.push(`/brands/${id}/video/new`)}
                     className="flex items-center gap-1.5 rounded-lg border border-[var(--accent-primary)]/40 bg-[var(--accent-primary)]/10 px-2.5 py-1.5 text-xs font-medium text-[var(--accent-primary)] transition-colors hover:bg-[var(--accent-primary)]/20"
                   >
                     <Film className="h-3.5 w-3.5" />
@@ -1218,119 +1187,6 @@ export default function BrandHubPage() {
           </div>
         </div>
       </div>
-
-      {/* Quick video modal */}
-      {showQuickVideo && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 px-4 backdrop-blur-sm">
-          <div className="w-full max-w-md rounded-2xl border border-[var(--bg-border)] bg-[var(--bg-surface)] p-6 shadow-2xl">
-            <div className="mb-5 flex items-center justify-between">
-              <div className="flex items-center gap-2">
-                <Film className="h-5 w-5 text-[var(--accent-primary)]" />
-                <h2 className="text-base font-semibold text-[var(--text-primary)]">
-                  Create Single Video
-                </h2>
-              </div>
-              <button
-                type="button"
-                onClick={() => setShowQuickVideo(false)}
-                className="rounded-lg p-1 text-[var(--text-muted)] hover:bg-[var(--bg-elevated)] hover:text-[var(--text-primary)]"
-              >
-                <X className="h-4 w-4" />
-              </button>
-            </div>
-
-            <div className="space-y-4">
-              <div>
-                <label className="mb-1.5 block text-xs font-semibold uppercase tracking-wide text-[var(--text-muted)]">
-                  Topic
-                </label>
-                <textarea
-                  value={quickTopic}
-                  onChange={(e) => setQuickTopic(e.target.value)}
-                  placeholder="e.g. 5 morning habits that changed my life"
-                  rows={3}
-                  className="w-full resize-none rounded-xl border border-[var(--bg-border)] bg-[var(--bg-elevated)] px-3 py-2.5 text-sm text-[var(--text-primary)] placeholder:text-[var(--text-muted)] focus:border-[var(--accent-primary)] focus:outline-none"
-                />
-              </div>
-
-              <div>
-                <label className="mb-1.5 block text-xs font-semibold uppercase tracking-wide text-[var(--text-muted)]">
-                  Video type
-                </label>
-                <div className="grid grid-cols-2 gap-2">
-                  {(["talking", "action_reel"] as const).map((type) => (
-                    <button
-                      key={type}
-                      type="button"
-                      onClick={() => setQuickVideoType(type)}
-                      className={`rounded-xl border px-3 py-2.5 text-left text-sm transition-colors ${
-                        quickVideoType === type
-                          ? "border-[var(--accent-primary)] bg-[var(--accent-primary)]/10 text-[var(--text-primary)]"
-                          : "border-[var(--bg-border)] text-[var(--text-secondary)] hover:border-[var(--accent-primary)]/40"
-                      }`}
-                    >
-                      <span className="block font-medium">
-                        {type === "talking" ? "Talking Head" : "Action Reel"}
-                      </span>
-                      <span className="text-xs text-[var(--text-muted)]">
-                        {type === "talking"
-                          ? "Character speaks to camera"
-                          : "Dynamic visual scenes"}
-                      </span>
-                    </button>
-                  ))}
-                </div>
-              </div>
-
-              <div>
-                <label className="mb-1.5 block text-xs font-semibold uppercase tracking-wide text-[var(--text-muted)]">
-                  Duration
-                </label>
-                <div className="flex gap-2">
-                  {[15, 30, 45, 60].map((d) => (
-                    <button
-                      key={d}
-                      type="button"
-                      onClick={() => setQuickDuration(d)}
-                      className={`flex-1 rounded-xl border py-2 text-sm font-medium transition-colors ${
-                        quickDuration === d
-                          ? "border-[var(--accent-primary)] bg-[var(--accent-primary)]/10 text-[var(--accent-primary)]"
-                          : "border-[var(--bg-border)] text-[var(--text-secondary)] hover:border-[var(--accent-primary)]/40"
-                      }`}
-                    >
-                      {d}s
-                    </button>
-                  ))}
-                </div>
-              </div>
-            </div>
-
-            <div className="mt-6 flex justify-end gap-3">
-              <button
-                type="button"
-                onClick={() => setShowQuickVideo(false)}
-                disabled={quickCreating}
-                className="rounded-xl px-4 py-2 text-sm text-[var(--text-muted)] hover:text-[var(--text-secondary)] disabled:opacity-50"
-              >
-                Cancel
-              </button>
-              <button
-                type="button"
-                onClick={() => void handleQuickVideo()}
-                disabled={quickCreating || !quickTopic.trim()}
-                className="flex items-center gap-2 rounded-xl bg-[var(--accent-primary)] px-4 py-2 text-sm font-semibold text-white disabled:opacity-50"
-              >
-                {quickCreating ? (
-                  <Loader2 className="h-4 w-4 animate-spin" />
-                ) : (
-                  <Film className="h-4 w-4" />
-                )}
-                {quickCreating ? "Starting…" : "Generate Video"}
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
 
       <ConfirmDialog
         open={confirmDelete}

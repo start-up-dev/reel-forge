@@ -19,7 +19,7 @@ import {
   ZapIcon,
 } from "lucide-react";
 import { StickyNav } from "@/components/landing/sticky-nav";
-import { VideoReelFrame } from "@/components/landing/video-reel-frame";
+import { VideoMarquee } from "@/components/landing/video-marquee";
 import {
   FadeIn,
   StaggerContainer,
@@ -194,7 +194,6 @@ function PrimaryButton({
 /* ─── Hero + Built with ReelForge (merged) ────────────────────────────────── */
 
 function HeroShowcaseSection() {
-  const repeatedVideos = [...SHOWCASE.videos, ...SHOWCASE.videos];
 
   return (
     <section id="showcase" className="relative overflow-hidden pt-28 md:pt-32">
@@ -315,30 +314,7 @@ function HeroShowcaseSection() {
           </FadeIn>
         </div>
 
-        {/* Infinite scrolling marquee */}
-        <div className="relative w-full overflow-hidden py-4 md:py-8">
-          <div className="absolute left-0 top-0 bottom-0 z-10 w-12 md:w-64 bg-gradient-to-r from-[var(--bg-base)] to-transparent pointer-events-none" />
-          <div className="absolute right-0 top-0 bottom-0 z-10 w-12 md:w-64 bg-gradient-to-l from-[var(--bg-base)] to-transparent pointer-events-none" />
-
-          <div className="flex w-max animate-scroll items-end justify-center gap-5 md:gap-10 px-4 md:px-10 hover:[animation-play-state:paused]">
-            {repeatedVideos.map((v, i) => {
-              const offsets = [
-                0, -60, -20, -100, -10, -50, -30, -80, -15, -70, -40, -90,
-              ];
-              return (
-                <div
-                  key={i}
-                  className="shrink-0"
-                  style={{
-                    marginBottom: `${Math.abs(offsets[i % offsets.length] ?? 0)}px`,
-                  }}
-                >
-                  <VideoReelFrame video={v} index={i} />
-                </div>
-              );
-            })}
-          </div>
-        </div>
+        <VideoMarquee videos={SHOWCASE.videos} />
 
         <FadeIn delay={0.2} className="mt-6 pb-20 md:pb-28 text-center px-6">
           <div className="inline-flex items-center gap-2 px-5 py-3 rounded-full bg-[var(--accent-success)]/5 border border-[var(--accent-success)]/20 backdrop-blur-md">

@@ -11,6 +11,7 @@ const REEL_COMMENTS = [
   "128", "842", "67", "234", "48", "391",
   "156", "507", "213", "89", "312", "178",
 ];
+const OFFSETS = [0, -60, -20, -100, -10, -50, -30, -80, -15, -70, -40, -90];
 
 type ReelVideo = {
   videoUrl?: string;
@@ -21,38 +22,61 @@ type ReelVideo = {
   hook: string;
 };
 
-export function VideoReelFrame({
-  video,
-  index,
-}: {
-  video: ReelVideo;
-  index: number;
-}) {
-  const videoRef = useRef<HTMLVideoElement>(null);
-  const containerRef = useRef<HTMLDivElement>(null);
+export function VideoMarquee({ videos }: { videos: ReelVideo[] }) {
+  const marqueeRef = useRef<HTMLDivElement>(null);
+  const allVideos = [...videos, ...videos];
 
   useEffect(() => {
-    const el = videoRef.current;
-    const container = containerRef.current;
-    if (!el || !container) return;
+    const container = marqueeRef.current;
+    if (!container) return;
 
+    // One shared observer for all video elements — play on enter, pause on leave
     const observer = new IntersectionObserver(
       (entries) => {
         entries.forEach((entry) => {
+          const video = entry.target as HTMLVideoElement;
           if (entry.isIntersecting) {
-            el.play().catch(() => {});
+            video.play().catch(() => {});
           } else {
-            el.pause();
+            video.pause();
           }
         });
       },
       { threshold: 0.1 },
     );
 
-    observer.observe(container);
+    container.querySelectorAll("video").forEach((v) => observer.observe(v));
+
     return () => observer.disconnect();
   }, []);
 
+  return (
+    <div className="relative w-full overflow-hidden py-4 md:py-8">
+      {/* Edge fades */}
+      <div className="absolute left-0 top-0 bottom-0 z-10 w-12 md:w-64 bg-gradient-to-r from-[var(--bg-base)] to-transparent pointer-events-none" />
+      <div className="absolute right-0 top-0 bottom-0 z-10 w-12 md:w-64 bg-gradient-to-l from-[var(--bg-base)] to-transparent pointer-events-none" />
+
+      <div
+        ref={marqueeRef}
+        className="flex w-max animate-scroll items-end justify-center gap-5 md:gap-10 px-4 md:px-10 hover:[animation-play-state:paused]"
+      >
+        {allVideos.map((v, i) => (
+          <div
+            key={i}
+            className="shrink-0"
+            style={{
+              marginBottom: `${Math.abs(OFFSETS[i % OFFSETS.length] ?? 0)}px`,
+            }}
+          >
+            <ReelFrame video={v} index={i} />
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+function ReelFrame({ video, index }: { video: ReelVideo; index: number }) {
   const likes = REEL_LIKES[index % REEL_LIKES.length];
   const comments = REEL_COMMENTS[index % REEL_COMMENTS.length];
   const initials = video.creatorName
@@ -62,10 +86,7 @@ export function VideoReelFrame({
     .join("");
 
   return (
-    <div
-      ref={containerRef}
-      className="group relative w-[210px] sm:w-[235px] md:w-[258px]"
-    >
+    <div className="group relative w-[210px] sm:w-[235px] md:w-[258px]">
       {/* Hover glow */}
       <div
         className="absolute inset-0 -z-10 rounded-[3rem] blur-3xl opacity-0 group-hover:opacity-30 transition-opacity duration-500"
@@ -82,25 +103,23 @@ export function VideoReelFrame({
         </div>
 
         {/*
-         * Screen wrapper — overlays are positioned here, NOT inside
-         * the video's overflow-hidden child, to avoid the iOS Safari
+         * Screen wrapper — overlays positioned here to avoid the iOS Safari
          * bug where nested overflow-hidden+border-radius clips absolute
-         * children incorrectly on real devices.
+         * children incorrectly.
          */}
         <div className="relative mx-1 mb-1 h-[370px] sm:h-[415px] md:h-[456px]">
-          {/* Video layer — own overflow-hidden for rounded corners */}
+          {/* Video layer */}
           <div className="absolute inset-0 overflow-hidden rounded-[1rem]">
-            {/* Gradient always rendered as base — visible while video is loading */}
+            {/* Gradient always visible as base — shows while video loads */}
             <div
               className="absolute inset-0"
               style={{
                 background: `linear-gradient(160deg, ${video.gradientFrom}, ${video.gradientTo})`,
               }}
             />
-            {/* Video sits on top; loads only when scrolled into view */}
+            {/* Video — lazy, plays only when scrolled into viewport */}
             {video.videoUrl && (
               <video
-                ref={videoRef}
                 src={video.videoUrl}
                 muted
                 loop

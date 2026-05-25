@@ -122,7 +122,6 @@ export default async function Image() {
         {/* Fix #1 — logo size via style, not HTML attrs */}
         <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
           {logo ? (
-            // eslint-disable-next-line @next/next/no-img-element
             <img
               src={logo}
               alt=""
@@ -330,7 +329,6 @@ export default async function Image() {
 
       {/* ── Right side: og-bg image ── */}
       {ogBg && (
-        // eslint-disable-next-line @next/next/no-img-element
         <img
           src={ogBg}
           alt=""

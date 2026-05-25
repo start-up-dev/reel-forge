@@ -1,7 +1,6 @@
 import type { Metadata } from "next";
 import Script from "next/script";
 import { Inter, JetBrains_Mono } from "next/font/google";
-import { ClerkProvider } from "@clerk/nextjs";
 
 import "./globals.css";
 
@@ -80,36 +79,26 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <ClerkProvider
-      appearance={{
-        variables: {
-          colorPrimary: "#f55c2a",
-        },
-      }}
-    >
-      <html lang="en" className="dark">
-        <head>
-          {/* Preconnect to R2 CDN so video requests start sooner once in viewport */}
-          <link
-            rel="preconnect"
-            href="https://pub-425a4c402193444fb20eeb6725aa6557.r2.dev"
-          />
-          <link
-            rel="dns-prefetch"
-            href="https://pub-425a4c402193444fb20eeb6725aa6557.r2.dev"
-          />
-        </head>
-        <body
-          className={`${inter.variable} ${jetbrainsMono.variable} font-sans`}
-        >
-          {children}
-        </body>
-        {/* lazyOnload — analytics must never block rendering */}
-        <Script
-          src="https://scripts.simpleanalyticscdn.com/latest.js"
-          strategy="lazyOnload"
+    <html lang="en" className="dark">
+      <head>
+        {/* Preconnect to R2 CDN so video requests start sooner once in viewport */}
+        <link
+          rel="preconnect"
+          href="https://pub-425a4c402193444fb20eeb6725aa6557.r2.dev"
         />
-      </html>
-    </ClerkProvider>
+        <link
+          rel="dns-prefetch"
+          href="https://pub-425a4c402193444fb20eeb6725aa6557.r2.dev"
+        />
+      </head>
+      <body className={`${inter.variable} ${jetbrainsMono.variable} font-sans`}>
+        {children}
+      </body>
+      {/* lazyOnload — analytics must never block rendering */}
+      <Script
+        src="https://scripts.simpleanalyticscdn.com/latest.js"
+        strategy="lazyOnload"
+      />
+    </html>
   );
 }

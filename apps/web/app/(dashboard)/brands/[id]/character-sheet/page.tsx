@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useCallback } from "react";
 import { useRouter, useParams } from "next/navigation";
-import { Loader2, RefreshCw, ArrowRight, Palette } from "lucide-react";
+import { Loader2, RefreshCw, ArrowRight, Palette, Send } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@repo/ui/button";
 import { useApiClient, withToast } from "@/lib/api-client";
@@ -22,11 +22,12 @@ export default function CharacterSheetPage() {
   const [completing, setCompleting] = useState(false);
   const [characterType, setCharacterType] = useState<string | null>(null);
   const [initializing, setInitializing] = useState(true);
+  const [feedback, setFeedback] = useState("");
 
-  const generate = useCallback(async () => {
+  const generate = useCallback(async (feedbackText?: string) => {
     setGenerating(true);
     const res = await withToast(
-      () => api.brands.generateCharacterSheet(params.id),
+      () => api.brands.generateCharacterSheet(params.id, feedbackText ? { feedback: feedbackText } : undefined),
       "Failed to generate character sheet"
     );
     setGenerating(false);
@@ -39,14 +40,12 @@ export default function CharacterSheetPage() {
 
   useEffect(() => {
     void (async () => {
-      // Fetch brand to check character type
       const brandRes = await withToast(() => api.brands.get(params.id), "Failed to load brand");
       if (!brandRes?.data) { setInitializing(false); return; }
 
       const brand = brandRes.data;
       setCharacterType(brand.characterType);
 
-      // No-character path: auto-complete and redirect
       if (brand.characterType === "none") {
         const res = await withToast(
           () => api.brands.completeOnboarding(params.id),
@@ -59,7 +58,6 @@ export default function CharacterSheetPage() {
         return;
       }
 
-      // Check if character sheet already exists
       const sheetRes = await withToast(
         () => api.brands.characterSheetUrl(params.id),
         "Failed to load character sheet"
@@ -69,7 +67,6 @@ export default function CharacterSheetPage() {
         setImageUrl(sheetRes.data.url);
         setGenerationCount(sheetRes.data.generationCount);
       } else {
-        // Auto-generate on first visit
         setInitializing(false);
         await generate();
         return;
@@ -93,10 +90,11 @@ export default function CharacterSheetPage() {
   }
 
   async function handleRegenerate() {
-    await generate();
+    const fb = feedback.trim();
+    setFeedback("");
+    await generate(fb || undefined);
   }
 
-  // Loading / initializing
   if (initializing || (generating && !imageUrl)) {
     return (
       <div className="flex min-h-[60vh] flex-col items-center justify-center gap-4">
@@ -111,7 +109,6 @@ export default function CharacterSheetPage() {
     );
   }
 
-  // No-character redirect in progress
   if (characterType === "none") {
     return (
       <div className="flex min-h-[60vh] flex-col items-center justify-center gap-4">
@@ -130,11 +127,10 @@ export default function CharacterSheetPage() {
       <div className="mb-6">
         <h1 className="text-2xl font-bold text-[var(--text-primary)]">Your Character Sheet</h1>
         <p className="mt-1 text-sm text-[var(--text-muted)]">
-          Review your AI-generated character reference sheet. Regenerate until you&apos;re happy.
+          Review your AI-generated character reference sheet. Describe changes or regenerate until you&apos;re happy.
         </p>
       </div>
 
-      {/* Generation counter */}
       {generationCount > 0 && (
         <p className="mb-4 text-xs text-[var(--text-muted)]">
           Generation {uiPreviewCount} of {MAX_UI_PREVIEWS} previews shown
@@ -142,7 +138,6 @@ export default function CharacterSheetPage() {
         </p>
       )}
 
-      {/* Character sheet image */}
       {imageUrl ? (
         <div className="mb-6 overflow-hidden rounded-2xl border border-[var(--bg-border)] bg-[var(--bg-elevated)]">
           {/* eslint-disable-next-line @next/next/no-img-element */}
@@ -158,21 +153,50 @@ export default function CharacterSheetPage() {
         </div>
       )}
 
-      {/* Actions */}
-      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-        <div className="flex items-center gap-3">
-          {canRegenerate && !generating && (
-            <Button
-              variant="secondary"
+      {/* Feedback input */}
+      {canRegenerate && !generating && (
+        <div className="mb-6 rounded-xl border border-[var(--bg-border)] bg-[var(--bg-elevated)] p-3">
+          <p className="mb-2 text-xs font-medium text-[var(--text-muted)]">
+            Ask Claude to change something
+          </p>
+          <div className="flex gap-2">
+            <input
+              type="text"
+              value={feedback}
+              onChange={(e) => setFeedback(e.target.value)}
+              onKeyDown={(e) => {
+                if (e.key === "Enter" && !e.shiftKey) {
+                  e.preventDefault();
+                  void handleRegenerate();
+                }
+              }}
+              placeholder='e.g. "Add glasses and make the hair red" or "Make the character taller"'
+              className="flex-1 rounded-lg border border-[var(--bg-border)] bg-[var(--bg-base)] px-3 py-2 text-sm text-[var(--text-primary)] placeholder:text-[var(--text-muted)] focus:border-[var(--accent-primary)] focus:outline-none"
+            />
+            <button
+              type="button"
               onClick={() => void handleRegenerate()}
               disabled={generating}
-              className="gap-2"
+              className="flex items-center gap-1.5 rounded-lg border border-[var(--accent-primary)]/40 bg-[var(--accent-primary)]/10 px-3 py-2 text-sm font-medium text-[var(--accent-primary)] transition-colors hover:bg-[var(--accent-primary)]/20 disabled:opacity-50"
             >
-              <RefreshCw className="h-4 w-4" />
-              Regenerate
-            </Button>
-          )}
+              {feedback.trim() ? (
+                <>
+                  <Send className="h-3.5 w-3.5" />
+                  Refine
+                </>
+              ) : (
+                <>
+                  <RefreshCw className="h-3.5 w-3.5" />
+                  Regenerate
+                </>
+              )}
+            </button>
+          </div>
+        </div>
+      )}
 
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+        <div className="flex items-center gap-3">
           {atUiLimit && !atBackendLimit && (
             <Button
               variant="secondary"

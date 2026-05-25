@@ -429,7 +429,8 @@ export async function brandsRoutes(fastify: FastifyInstance) {
         });
       }
 
-      const prompt = buildCharacterSheetPrompt(row);
+      const feedbackParsed = z.object({ feedback: z.string().max(500).optional() }).safeParse(request.body);
+      const prompt = buildCharacterSheetPrompt(row, feedbackParsed.data?.feedback);
       const imageBuffer = await generateCharacterSheet(prompt);
 
       const gcsPath = `brands/${id}/character-sheet.png`;
