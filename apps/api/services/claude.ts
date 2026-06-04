@@ -287,10 +287,11 @@ async function callSplitScenes(
   characterNote?: string | null,
   actionReelStyle?: string | null,
   hasCharacterSheet?: boolean,
+  isPodcast?: boolean,
 ): Promise<unknown> {
   const { system, user } =
     videoType === "talking"
-      ? buildTalkingSceneMessages(script, audioDurationSeconds, targetCount, ugcVisualStyle, characterNote, hasCharacterSheet)
+      ? buildTalkingSceneMessages(script, audioDurationSeconds, targetCount, ugcVisualStyle, characterNote, hasCharacterSheet, isPodcast)
       : videoType === "action_reel"
       ? buildActionReelSceneMessages(script, audioDurationSeconds, targetCount, actionReelStyle, characterNote, hasCharacterSheet)
       : buildScenesMessages(script, audioDurationSeconds, targetCount, renderStyle, characterNote, hasCharacterSheet);
@@ -378,6 +379,7 @@ export async function splitScenes(
   characterNote?: string | null,
   actionReelStyle?: string | null,
   hasCharacterSheet?: boolean,
+  isPodcast?: boolean,
 ): Promise<SceneSplit[]> {
   // Talking and Action Reel videos: each Grok clip is exactly 6s.
   const isFixedClip = videoType === "talking" || videoType === "action_reel";
@@ -400,6 +402,7 @@ export async function splitScenes(
       characterNote,
       actionReelStyle ?? undefined,
       hasCharacterSheet,
+      isPodcast,
     );
     const scenes = extractScenes(raw);
     if (scenes && scenes.length >= minScenes) return scenes;

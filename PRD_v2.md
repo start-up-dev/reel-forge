@@ -214,8 +214,8 @@ DRAFT
 | target_audience_vibe | text nullable | `entertainment` \| `education` \| `inspiration` \| `humor` |
 | tone | text | |
 | visual_style | text | `realistic` \| `anime` \| `3d_animation` \| `cartoon` \| `cinematic` \| `minimalist` |
-| character_type | text | `human` \| `mascot` \| `abstract` \| `none` |
-| character_description | text nullable | appearance, outfit, traits |
+| character_type | text | `human` \| `mascot` \| `abstract` \| `none` \| `podcast` |
+| character_description | text nullable | appearance, outfit, traits. For `podcast`, describes BOTH presenters (host + co-host) in this one field |
 | character_sheet_gcs_path | text nullable | R2 path (field name legacy; actually R2) |
 | logo_gcs_path | text nullable | R2 path (field name legacy; actually R2) |
 | primary_color | text nullable | hex |
@@ -227,6 +227,8 @@ DRAFT
 | character_sheet_generation_count | int default 0 | capped at 10 |
 
 **Index:** `(user_id)`
+
+**Podcast duo (`character_type = podcast`):** A two-person podcast format reusing the `talking` pipeline — no new video type or schema column. Both presenters are described together in `character_description`. The character sheet is generated as a single two-shot studio scene (both presenters stacked top/bottom with mics + headphones) rather than a single-character reference grid; Grok reproduces that scene for every clip with one active speaker per line. Requires a character sheet like other non-`none` types.
 
 ### 5.7 `content_plans`
 
@@ -449,13 +451,13 @@ All prompt builders live in `apps/api/prompts/`. They return structured input fo
 
 | File | Builder | Inputs |
 |---|---|---|
-| `script.ts` | `buildScriptMessages(brand, idea, targetDurationSeconds, renderStyle?, videoType?, actionReelStyle?)` | Brand context, idea, duration target |
+| `script.ts` | `buildScriptMessages(brand, idea, targetDurationSeconds, renderStyle?, videoType?, actionReelStyle?)` | Brand context, idea, duration target. When `brand.character_type = podcast`: writes a strict turn-by-turn two-host dialogue (no speaker labels), one sentence per 6s clip, alternating Speaker A/B |
 | `scenes.ts` | `buildScenesMessages(script, audioDurationSeconds, targetCount, renderStyle?, characterNote?, hasCharacterSheet?)` | For `generated` videoType |
-| `talking.ts` | `buildTalkingSceneMessages(script, audioDurationSeconds, targetCount, ugcVisualStyle?, characterNote?, hasCharacterSheet?)` | For `talking` videoType — 6s clips |
+| `talking.ts` | `buildTalkingSceneMessages(script, audioDurationSeconds, targetCount, ugcVisualStyle?, characterNote?, hasCharacterSheet?, isPodcast?)` | For `talking` videoType — 6s clips. `isPodcast` enables PODCAST DUO mode (two-shot, both presenters, one active speaker per line) |
 | `action-reel.ts` | `buildActionReelScriptMessages(brand, idea, targetDurationSeconds, actionReelStyle?)` | Shot-by-shot action plan (no narration) |
 | `action-reel.ts` | `buildActionReelSceneMessages(script, audioDurationSeconds, targetCount, actionReelStyle?, characterNote?, hasCharacterSheet?)` | For `action_reel` videoType — 6s clips |
 | `content-plan.ts` | `buildWeekPlanMessages(brand, postsPerDay, weekStartDate)` | Generates JSON TopicEntry array |
-| `character-sheet.ts` | `buildCharacterSheetPrompt(brand)` | Returns DALL-E prompt string for character 2×3 reference grid |
+| `character-sheet.ts` | `buildCharacterSheetPrompt(brand, feedback?)` | Returns GPT-image-2 prompt string. Default: character 2×3 reference grid. When `character_type = podcast`: a single two-shot podcast studio scene (both presenters) |
 | `character.ts` | (character description builder) | Used in scene prompts |
 | `ideas.ts` | `buildIdeasMessages(brand, topic, videoType?, actionReelStyle?)` | Returns 3 IdeaCard objects |
 | `utils.ts` | `brandContext(brand)` | Formats brand profile as readable context string |
@@ -535,7 +537,7 @@ Located in `apps/worker/src/`. Standalone Fastify service. **Must run in Docker*
 3. **Normalize:** `normalizeAllClips()` — EBU R128 loudness, trim to `durationHintSeconds` (generated only; talking/action_reel clips not trimmed to preserve lipsync/pacing)
 4. **Concatenate:** `concatenateWithTransitions()` — cross-fade transitions between clips
 5. **Transcribe:** `transcribeAudio()` — Whisper API on assembled audio
-6. **Subtitles:** `generateSubtitles()` — Claude formats transcript into styled subtitle segments; `burnSubtitles()` — ffmpeg `ass` filter
+6. **Subtitles:** `generateSubtitles()` — builds a styled `.ass` from Whisper word timestamps; `burnSubtitles()` — ffmpeg `ass` filter. All styles render **middle-centred** (ASS alignment 5) so captions sit in the vertical middle of the frame (suits the podcast two-shot seam). Robustness: zero-length Whisper word windows are kept (not dropped), and `holdUntilNext()` extends every caption to the start of the next one — no flashing or missed words; the final caption gets a minimum tail.
 7. **BGM:** Mix in if `bgmEnabled` (volume from `bgmVolume` 0–100)
 8. **Upload:** Final MP4 to R2
 9. **Complete:** Update `videos.status = COMPLETE`, `videos.outputUrl = signed URL (7-day TTL)`, emit `COMPLETE` event

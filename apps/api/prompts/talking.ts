@@ -134,6 +134,18 @@ export const UGC_VISUAL_STYLE_MODIFIERS: Record<string, UGCVisualStyleModifier> 
 
 // ─── Builder ──────────────────────────────────────────────────────────────────
 
+// PODCAST DUO MODE — overrides the single-character rules so both presenters
+// appear in every scene as a two-shot, with one active speaker per line.
+const PODCAST_SYSTEM_SECTION = `
+
+## PODCAST DUO MODE (OVERRIDE — takes precedence over all single-character rules above)
+This is a TWO-PERSON podcast. The "no second person / single character / no second character" rules are OVERRIDDEN:
+- EVERY scene shows BOTH presenters together in the SAME two-shot podcast studio — one presenter in the upper half of the 9:16 frame, the other in the lower half, each seated at the desk with a studio microphone and headphones.
+- In each scene exactly ONE presenter is the ACTIVE SPEAKER for that line: their mouth moves with visible, accurate lipsync. The OTHER presenter LISTENS and reacts naturally (slight nod, attentive look, small reaction) and does NOT speak.
+- Keep both presenters, the desk, mics, headphones, studio set, lighting, and framing IDENTICAL across every scene. Only the expressions, which presenter is speaking, and small reactions change.
+- Leave the vertical MIDDLE band of the frame relatively uncluttered — large captions will sit there later.
+- The script is a STRICT turn-by-turn dialogue. Assign speakers deterministically: even scene indices (0, 2, 4, …) → the UPPER presenter (Speaker A) is the active speaker; odd scene indices (1, 3, 5, …) → the LOWER presenter (Speaker B). Alternate every single scene with no exceptions.`;
+
 export function buildTalkingSceneMessages(
   script: string,
   audioDurationSeconds: number,
@@ -141,6 +153,7 @@ export function buildTalkingSceneMessages(
   ugcVisualStyle?: string,
   characterNote?: string | null,
   hasCharacterSheet?: boolean,
+  isPodcast?: boolean,
 ): PromptPair {
   // Style modifier section — applies to SETTING/LIGHTING/COLOUR GRADE feel.
   // When hasCharacterSheet is true the CHARACTER appearance comes from the
@@ -156,10 +169,18 @@ export function buildTalkingSceneMessages(
   }
 
   // CHARACTER LOCK — how Claude should write the CHARACTER section in every scene.
-  // Priority: hasCharacterSheet > characterNote > free invention.
+  // Priority: podcast > hasCharacterSheet > characterNote > free invention.
   let characterLockSection: string;
 
-  if (hasCharacterSheet) {
+  if (isPodcast) {
+    // Podcast brands always have a two-shot character sheet attached to Grok.
+    characterLockSection = `CHARACTER LOCK — the attached two-shot reference sheet is the ground truth:
+A podcast two-shot character sheet showing BOTH presenters in their studio is attached to Grok. Write the CHARACTER section in EVERY scene as this single line, copied verbatim with zero variation:
+"CHARACTER: Replicate BOTH presenters exactly as shown in the attached two-shot character sheet — same faces, hair, skin tones, clothing, headphones, microphones, desk, and studio set. Keep them in the same upper/lower positions. Do not alter, omit, or invent anyone."
+
+After the CHARACTER line, write ONLY: SPEAKER (the active speaker by the deterministic rule — even sceneIndex = UPPER presenter, odd sceneIndex = LOWER presenter), EXPRESSION (of both — speaker animated, listener reacting), FRAMING (always the two-shot), SETTING, LIGHTING, COLOUR GRADE.
+Never describe the presenters' appearance anywhere else — defer entirely to the sheet.`;
+  } else if (hasCharacterSheet) {
     // The operator extension attaches the character sheet image to Grok Imagine.
     // Claude must NOT describe the character — it must defer entirely to the image.
     characterLockSection = `CHARACTER LOCK — the attached reference sheet is the ground truth:
@@ -205,7 +226,7 @@ Scenes 1+: copy the SETTING line from scene 0 EXACTLY, word for word, unless the
   }
 
   return {
-    system: `${TALKING_SCENE_DIRECTOR_SYSTEM}${styleSection}`,
+    system: `${TALKING_SCENE_DIRECTOR_SYSTEM}${styleSection}${isPodcast ? PODCAST_SYSTEM_SECTION : ""}`,
     user: `Assign each sentence of this script to one scene. The script was written as exactly ${targetCount} complete sentences — assign one sentence per scene, word for word.
 
 SCRIPT:
@@ -226,6 +247,10 @@ ${characterLockSection}
 
 ${settingLockSection}
 
-CRITICAL: Every scene MUST show the character speaking to camera. Mouth open. Eyes on the lens. No B-roll. No abstract visuals. No second person in frame.`,
+${
+  isPodcast
+    ? `CRITICAL: This is a PODCAST DUO. Every scene MUST show BOTH presenters in the two-shot studio. Exactly one presenter speaks the textExcerpt (mouth open, accurate lipsync) while the other listens and reacts. Keep the set, framing, and both presenters identical across all scenes — only expressions and the active speaker change. The motionPrompt SPEAKING line is delivered by the active presenter for that scene.`
+    : `CRITICAL: Every scene MUST show the character speaking to camera. Mouth open. Eyes on the lens. No B-roll. No abstract visuals. No second person in frame.`
+}`,
   };
 }

@@ -53,6 +53,35 @@ export const ENGLISH_SCRIPT_SYSTEM = `You are an elite viral short-form video sc
 - Vague hooks: "This is so important" / "You need to hear this"
 - Trailing off — the last line must be your hardest punch, not a soft landing`;
 
+// ─── Podcast duo script system ────────────────────────────────────────────────
+// Two-person back-and-forth dialogue. Distinct from ENGLISH_SCRIPT_SYSTEM because
+// a podcast is a conversation between two hosts — not a monologue addressed to "you".
+export const PODCAST_SCRIPT_SYSTEM = `You are an elite scriptwriter for viral TWO-PERSON podcast clips on TikTok, Instagram Reels, and YouTube Shorts. You write punchy back-and-forth dialogue between two hosts that stops the scroll and makes people watch to the very end.
+
+## Core philosophy
+1. Hook is King — the very first line (Speaker A) must create an irresistible reason to keep watching: a bold claim, a provocative question, or a surprising confession.
+2. Real conversation — it must sound like two people genuinely talking: reactions, agreement, playful pushback ("Wait—", "Exactly,", "Here's the thing").
+3. Ping-pong rhythm — short lines volleyed back and forth. One speaker sets up, the other pays off.
+4. Emotion beats information — every fact serves curiosity or feeling. People share moments, not lectures.
+5. One idea, done right — one sharp insight explored through the exchange, never five shallow ones.
+
+## The two speakers
+- Speaker A (HOST) — drives the conversation: asks the sharp questions, provokes, reacts.
+- Speaker B (CO-HOST/GUEST) — delivers the insight, the story, the payoff: responds to A.
+They speak to EACH OTHER, not to the camera. Talking to each other ("you", a name) is fine; never address the audience as "you".
+
+## Language rules
+- Each line is ONE complete spoken sentence, under 16 words.
+- Contractions everywhere. Conversational, never corporate. No passive voice, no hedging.
+- Every line advances tension, curiosity, or emotion — cut anything flat.
+- The exchange must build: hook → escalation → a satisfying, punchy final beat.
+
+## What to actively avoid
+- Speaker labels, names used as labels, stage directions, or narration in the output.
+- Monologue — never let one speaker run two lines in a row.
+- Intros like "Today we're talking about…". Drop straight into the hook.
+- A soft ending — the last line must land hard.`;
+
 export const RENDER_STYLE_SCRIPT_MODIFIERS: Record<string, string> = {
   mascot: "Script style: Write entirely from the MASCOT CHARACTER's first-person point of view. The mascot IS the subject matter, personified — it speaks directly to the viewer with a playful, confident, slightly dramatic personality.",
   cartoon: "Script style: Write for cartoon animation. Use exaggerated emotions, comedic timing, and big reaction beats. At least one surprising twist. Punchy, rhythmic sentences.",
@@ -81,6 +110,32 @@ export function buildScriptMessages(
   }
 
   const styleModifier = renderStyle ? (RENDER_STYLE_SCRIPT_MODIFIERS[renderStyle] ?? "") : "";
+
+  // Podcast duo — a two-person dialogue. Runs through the "talking" videoType,
+  // so this must be checked BEFORE the talking branch below.
+  if (brand.characterType === "podcast") {
+    const [minW, maxW, sceneCount] = talkingWordRange(targetDurationSeconds);
+    return {
+      system: PODCAST_SCRIPT_SYSTEM,
+      user: `Brand context:
+${brandContext(brand)}
+
+VIDEO TYPE: TWO-PERSON PODCAST — each sentence is one 6-second clip, spoken by alternating hosts.
+
+CRITICAL STRUCTURE RULES:
+- Write EXACTLY ${sceneCount} sentences — one per clip.
+- STRICT ALTERNATION: sentence 1 = Speaker A, sentence 2 = Speaker B, sentence 3 = Speaker A, and so on. Every sentence switches speaker.
+- It must read as a genuine back-and-forth — each line directly responds to or builds on the line before it.
+- Each sentence is 12–16 words and grammatically complete — never end mid-thought.
+- Count words in each sentence before writing the next. Adjust until it's 12–16.
+- Total word count: ${minW}–${maxW} words across all ${sceneCount} sentences.
+- Speaker A opens with the hook; the final sentence is the hardest punch.
+
+Podcast topic: ${idea}
+
+Write the dialogue now, one sentence per line. Spoken words ONLY — NO speaker labels, NO names as labels, NO stage directions, NO markdown, NO numbers.`,
+    };
+  }
 
   if (videoType === "talking") {
     const [minW, maxW, sceneCount] = talkingWordRange(targetDurationSeconds);

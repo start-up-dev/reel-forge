@@ -308,7 +308,10 @@ export type TargetAudienceAge = "gen_z" | "millennial" | "gen_x" | "all";
 export type TargetAudienceVibe = "entertainment" | "education" | "inspiration" | "humor";
 export type ContentTone = "energetic" | "calm" | "witty" | "inspirational" | "professional" | "dramatic";
 export type VisualStyle = "realistic" | "anime" | "3d_animation" | "cartoon" | "cinematic" | "minimalist";
-export type CharacterType = "human" | "mascot" | "abstract" | "none";
+// "podcast" — a two-person podcast duo. Both presenters are described in
+// brandProfiles.characterDescription and rendered as a single two-shot studio
+// character sheet. Runs through the "talking" video pipeline.
+export type CharacterType = "human" | "mascot" | "abstract" | "none" | "podcast";
 
 export interface BrandProfile {
   id: string;

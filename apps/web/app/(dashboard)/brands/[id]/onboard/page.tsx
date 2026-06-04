@@ -34,6 +34,7 @@ const CHARACTER_LABEL: Record<string, string> = {
   human: "Human Presenter",
   mascot: "Brand Mascot",
   abstract: "Abstract Character",
+  podcast: "Podcast Duo",
   none: "No Character",
 };
 

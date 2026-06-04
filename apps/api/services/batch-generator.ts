@@ -277,6 +277,7 @@ export async function processVideo(
         characterNote,
         video.actionReelStyle ?? null,
         hasCharacterSheet,
+        brand.characterType === "podcast",
       );
 
       await db.delete(scenes).where(eq(scenes.videoId, videoId));

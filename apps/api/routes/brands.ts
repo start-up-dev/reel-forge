@@ -40,7 +40,7 @@ const createBody = z.object({
   targetAudienceVibe: z.enum(["entertainment", "education", "inspiration", "humor"]).optional(),
   tone: z.string().min(1),
   visualStyle: z.string().min(1),
-  characterType: z.enum(["human", "mascot", "abstract", "none"]),
+  characterType: z.enum(["human", "mascot", "abstract", "none", "podcast"]),
   characterDescription: z.string().max(2000).optional(),
   primaryColor: z.string().max(20).optional(),
   secondaryColor: z.string().max(20).optional(),
@@ -417,9 +417,12 @@ export async function brandsRoutes(fastify: FastifyInstance) {
         });
       }
 
-      if ((row.characterType === "human" || row.characterType === "mascot") && !row.characterDescription) {
+      if (
+        (row.characterType === "human" || row.characterType === "mascot" || row.characterType === "podcast") &&
+        !row.characterDescription
+      ) {
         return reply.status(400).send({
-          error: { message: "Character description is required for human and mascot types." },
+          error: { message: "Character description is required for human, mascot, and podcast types." },
         });
       }
 
