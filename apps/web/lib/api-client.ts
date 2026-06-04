@@ -2,7 +2,6 @@ import { useAuth } from "@clerk/nextjs";
 import { useMemo } from "react";
 import { toast } from "sonner";
 import type {
-  ActionReelStyle,
   ApiResponse,
   BrandProfile,
   BrandSuggestion,
@@ -14,7 +13,6 @@ import type {
   PaginatedResponse,
   PostSchedule,
   PostType,
-  RenderStyle,
   Scene,
   SocialAccount,
   SubtitleStyle,
@@ -23,7 +21,6 @@ import type {
   TopicEntry,
   User,
   Video,
-  VideoType,
   VisualStyle,
 } from "@repo/types";
 
@@ -130,13 +127,10 @@ export function createApiClient(getToken: () => Promise<string | null>) {
             | "bgmAssetId"
             | "bgmVolume"
             | "targetDurationSeconds"
-            | "renderStyle"
-            | "videoType"
             | "ugcVisualStyle"
-            | "actionReelStyle"
             | "voiceSpeed"
           >
-        > & { renderStyle?: RenderStyle | null; videoType?: VideoType; actionReelStyle?: ActionReelStyle | null }
+        > & { ugcVisualStyle?: string | null }
       ): Promise<ApiResponse<Video>> {
         return authedRequest(`/api/videos/${id}`, {
           method: "PATCH",
@@ -161,7 +155,6 @@ export function createApiClient(getToken: () => Promise<string | null>) {
       generateSingle(data: {
         brandProfileId: string;
         topic: string;
-        videoType?: "talking" | "action_reel";
         targetDurationSeconds?: number;
       }): Promise<ApiResponse<{ videoId: string }>> {
         return authedRequest("/api/videos/generate-single", {

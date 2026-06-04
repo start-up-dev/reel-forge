@@ -12,11 +12,6 @@ function getTodayDateString(): string {
   return new Date().toISOString().slice(0, 10);
 }
 
-function mapFormatToVideoType(format: string): "talking" | "action_reel" {
-  if (format === "ugc" || format === "tutorial" || format === "montage" || format === "story") return "talking";
-  return "talking";
-}
-
 const createBody = z.object({
   brandProfileId: z.string().uuid(),
   postsPerDay: z.union([z.literal(1), z.literal(3)]),
@@ -404,7 +399,7 @@ export async function contentPlansRoutes(fastify: FastifyInstance) {
                 contentPlanId: plan.id,
                 brandProfileId: plan.brandProfileId,
                 title: topic.title,
-                videoType: mapFormatToVideoType(topic.format),
+                videoType: "talking" as const,
                 status: "DRAFT" as const,
                 idea: `${topic.hook}\n\n${topic.scriptOutline}`,
                 subtitleStyle: brandRow?.subtitleStyle ?? "bold_pop",

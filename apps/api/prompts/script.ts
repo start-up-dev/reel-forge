@@ -1,6 +1,5 @@
 import type { BrandProfileRow } from "../lib/db/schema.js";
 import { brandContext } from "./utils.js";
-import { buildActionReelScriptMessages } from "./action-reel.js";
 
 export interface PromptPair {
   system?: string;
@@ -82,16 +81,6 @@ They speak to EACH OTHER, not to the camera. Talking to each other ("you", a nam
 - Intros like "Today we're talking about…". Drop straight into the hook.
 - A soft ending — the last line must land hard.`;
 
-export const RENDER_STYLE_SCRIPT_MODIFIERS: Record<string, string> = {
-  mascot: "Script style: Write entirely from the MASCOT CHARACTER's first-person point of view. The mascot IS the subject matter, personified — it speaks directly to the viewer with a playful, confident, slightly dramatic personality.",
-  cartoon: "Script style: Write for cartoon animation. Use exaggerated emotions, comedic timing, and big reaction beats. At least one surprising twist. Punchy, rhythmic sentences.",
-  animation_2d: "Script style: Clean educational explainer. Facts-forward, confident tone. Short declarative sentences that work well with animated reveals. Use sequential structure (First... Then... Finally...).",
-  motion_graphics: "Script style: Ultra-punchy kinetic script. Stats, facts, bold claims. Every sentence feels like a graphic reveal. Maximum impact per word.",
-  cinematic: "Script style: Cinematic narrative. Immersive, story-driven, documentary tone. Allow longer atmospheric sentences. Build emotional arc from hook to resolution.",
-  stock_footage: "Script style: Polished professional brand video. Warm but authoritative tone. Informational with clear value proposition. Natural and accessible language.",
-  whiteboard: "Script style: Step-by-step tutorial. Sequential structure (First... Then... Finally...). Friendly encouraging teacher tone. Each sentence introduces one concept clearly.",
-};
-
 function talkingWordRange(targetDurationSeconds: number): [number, number, number] {
   const sceneCount = Math.ceil(targetDurationSeconds / 6);
   return [sceneCount * 12, sceneCount * 16, sceneCount];
@@ -101,18 +90,8 @@ export function buildScriptMessages(
   brand: BrandProfileRow,
   idea: string,
   targetDurationSeconds: number,
-  renderStyle?: string,
-  videoType?: string,
-  actionReelStyle?: string | null,
 ): PromptPair {
-  if (videoType === "action_reel") {
-    return buildActionReelScriptMessages(brand, idea, targetDurationSeconds, actionReelStyle);
-  }
-
-  const styleModifier = renderStyle ? (RENDER_STYLE_SCRIPT_MODIFIERS[renderStyle] ?? "") : "";
-
-  // Podcast duo — a two-person dialogue. Runs through the "talking" videoType,
-  // so this must be checked BEFORE the talking branch below.
+  // Podcast duo — a two-person dialogue.
   if (brand.characterType === "podcast") {
     const [minW, maxW, sceneCount] = talkingWordRange(targetDurationSeconds);
     return {
@@ -137,13 +116,13 @@ Write the dialogue now, one sentence per line. Spoken words ONLY — NO speaker 
     };
   }
 
-  if (videoType === "talking") {
-    const [minW, maxW, sceneCount] = talkingWordRange(targetDurationSeconds);
-    return {
-      system: ENGLISH_SCRIPT_SYSTEM,
-      user: `Brand context:
+  // Talking head — the only remaining video type.
+  const [minW, maxW, sceneCount] = talkingWordRange(targetDurationSeconds);
+  return {
+    system: ENGLISH_SCRIPT_SYSTEM,
+    user: `Brand context:
 ${brandContext(brand)}
-${styleModifier ? `\n${styleModifier}\n` : ""}
+
 VIDEO TYPE: TALKING HEAD — each sentence becomes one 6-second video clip.
 
 CRITICAL STRUCTURE RULES:
@@ -157,20 +136,5 @@ CRITICAL STRUCTURE RULES:
 Video idea: ${idea}
 
 Write the script now. Spoken words only — no scene directions, no titles, no labels, no markdown, no sentence numbers.`,
-    };
-  }
-
-  const [minW, maxW] = WORDS_FOR_DURATION[targetDurationSeconds] ?? [65, 85];
-
-  return {
-    system: ENGLISH_SCRIPT_SYSTEM,
-    user: `Brand context:
-${brandContext(brand)}
-${styleModifier ? `\n${styleModifier}\n` : ""}
-Word count: ${minW}–${maxW} words (${targetDurationSeconds} seconds at natural speech pace)
-
-Video idea: ${idea}
-
-Write the script now. Spoken words only — no scene directions, no titles, no labels, no markdown.`,
   };
 }

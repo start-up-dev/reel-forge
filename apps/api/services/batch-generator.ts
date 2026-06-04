@@ -225,8 +225,7 @@ export async function processVideo(
     if (video.status === "COMPLETE") return "COMPLETE";
 
     const hasCharacterSheet = Boolean(brand.characterSheetGcsPath);
-    const effectiveUgcVisualStyle = video.ugcVisualStyle
-      ?? (video.videoType === "talking" ? (brand.visualStyle ?? null) : null);
+    const effectiveUgcVisualStyle = video.ugcVisualStyle ?? brand.visualStyle ?? null;
     const characterNote = brand.characterDescription ?? null;
 
     // If clip requests are already in the queue or assembly is running, skip
@@ -251,7 +250,7 @@ export async function processVideo(
       const needsTitle = !video.title || video.title === "Untitled Video";
       const idea = video.idea ?? video.title;
       const [script, autoTitleResult] = await Promise.all([
-        generateScript(brand, idea, video.targetDurationSeconds, video.renderStyle ?? undefined, video.videoType, video.actionReelStyle ?? undefined),
+        generateScript(brand, idea, video.targetDurationSeconds),
         needsTitle ? generateTitle(idea) : Promise.resolve(null),
       ]);
       autoTitle = autoTitleResult;
@@ -271,11 +270,8 @@ export async function processVideo(
       const sceneList = await splitScenes(
         script,
         video.targetDurationSeconds,
-        video.videoType,
-        video.renderStyle ?? null,
         effectiveUgcVisualStyle,
         characterNote,
-        video.actionReelStyle ?? null,
         hasCharacterSheet,
         brand.characterType === "podcast",
       );
@@ -288,7 +284,7 @@ export async function processVideo(
           textExcerpt: s.textExcerpt,
           visualPrompt: s.visualPrompt,
           motionPrompt: s.motionPrompt,
-          durationHintSeconds: (video.videoType === "talking" || video.videoType === "action_reel") ? 6 : Math.max(1, Math.min(6, Math.round(s.durationHintSeconds))),
+          durationHintSeconds: 6,
           approved: true,
         })),
       ).returning();
@@ -296,7 +292,7 @@ export async function processVideo(
       await db.update(videos).set({ sceneCount: inserted.length, updatedAt: new Date() }).where(eq(videos.id, videoId));
 
       // 3 — Dialogue segments (best-effort)
-      if (inserted.length > 0 && video.videoType !== "action_reel") {
+      if (inserted.length > 0) {
         try {
           const segments = await generateDialogueSegments(script, inserted.length);
           if (segments.length > 0) {
@@ -385,11 +381,6 @@ export async function processVideo(
   }
 }
 
-function mapFormatToVideoType(format: string): "talking" | "action_reel" {
-  if (format === "ugc" || format === "tutorial" || format === "montage" || format === "story") return "talking";
-  return "talking";
-}
-
 export async function startBatchGeneration(planId: string, userId: string): Promise<void> {
   try {
     let planVideos = await db
@@ -429,7 +420,7 @@ export async function startBatchGeneration(planId: string, userId: string): Prom
             contentPlanId: plan.id,
             brandProfileId: plan.brandProfileId,
             title: topic.title,
-            videoType: mapFormatToVideoType(topic.format),
+            videoType: "talking" as const,
             status: "DRAFT" as const,
             idea: `${topic.hook}\n\n${topic.scriptOutline}`,
             subtitleStyle: selfHealBrand?.subtitleStyle ?? "bold_pop",

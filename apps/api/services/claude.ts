@@ -5,9 +5,7 @@ import type { BrandProfileRow } from "../lib/db/schema.js";
 import {
   buildIdeasMessages,
   buildScriptMessages,
-  buildScenesMessages,
   buildTalkingSceneMessages,
-  buildActionReelSceneMessages,
 } from "../prompts/index.js";
 import { buildWeekPlanMessages } from "../prompts/content-plan.js";
 import { buildPostCaptionMessages } from "../prompts/caption.js";
@@ -29,8 +27,8 @@ export interface SceneSplit {
 
 // ─── Idea generation ──────────────────────────────────────────────────────────
 
-export async function generateIdeas(brand: BrandProfileRow, topic: string, videoType?: string, actionReelStyle?: string | null): Promise<IdeaCard[]> {
-  const { system, user } = buildIdeasMessages(brand, topic, videoType, actionReelStyle);
+export async function generateIdeas(brand: BrandProfileRow, topic: string): Promise<IdeaCard[]> {
+  const { system, user } = buildIdeasMessages(brand, topic);
 
   const message = await client.messages.create({
     model: "claude-sonnet-4-6",
@@ -79,11 +77,8 @@ export async function generateScript(
   brand: BrandProfileRow,
   idea: string,
   targetDurationSeconds = 30,
-  renderStyle?: string,
-  videoType?: string,
-  actionReelStyle?: string | null,
 ): Promise<string> {
-  const { system, user } = buildScriptMessages(brand, idea, targetDurationSeconds, renderStyle, videoType, actionReelStyle);
+  const { system, user } = buildScriptMessages(brand, idea, targetDurationSeconds);
 
   const message = await client.messages.create({
     model: "claude-sonnet-4-6",
@@ -281,20 +276,20 @@ async function callSplitScenes(
   script: string,
   audioDurationSeconds: number,
   targetCount: number,
-  videoType: string,
-  renderStyle?: string,
   ugcVisualStyle?: string,
   characterNote?: string | null,
-  actionReelStyle?: string | null,
   hasCharacterSheet?: boolean,
   isPodcast?: boolean,
 ): Promise<unknown> {
-  const { system, user } =
-    videoType === "talking"
-      ? buildTalkingSceneMessages(script, audioDurationSeconds, targetCount, ugcVisualStyle, characterNote, hasCharacterSheet, isPodcast)
-      : videoType === "action_reel"
-      ? buildActionReelSceneMessages(script, audioDurationSeconds, targetCount, actionReelStyle, characterNote, hasCharacterSheet)
-      : buildScenesMessages(script, audioDurationSeconds, targetCount, renderStyle, characterNote, hasCharacterSheet);
+  const { system, user } = buildTalkingSceneMessages(
+    script,
+    audioDurationSeconds,
+    targetCount,
+    ugcVisualStyle,
+    characterNote,
+    hasCharacterSheet,
+    isPodcast,
+  );
 
   const message = await client.messages.stream({
     model: "claude-sonnet-4-6",
@@ -334,11 +329,9 @@ async function callSplitScenes(
                   },
                   durationHintSeconds: {
                     type: "integer",
-                    minimum: (videoType === "talking" || videoType === "action_reel") ? 6 : 1,
+                    minimum: 6,
                     maximum: 6,
-                    description: (videoType === "talking" || videoType === "action_reel")
-                      ? "Always exactly 6 — every Grok clip is exactly 6 seconds."
-                      : `Whole-number seconds this scene lasts (1–6). All scenes must sum to exactly ${audioDurationSeconds}.`,
+                    description: "Always exactly 6 — every Grok clip is exactly 6 seconds.",
                   },
                 },
                 required: [
@@ -373,22 +366,14 @@ async function callSplitScenes(
 export async function splitScenes(
   script: string,
   audioDurationSeconds: number,
-  videoType: string,
-  renderStyle?: string | null,
   ugcVisualStyle?: string | null,
   characterNote?: string | null,
-  actionReelStyle?: string | null,
   hasCharacterSheet?: boolean,
   isPodcast?: boolean,
 ): Promise<SceneSplit[]> {
-  // Talking and Action Reel videos: each Grok clip is exactly 6s.
-  const isFixedClip = videoType === "talking" || videoType === "action_reel";
-  const targetCount = isFixedClip
-    ? Math.ceil(audioDurationSeconds / 6)
-    : Math.max(Math.ceil(audioDurationSeconds / 6), Math.round(audioDurationSeconds / 5));
-  const effectiveDuration = isFixedClip
-    ? targetCount * 6
-    : audioDurationSeconds;
+  // Talking videos: each Grok clip is exactly 6s.
+  const targetCount = Math.ceil(audioDurationSeconds / 6);
+  const effectiveDuration = targetCount * 6;
   const minScenes = targetCount;
 
   for (let attempt = 1; attempt <= 3; attempt++) {
@@ -396,11 +381,8 @@ export async function splitScenes(
       script,
       effectiveDuration,
       targetCount,
-      videoType,
-      renderStyle ?? undefined,
       ugcVisualStyle ?? undefined,
       characterNote,
-      actionReelStyle ?? undefined,
       hasCharacterSheet,
       isPodcast,
     );

@@ -21,7 +21,6 @@ export default function NewSingleVideoPage() {
 
   const [topic, setTopic] = useState("");
   const [letClaudePick, setLetClaudePick] = useState(false);
-  const [videoType, setVideoType] = useState<"talking" | "action_reel">("talking");
   const [duration, setDuration] = useState(30);
   const [creating, setCreating] = useState(false);
   const [brandName, setBrandName] = useState<string | null>(null);
@@ -43,7 +42,6 @@ export default function NewSingleVideoPage() {
         api.videos.generateSingle({
           brandProfileId: brandId,
           topic: effectiveTopic,
-          videoType,
           targetDurationSeconds: duration,
         }),
       "Failed to start video generation"
@@ -130,36 +128,6 @@ export default function NewSingleVideoPage() {
               ))}
             </div>
           )}
-        </div>
-
-        {/* Video type */}
-        <div>
-          <label className="mb-2 block text-xs font-semibold uppercase tracking-wide text-[var(--text-muted)]">
-            Video type
-          </label>
-          <div className="grid grid-cols-2 gap-2">
-            {(["talking", "action_reel"] as const).map((type) => (
-              <button
-                key={type}
-                type="button"
-                onClick={() => setVideoType(type)}
-                className={`rounded-xl border px-4 py-3 text-left transition-colors ${
-                  videoType === type
-                    ? "border-[var(--accent-primary)] bg-[var(--accent-primary)]/10"
-                    : "border-[var(--bg-border)] bg-[var(--bg-elevated)] hover:border-[var(--accent-primary)]/40"
-                }`}
-              >
-                <span className="block text-sm font-medium text-[var(--text-primary)]">
-                  {type === "talking" ? "Talking Head" : "Action Reel"}
-                </span>
-                <span className="text-xs text-[var(--text-muted)]">
-                  {type === "talking"
-                    ? "Character speaks to camera"
-                    : "Dynamic visual scenes"}
-                </span>
-              </button>
-            ))}
-          </div>
         </div>
 
         {/* Duration */}

@@ -103,21 +103,9 @@ export async function normalizeAllClips(
 
 export type TransitionPreset = { transition: string; duration: number };
 
-const TRANSITION_PRESETS: { condition: (vt: string, rs: string | null) => boolean; preset: TransitionPreset }[] = [
-  { condition: (vt) => vt === "talking",                                                                  preset: { transition: "fade",    duration: 0.3 } },
-  { condition: (vt) => vt === "action_reel",                                                              preset: { transition: "fade",    duration: 0.2 } },
-  { condition: (vt, rs) => vt === "generated" && (rs === "cinematic" || rs === "stock_footage"),          preset: { transition: "fade",    duration: 0.5 } },
-  { condition: (vt, rs) => vt === "generated" && (rs === "cartoon" || rs === "animation_2d"),             preset: { transition: "dissolve", duration: 0.4 } },
-  { condition: (vt, rs) => vt === "generated" && rs === "motion_graphics",                                preset: { transition: "zoomin",  duration: 0.3 } },
-  { condition: (vt, rs) => vt === "generated" && rs === "mascot",                                         preset: { transition: "dissolve", duration: 0.4 } },
-  { condition: (vt, rs) => vt === "generated" && rs === "whiteboard",                                     preset: { transition: "fade",    duration: 0.3 } },
-];
-
-export function getTransitionPreset(videoType: string, renderStyle: string | null): TransitionPreset {
-  for (const { condition, preset } of TRANSITION_PRESETS) {
-    if (condition(videoType, renderStyle)) return preset;
-  }
-  return { transition: "fade", duration: 0.4 };
+// Talking videos use a quick cross-fade between clips.
+export function getTransitionPreset(): TransitionPreset {
+  return { transition: "fade", duration: 0.3 };
 }
 
 // Step 2 — Concatenate with xfade/acrossfade transitions between clips.

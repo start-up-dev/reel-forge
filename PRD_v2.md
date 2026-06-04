@@ -122,18 +122,20 @@ All tables use `created_at` and `updated_at` timestamps. All UUID primary keys e
 | bgm_asset_id | text nullable | |
 | bgm_volume | int default 15 | 0–100 |
 | target_duration_seconds | int default 30 | 15/30/45/60 |
-| video_type | enum | `generated` \| `talking` \| `action_reel` |
-| ugc_visual_style | text nullable | |
-| action_reel_style | text nullable | |
+| video_type | enum | always `talking`. DB enum still carries legacy `generated` / `action_reel` values for historical rows, but nothing creates or processes them — see note below |
+| ugc_visual_style | text nullable | talking visual style |
+| action_reel_style | text nullable | **dormant** — vestigial column from the removed action_reel type |
 | voice_speed | real default 1.0 | |
 | scene_count | int default 0 | |
-| render_style | enum nullable | `mascot` \| `cartoon` \| `animation_2d` \| `motion_graphics` \| `cinematic` \| `stock_footage` \| `whiteboard` |
+| render_style | enum nullable | **dormant** — vestigial column from the removed generated type |
 | dialogue_segments | jsonb nullable | `[{ sceneIndex, dialogue }]` |
 | output_url | text nullable | R2 signed URL (7-day TTL) |
 | error | text nullable | |
 | deleted_at | timestamp nullable | soft delete |
 
 **Indexes:** `(user_id)`, `(user_id, status)`
+
+**Single video type:** `talking` is the only supported video type. The `generated` and `action_reel` types were removed (no use cases). Removal was code-only: all creation paths force `talking`, the dead prompt builders (`scenes.ts`, `action-reel.ts`) and worker branches were deleted, and UI selectors stripped. The Postgres `video_type` enum values and the `render_style` / `action_reel_style` / `ugc_visual_style`-related columns are left **dormant** (no migration) so any historical rows remain readable; the worker assembles every video through the talking pipeline regardless.
 
 #### 5.2.1 `video_status` enum state machine
 
@@ -292,7 +294,7 @@ All routes require Clerk auth (`Authorization: Bearer <session_token>`) except:
 |---|---|---|
 | GET | `/api/videos` | List user's videos. Query: `page`, `search`, `status`. Returns paginated `VideoLibraryItem[]` with `postSchedule`. |
 | GET | `/api/videos/:id` | Single video with scenes + clip request statuses. |
-| PATCH | `/api/videos/:id` | Update fields: title, idea, script, subtitleStyle, bgmEnabled, bgmAssetId, bgmVolume, targetDurationSeconds, renderStyle, videoType, ugcVisualStyle, actionReelStyle, voiceSpeed. |
+| PATCH | `/api/videos/:id` | Update fields: title, idea, script, subtitleStyle, bgmEnabled, bgmAssetId, bgmVolume, targetDurationSeconds, ugcVisualStyle, voiceSpeed. (videoType/renderStyle/actionReelStyle no longer patchable — talking-only.) |
 | DELETE | `/api/videos/:id` | Soft delete (sets `deletedAt`). |
 | PATCH | `/api/videos/:id/scenes/:index` | Edit scene: visualPrompt, motionPrompt, approved. |
 | GET | `/api/videos/:id/progress` | SSE stream of clip generation events (CLIP_PROCESSING, CLIP_DONE, CLIP_FAILED, SNAPSHOT, QUEUE_POSITION, HEARTBEAT). |
@@ -392,14 +394,14 @@ All calls use `claude-sonnet-4-6`. Title generation uses `claude-haiku-4-5-20251
 
 | Function | Purpose |
 |---|---|
-| `generateScript(brand, idea, targetDurationSeconds, renderStyle?, videoType?, actionReelStyle?)` | Returns a plain text script. Word range: 15s→30–45w, 30s→65–85w, 45s→100–120w, 60s→135–160w. Talking videos: sceneCount sentences, 12–16 words each. |
+| `generateScript(brand, idea, targetDurationSeconds)` | Returns a plain text script (talking-only): sceneCount sentences, 12–16 words each. Podcast brands get an alternating two-host dialogue. |
 | `generateTitle(idea)` | Returns 3–6 word title (haiku model). |
 | `generateDialogueSegments(script, sceneCount)` | Splits script into N segments: `[{ sceneIndex, dialogue }]`. Best-effort, non-fatal if fails. |
-| `splitScenes(script, audioDurationSeconds, videoType, renderStyle?, ugcVisualStyle?, characterNote?, actionReelStyle?, hasCharacterSheet?)` | Returns `[{ sceneIndex, textExcerpt, visualPrompt, motionPrompt, durationHintSeconds }]`. Retry loop 3× on parse failure. Talking/action_reel: always 6s per clip. |
+| `splitScenes(script, audioDurationSeconds, ugcVisualStyle?, characterNote?, hasCharacterSheet?, isPodcast?)` | Returns `[{ sceneIndex, textExcerpt, visualPrompt, motionPrompt, durationHintSeconds }]`. Retry loop 3× on parse failure. Always 6s per clip. |
 | `generateWeekPlan(brand, postsPerDay, weekStartDate)` | Returns `TopicEntry[]` (postsPerDay × 7). Uses jsonrepair for malformed JSON. |
 | `suggestBrandProfile(channelInfo)` | Returns `BrandSuggestion` from channel name/avatar + optional `websiteContext`. |
 | `extractWebsiteContext(url, pageText)` | Claude (Haiku) extracts brand facts from stripped website text. Returns a compact key-value summary. |
-| `generateIdeas(brand, topic, videoType?, actionReelStyle?)` | Returns 3 `IdeaCard[]`. |
+| `generateIdeas(brand, topic)` | Returns 3 `IdeaCard[]`. |
 
 ### 7.2 Batch Generator (`apps/api/services/batch-generator.ts`)
 
@@ -451,15 +453,14 @@ All prompt builders live in `apps/api/prompts/`. They return structured input fo
 
 | File | Builder | Inputs |
 |---|---|---|
-| `script.ts` | `buildScriptMessages(brand, idea, targetDurationSeconds, renderStyle?, videoType?, actionReelStyle?)` | Brand context, idea, duration target. When `brand.character_type = podcast`: writes a strict turn-by-turn two-host dialogue (no speaker labels), one sentence per 6s clip, alternating Speaker A/B |
-| `scenes.ts` | `buildScenesMessages(script, audioDurationSeconds, targetCount, renderStyle?, characterNote?, hasCharacterSheet?)` | For `generated` videoType |
-| `talking.ts` | `buildTalkingSceneMessages(script, audioDurationSeconds, targetCount, ugcVisualStyle?, characterNote?, hasCharacterSheet?, isPodcast?)` | For `talking` videoType — 6s clips. `isPodcast` enables PODCAST DUO mode (two-shot, both presenters, one active speaker per line) |
-| `action-reel.ts` | `buildActionReelScriptMessages(brand, idea, targetDurationSeconds, actionReelStyle?)` | Shot-by-shot action plan (no narration) |
-| `action-reel.ts` | `buildActionReelSceneMessages(script, audioDurationSeconds, targetCount, actionReelStyle?, characterNote?, hasCharacterSheet?)` | For `action_reel` videoType — 6s clips |
+| `script.ts` | `buildScriptMessages(brand, idea, targetDurationSeconds)` | Talking-only script. When `brand.character_type = podcast`: a strict turn-by-turn two-host dialogue (no speaker labels), one sentence per 6s clip, alternating Speaker A/B |
+| `talking.ts` | `buildTalkingSceneMessages(script, audioDurationSeconds, targetCount, ugcVisualStyle?, characterNote?, hasCharacterSheet?, isPodcast?)` | The sole scene director — 6s clips. `isPodcast` enables PODCAST DUO mode (two-shot, both presenters, one active speaker per line) |
 | `content-plan.ts` | `buildWeekPlanMessages(brand, postsPerDay, weekStartDate)` | Generates JSON TopicEntry array |
 | `character-sheet.ts` | `buildCharacterSheetPrompt(brand, feedback?)` | Returns GPT-image-2 prompt string. Default: character 2×3 reference grid. When `character_type = podcast`: a single two-shot podcast studio scene (both presenters) |
 | `character.ts` | (character description builder) | Used in scene prompts |
-| `ideas.ts` | `buildIdeasMessages(brand, topic, videoType?, actionReelStyle?)` | Returns 3 IdeaCard objects |
+| `ideas.ts` | `buildIdeasMessages(brand, topic)` | Returns 3 IdeaCard objects |
+
+> `scenes.ts` (generated) and `action-reel.ts` (action_reel) were deleted with their video types.
 | `utils.ts` | `brandContext(brand)` | Formats brand profile as readable context string |
 
 **`hasCharacterSheet` flag:** When true, visual prompts instruct Claude to defer character description to the attached reference sheet rather than describing in text. The extension then attaches the character sheet image to the Grok Imagine tab.
@@ -534,8 +535,8 @@ Located in `apps/worker/src/`. Standalone Fastify service. **Must run in Docker*
 
 1. **Claim:** Atomic update `ASSEMBLY_PENDING → ASSEMBLY_PROCESSING` (SKIP LOCKED for multi-instance safety)
 2. **Download:** All scene clips from R2, BGM track if `bgmEnabled`
-3. **Normalize:** `normalizeAllClips()` — EBU R128 loudness, trim to `durationHintSeconds` (generated only; talking/action_reel clips not trimmed to preserve lipsync/pacing)
-4. **Concatenate:** `concatenateWithTransitions()` — cross-fade transitions between clips
+3. **Normalize:** `normalizeAllClips()` — EBU R128 loudness; clips are not trimmed (lipsync voice is baked into each clip and must finish at its natural end)
+4. **Concatenate:** `concatenateWithTransitions()` — quick cross-fade between clips (`getTransitionPreset()`)
 5. **Transcribe:** `transcribeAudio()` — Whisper API on assembled audio
 6. **Subtitles:** `generateSubtitles()` — builds a styled `.ass` from Whisper word timestamps; `burnSubtitles()` — ffmpeg `ass` filter. All styles render **middle-centred** (ASS alignment 5) so captions sit in the vertical middle of the frame (suits the podcast two-shot seam). Robustness: zero-length Whisper word windows are kept (not dropped), and `holdUntilNext()` extends every caption to the start of the next one — no flashing or missed words; the final caption gets a minimum tail.
 7. **BGM:** Mix in if `bgmEnabled` (volume from `bgmVolume` 0–100)
@@ -661,7 +662,7 @@ All under `app/(dashboard)/` with `AppSidebar` + `AppHeader` layout.
 
 Single source of truth. Import from here everywhere — never redeclare domain types in app code.
 
-Key enums: `PlanType`, `VideoStatus`, `VideoType`, `RenderStyle`, `SubtitleStyle`, `ClipRequestStatus`, `UGCVisualStyle`, `ActionReelStyle`, `Platform`, `SocialPlatform`, `VideoStyle`, `Tone`
+Key enums: `PlanType`, `VideoStatus`, `VideoType` (talking-only; `RenderStyle`/`ActionReelStyle` retained as dormant type defs), `SubtitleStyle`, `ClipRequestStatus`, `UGCVisualStyle`, `Platform`, `SocialPlatform`, `VideoStyle`, `Tone`
 
 Key interfaces: `User`, `Video`, `Scene`, `ClipRequest`, `BrandProfile`, `BrandSuggestion`, `ContentPlan`, `TopicEntry`, `PostSchedule`, `SocialAccount`, `FacebookPage`, `IdeaCard`, `ClipProgressEvent`, `ApiResponse<T>`, `PaginatedResponse<T>`
 

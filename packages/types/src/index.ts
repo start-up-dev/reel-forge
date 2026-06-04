@@ -127,10 +127,11 @@ export enum UGCVisualStyle {
   AIClone       = "ai_clone",
 }
 
+// Talking is the only supported video type. The `generated` and `action_reel`
+// types were removed (no use cases). The DB enum still carries the legacy values
+// for any historical rows, but nothing creates or processes them anymore.
 export enum VideoType {
-  Generated  = "generated",
-  Talking    = "talking",
-  ActionReel = "action_reel",
+  Talking = "talking",
 }
 
 export enum ActionReelStyle {

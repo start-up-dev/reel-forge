@@ -56,113 +56,53 @@ export async function assembleVideo(videoId: string): Promise<void> {
     const assets = await downloadAssets(video, sceneRows);
     workDir = assets.dir;
 
-    let finalPath: string;
-    let durationSeconds: number;
+    // ── Talking video (the only supported type): lipsync voice baked into clips; ──
+    // Whisper for subtitles. Legacy generated/action_reel rows also assemble fine here.
 
-    if (video.videoType === "action_reel") {
-      // ── Action Reel: silent clips, no voice, no subtitles ─────────────────
-      const untrimmedClips = assets.clipPaths.map((c) => ({ ...c, durationHint: null }));
-      console.log(`[assemble] Normalizing ${untrimmedClips.length} clips (action_reel, no trim, loudnorm)`);
-      const normalizedPaths = await normalizeAllClips(untrimmedClips, assets.dir, true);
+    // Step 1: Normalize — don't trim. The lipsync voice is baked into each Grok
+    // clip, so the character finishes speaking at the natural end of the clip.
+    // Trimming to Claude's estimate would cut them off mid-word. EBU R128 loudness
+    // normalization keeps perceived volume consistent across clips.
+    const untrimmedClips = assets.clipPaths.map((c) => ({ ...c, durationHint: null }));
+    console.log(`[assemble] Normalizing ${untrimmedClips.length} clips (no trim, loudnorm)`);
+    const normalizedPaths = await normalizeAllClips(untrimmedClips, assets.dir, true);
 
-      console.log("[assemble] Concatenating clips with transitions");
-      const transitionPreset = getTransitionPreset(video.videoType, null);
-      finalPath = await concatenateWithTransitions(normalizedPaths, transitionPreset, assets.dir);
-      durationSeconds = await probeDuration(finalPath);
-    } else if (video.videoType === "talking") {
-      // ── Talking video: lipsync voice baked into clips; Whisper for subtitles ─
-
-      // Step 1: Normalize — don't trim talking clips. The lipsync voice is baked
-      // into each Grok clip, so the character finishes speaking at the natural
-      // end of the clip. Trimming to Claude's estimate would cut them off mid-word.
-      // EBU R128 loudness normalization applied so perceived volume is consistent across clips.
-      const untrimmedClips = assets.clipPaths.map((c) => ({ ...c, durationHint: null }));
-      console.log(`[assemble] Normalizing ${untrimmedClips.length} clips (talking, no trim, loudnorm)`);
-      const normalizedPaths = await normalizeAllClips(untrimmedClips, assets.dir, true);
-
-      // Probe clip durations for scene boundary computation (batches of 3)
-      const clipDurations: number[] = [];
-      for (let i = 0; i < normalizedPaths.length; i += 3) {
-        const batch = normalizedPaths.slice(i, i + 3);
-        const batchDurations = await Promise.all(batch.map(probeDuration));
-        clipDurations.push(...batchDurations);
-      }
-      const sceneBoundaries: number[] = [];
-      let cumulative = 0;
-      for (let i = 0; i < clipDurations.length - 1; i++) {
-        cumulative += clipDurations[i]!;
-        sceneBoundaries.push(cumulative);
-      }
-
-      // Step 2: Concatenate with smooth transitions
-      console.log("[assemble] Concatenating clips with transitions");
-      const transitionPreset = getTransitionPreset(video.videoType, video.renderStyle ?? null);
-      const concatenatedPath = await concatenateWithTransitions(normalizedPaths, transitionPreset, assets.dir);
-
-      console.log("[assemble] Talking video — extracting audio for Whisper");
-      const talkingAudioPath = await extractAudio(concatenatedPath, assets.dir);
-
-      console.log("[assemble] Transcribing with Whisper");
-      const whisperTimestamps = await transcribeAudio(talkingAudioPath, "en");
-
-      console.log("[assemble] Generating subtitles from Whisper timestamps");
-      const subtitlesPath = await generateSubtitles(
-        whisperTimestamps,
-        video.subtitleStyle,
-        assets.dir,
-        sceneBoundaries,
-      );
-
-      console.log("[assemble] Burning subtitles");
-      finalPath = await burnSubtitles(concatenatedPath, subtitlesPath, assets.dir);
-      durationSeconds = await probeDuration(finalPath);
-    } else {
-      // ── Generated video: audio-aware assembly; clip audio preserved; Whisper for subtitles ──
-      const untrimmedClips = assets.clipPaths.map((c) => ({ ...c, durationHint: null }));
-      console.log(`[assemble] Normalizing ${untrimmedClips.length} clips (generated, loudnorm)`);
-      const normalizedPaths = await normalizeAllClips(untrimmedClips, assets.dir, true);
-
-      // Probe clip durations for scene boundary computation
-      const clipDurations: number[] = [];
-      for (let i = 0; i < normalizedPaths.length; i += 3) {
-        const batch = normalizedPaths.slice(i, i + 3);
-        const batchDurations = await Promise.all(batch.map(probeDuration));
-        clipDurations.push(...batchDurations);
-      }
-      const sceneBoundaries: number[] = [];
-      let cumulative = 0;
-      for (let i = 0; i < clipDurations.length - 1; i++) {
-        cumulative += clipDurations[i]!;
-        sceneBoundaries.push(cumulative);
-      }
-
-      // Step 2: Concatenate with smooth transitions
-      console.log("[assemble] Concatenating clips with transitions");
-      const generatedTransitionPreset = getTransitionPreset(video.videoType, video.renderStyle ?? null);
-      const concatenatedPath = await concatenateWithTransitions(normalizedPaths, generatedTransitionPreset, assets.dir);
-
-      // Step 3: Extract audio for Whisper
-      console.log("[assemble] Extracting audio for Whisper");
-      const generatedAudioPath = await extractAudio(concatenatedPath, assets.dir);
-
-      // Step 4: Transcribe with Whisper
-      console.log("[assemble] Transcribing with Whisper");
-      const whisperTimestamps = await transcribeAudio(generatedAudioPath, "en");
-
-      // Step 5: Generate subtitles
-      console.log("[assemble] Generating subtitles");
-      const subtitlesPath = await generateSubtitles(
-        whisperTimestamps,
-        video.subtitleStyle,
-        assets.dir,
-        sceneBoundaries,
-      );
-
-      // Step 6: Burn subtitles
-      console.log("[assemble] Burning subtitles");
-      finalPath = await burnSubtitles(concatenatedPath, subtitlesPath, assets.dir);
-      durationSeconds = await probeDuration(finalPath);
+    // Probe clip durations for scene boundary computation (batches of 3)
+    const clipDurations: number[] = [];
+    for (let i = 0; i < normalizedPaths.length; i += 3) {
+      const batch = normalizedPaths.slice(i, i + 3);
+      const batchDurations = await Promise.all(batch.map(probeDuration));
+      clipDurations.push(...batchDurations);
     }
+    const sceneBoundaries: number[] = [];
+    let cumulative = 0;
+    for (let i = 0; i < clipDurations.length - 1; i++) {
+      cumulative += clipDurations[i]!;
+      sceneBoundaries.push(cumulative);
+    }
+
+    // Step 2: Concatenate with smooth transitions
+    console.log("[assemble] Concatenating clips with transitions");
+    const transitionPreset = getTransitionPreset();
+    const concatenatedPath = await concatenateWithTransitions(normalizedPaths, transitionPreset, assets.dir);
+
+    console.log("[assemble] Extracting audio for Whisper");
+    const talkingAudioPath = await extractAudio(concatenatedPath, assets.dir);
+
+    console.log("[assemble] Transcribing with Whisper");
+    const whisperTimestamps = await transcribeAudio(talkingAudioPath, "en");
+
+    console.log("[assemble] Generating subtitles from Whisper timestamps");
+    const subtitlesPath = await generateSubtitles(
+      whisperTimestamps,
+      video.subtitleStyle,
+      assets.dir,
+      sceneBoundaries,
+    );
+
+    console.log("[assemble] Burning subtitles");
+    const finalPath = await burnSubtitles(concatenatedPath, subtitlesPath, assets.dir);
+    const durationSeconds = await probeDuration(finalPath);
 
     // ── Step 6: Upload and notify ────────────────────────────────────────────
     const outputGcsPath = `videos/${videoId}/output.mp4`;

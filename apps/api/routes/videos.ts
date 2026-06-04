@@ -23,7 +23,6 @@ export async function videosRoutes(fastify: FastifyInstance): Promise<void> {
       const bodySchema = z.object({
         brandProfileId: z.string().uuid(),
         topic: z.string().min(1).max(500),
-        videoType: z.enum(["talking", "action_reel"]).default("talking"),
         targetDurationSeconds: z.number().int().refine((v) => [15, 30, 45, 60].includes(v)).default(30),
       });
 
@@ -32,7 +31,7 @@ export async function videosRoutes(fastify: FastifyInstance): Promise<void> {
         return reply.status(400).send({ error: { code: "VALIDATION_ERROR", message: parsed.error.message } });
       }
 
-      const { brandProfileId, topic, videoType, targetDurationSeconds } = parsed.data;
+      const { brandProfileId, topic, targetDurationSeconds } = parsed.data;
 
       const [brand] = await db
         .select({ id: brandProfiles.id, subtitleStyle: brandProfiles.subtitleStyle })
@@ -96,7 +95,7 @@ export async function videosRoutes(fastify: FastifyInstance): Promise<void> {
           contentPlanId: null,
           title: topic.slice(0, 100),
           idea: topic,
-          videoType,
+          videoType: "talking",
           targetDurationSeconds,
           status: "DRAFT",
           subtitleStyle: brand.subtitleStyle ?? "bold_pop",
@@ -259,13 +258,7 @@ export async function videosRoutes(fastify: FastifyInstance): Promise<void> {
         targetDurationSeconds: z.number().int()
           .refine(v => [15, 30, 45, 60].includes(v))
           .optional(),
-        renderStyle: z
-          .enum(["mascot", "cartoon", "animation_2d", "motion_graphics", "cinematic", "stock_footage", "whiteboard"])
-          .nullable()
-          .optional(),
-        videoType: z.enum(["talking", "action_reel"]).optional(),
         ugcVisualStyle: z.string().nullable().optional(),
-        actionReelStyle: z.string().nullable().optional(),
         voiceSpeed: z.number().min(0.5).max(2.0).optional(),
       });
 
