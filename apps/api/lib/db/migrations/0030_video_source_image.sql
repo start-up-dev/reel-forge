@@ -1,5 +1,5 @@
 ALTER TABLE "videos"
-  ADD COLUMN "source_image_gcs_path" text;
+  ADD COLUMN IF NOT EXISTS "source_image_gcs_path" text;
 --> statement-breakpoint
 ALTER TABLE "videos"
-  ADD COLUMN "is_podcast" boolean;
+  ADD COLUMN IF NOT EXISTS "is_podcast" boolean;
