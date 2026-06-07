@@ -86,6 +86,61 @@ function talkingWordRange(targetDurationSeconds: number): [number, number, numbe
   return [sceneCount * 12, sceneCount * 16, sceneCount];
 }
 
+// ─── Image-driven script system ───────────────────────────────────────────────
+// The user uploads an image and we write a script for the person(s) in it to
+// speak. Claude must look at the image, count the people, note their on-screen
+// layout, then write either a talking-head monologue (one person) or a
+// two-person podcast dialogue (two people), and report which mode it chose.
+export const IMAGE_SCRIPT_SYSTEM = `You are an elite short-form video scriptwriter. You are given an IMAGE of one or two real people, and you write the words for them to speak directly to camera, optimised for TikTok, Instagram Reels, and YouTube Shorts.
+
+## Step 1 — analyse the image (do this silently)
+- Count the people clearly featured as the subject(s): one, or two.
+- Note their on-screen layout in plain words (e.g. "single person, centre frame", "two people side by side — a man on the LEFT and a woman on the RIGHT", "two people stacked — one UPPER, one LOWER"). You will report this.
+
+## Step 2 — choose the mode
+- ONE person  → TALKING HEAD: a single-voice monologue spoken straight to camera, addressed to ONE viewer as "you".
+- TWO people  → PODCAST DUO: a back-and-forth dialogue where the two people talk to EACH OTHER (never address the viewer as "you"), strictly alternating every line.
+
+## Step 3 — write the script
+Talking head:
+- Hook in the first line, ONE sharp idea, a punchy final line. Sentences under 16 words, contractions, no corporate language.
+
+Podcast duo:
+- Speaker A is the person on the LEFT (or UPPER); Speaker B is the person on the RIGHT (or LOWER).
+- STRICT ALTERNATION: line 1 = Speaker A, line 2 = Speaker B, line 3 = Speaker A, … Each line responds to the one before it. Never let one speaker run two lines in a row.
+- Speaker A opens with the hook; the final line lands hardest.
+
+## Universal rules
+- Each line is ONE complete spoken sentence, 12–16 words, grammatically complete — never end mid-thought.
+- Spoken words ONLY: no speaker labels, no names as labels, no stage directions, no markdown, no numbers.
+- Keep the content relevant to what is actually shown in the image and the brand context.`;
+
+// Builds the text half of the image-driven script request. The caller attaches
+// the image block and uses a structured tool call to capture the script plus the
+// detected podcast flag and layout. Returns the same number of sentences as the
+// talking/podcast paths so scene-splitting stays consistent.
+export function buildImageScriptMessages(
+  brand: BrandProfileRow,
+  targetDurationSeconds: number,
+): PromptPair {
+  const [minW, maxW, sceneCount] = talkingWordRange(targetDurationSeconds);
+  return {
+    system: IMAGE_SCRIPT_SYSTEM,
+    user: `Brand context:
+${brandContext(brand)}
+
+Write the spoken script for the attached image.
+
+CRITICAL STRUCTURE RULES:
+- Write EXACTLY ${sceneCount} sentences — one per 6-second clip.
+- Each sentence is 12–16 words and grammatically complete.
+- Total word count: ${minW}–${maxW} words across all ${sceneCount} sentences.
+- If TWO people: strictly alternate speakers every sentence (A, B, A, …), Speaker A = LEFT/UPPER person.
+
+Return your result via the submit_script tool: the script (one sentence per line, spoken words only), whether it is a two-person podcast, and a short description of the on-screen layout.`,
+  };
+}
+
 export function buildScriptMessages(
   brand: BrandProfileRow,
   idea: string,

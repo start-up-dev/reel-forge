@@ -162,6 +162,28 @@ export function createApiClient(getToken: () => Promise<string | null>) {
           body: JSON.stringify(data),
         });
       },
+      sourceImageUploadUrl(data: {
+        contentType: "image/png" | "image/jpeg" | "image/webp";
+      }): Promise<ApiResponse<{ uploadUrl: string; gcsPath: string }>> {
+        return authedRequest("/api/videos/source-image-upload-url", {
+          method: "POST",
+          body: JSON.stringify(data),
+        });
+      },
+      createFromImage(data: {
+        brandProfileId: string;
+        sourceImageGcsPath: string;
+        targetDurationSeconds?: number;
+      }): Promise<ApiResponse<{ videoId: string }>> {
+        return authedRequest("/api/videos/from-image", {
+          method: "POST",
+          body: JSON.stringify(data),
+        });
+      },
+      // Resume the pipeline after the user reviews/approves the script.
+      generate(id: string): Promise<ApiResponse<{ videoId: string }>> {
+        return authedRequest(`/api/videos/${id}/generate`, { method: "POST" });
+      },
     },
 
     // ── Scenes ────────────────────────────────────────────────────────────

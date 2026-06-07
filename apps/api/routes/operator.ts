@@ -70,7 +70,9 @@ export async function operatorRoutes(fastify: FastifyInstance): Promise<void> {
           s.text_excerpt    AS "textExcerpt",
           v.video_type      AS "videoType",
           v.title           AS "videoTitle",
-          bp.character_sheet_gcs_path AS "characterSheetGcsPath"
+          -- Image-driven videos carry a per-video source image that overrides the
+          -- brand character sheet as the Grok reference anchor.
+          COALESCE(v.source_image_gcs_path, bp.character_sheet_gcs_path) AS "characterSheetGcsPath"
         FROM updated u
         LEFT JOIN scenes s ON s.video_id = u.video_id AND s.scene_index = u.scene_index
         LEFT JOIN videos v ON v.id = u.video_id

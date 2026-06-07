@@ -1,5 +1,5 @@
 export { buildIdeasMessages } from "./ideas.js";
-export { buildScriptMessages, WORDS_FOR_DURATION } from "./script.js";
+export { buildScriptMessages, buildImageScriptMessages, WORDS_FOR_DURATION } from "./script.js";
 export { buildCharacterSheetPrompt, buildUGCCharacterDescriptionPrompt } from "./character.js";
 export { buildTalkingSceneMessages, TALKING_SCENE_DIRECTOR_SYSTEM, UGC_VISUAL_STYLE_MODIFIERS } from "./talking.js";
 export { brandContext } from "./utils.js";

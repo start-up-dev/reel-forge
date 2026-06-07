@@ -4,12 +4,14 @@ import { z } from "zod";
 import type { SnapshotClip } from "@repo/types";
 import { db } from "../lib/db/index.js";
 import { brandProfiles, clipRequests, postSchedules, scenes, users, videos } from "../lib/db/schema.js";
+import { randomUUID } from "crypto";
 import {
   ASSET_URL_TTL_MINUTES,
   generateSignedReadUrl,
+  generateSignedUploadUrl,
 } from "../lib/storage.js";
 import { subscribeToVideo } from "../lib/clip-events.js";
-import { processVideo } from "../services/batch-generator.js";
+import { generateImageScript, processVideo } from "../services/batch-generator.js";
 
 const PAGE_SIZE = 20;
 
@@ -110,6 +112,156 @@ export async function videosRoutes(fastify: FastifyInstance): Promise<void> {
       void processVideo(video.id, video.id, user.id);
 
       return reply.status(201).send({ data: { videoId: video.id } });
+    },
+  );
+
+  // POST /api/videos/source-image-upload-url — signed R2 upload URL for an
+  // image-driven video's source image
+  fastify.post(
+    "/videos/source-image-upload-url",
+    async (request, reply) => {
+      const user = request.currentUser!;
+
+      const bodySchema = z.object({
+        contentType: z.enum(["image/png", "image/jpeg", "image/webp"]),
+      });
+      const parsed = bodySchema.safeParse(request.body);
+      if (!parsed.success) {
+        return reply.status(400).send({ error: { code: "VALIDATION_ERROR", message: parsed.error.message } });
+      }
+
+      const ext = parsed.data.contentType === "image/png" ? "png" : parsed.data.contentType === "image/webp" ? "webp" : "jpg";
+      const gcsPath = `users/${user.id}/source-images/${randomUUID()}.${ext}`;
+      const uploadUrl = await generateSignedUploadUrl(gcsPath, parsed.data.contentType, 15);
+
+      return reply.send({ data: { uploadUrl, gcsPath } });
+    },
+  );
+
+  // POST /api/videos/from-image — create an image-driven video and generate its
+  // script from the uploaded image, stopping at SCRIPT_READY for review
+  fastify.post(
+    "/videos/from-image",
+    async (request, reply) => {
+      const user = request.currentUser!;
+
+      const bodySchema = z.object({
+        brandProfileId: z.string().uuid(),
+        sourceImageGcsPath: z.string().min(1),
+        targetDurationSeconds: z.number().int().refine((v) => [15, 30, 45, 60].includes(v)).default(30),
+      });
+      const parsed = bodySchema.safeParse(request.body);
+      if (!parsed.success) {
+        return reply.status(400).send({ error: { code: "VALIDATION_ERROR", message: parsed.error.message } });
+      }
+
+      const { brandProfileId, sourceImageGcsPath, targetDurationSeconds } = parsed.data;
+
+      const [brand] = await db
+        .select({ id: brandProfiles.id, subtitleStyle: brandProfiles.subtitleStyle })
+        .from(brandProfiles)
+        .where(and(eq(brandProfiles.id, brandProfileId), eq(brandProfiles.userId, user.id)))
+        .limit(1);
+      if (!brand) {
+        return reply.status(404).send({ error: { code: "NOT_FOUND", message: "Brand not found." } });
+      }
+
+      // Guard against path traversal / cross-user paths.
+      if (!sourceImageGcsPath.startsWith(`users/${user.id}/source-images/`)) {
+        return reply.status(400).send({ error: { code: "VALIDATION_ERROR", message: "Invalid source image path." } });
+      }
+
+      const [freshUser] = await db
+        .select({
+          plan: users.plan,
+          trialPaid: users.trialPaid,
+          trialVideoRemaining: users.trialVideoRemaining,
+          videosThisMonth: users.videosThisMonth,
+          monthlyLimit: users.monthlyLimit,
+        })
+        .from(users)
+        .where(eq(users.id, user.id))
+        .limit(1);
+      if (!freshUser) {
+        return reply.status(401).send({ error: { message: "User not found." } });
+      }
+
+      if (freshUser.trialPaid && freshUser.plan !== "starter" && freshUser.plan !== "pro") {
+        if ((freshUser.trialVideoRemaining ?? 0) < 1) {
+          return reply.status(403).send({
+            error: { code: "INSUFFICIENT_CREDITS", message: "No trial credits remaining. Upgrade to continue.", redirect: "billing" },
+          });
+        }
+        await db.update(users).set({
+          trialVideoRemaining: sql`GREATEST(${users.trialVideoRemaining} - 1, 0)`,
+          updatedAt: new Date(),
+        }).where(eq(users.id, user.id));
+      } else if (freshUser.plan === "starter" || freshUser.plan === "pro") {
+        if (freshUser.monthlyLimit > 0 && freshUser.videosThisMonth >= freshUser.monthlyLimit) {
+          return reply.status(403).send({
+            error: { code: "QUOTA_EXCEEDED", message: "Monthly video limit reached. Upgrade to continue.", redirect: "billing" },
+          });
+        }
+        await db.update(users).set({
+          videosThisMonth: sql`${users.videosThisMonth} + 1`,
+          updatedAt: new Date(),
+        }).where(eq(users.id, user.id));
+      } else {
+        return reply.status(403).send({
+          error: { code: "NO_PLAN", message: "Upgrade required to generate videos.", redirect: "billing" },
+        });
+      }
+
+      const [video] = await db
+        .insert(videos)
+        .values({
+          userId: user.id,
+          brandProfileId,
+          contentPlanId: null,
+          title: "Untitled Video",
+          videoType: "talking",
+          targetDurationSeconds,
+          sourceImageGcsPath,
+          status: "DRAFT",
+          subtitleStyle: brand.subtitleStyle ?? "bold_pop",
+        })
+        .returning({ id: videos.id });
+      if (!video) {
+        return reply.status(500).send({ error: { message: "Failed to create video." } });
+      }
+
+      // Fire and forget — script generation; progress via /api/videos/:id/status-stream.
+      void generateImageScript(video.id);
+
+      return reply.status(201).send({ data: { videoId: video.id } });
+    },
+  );
+
+  // POST /api/videos/:id/generate — resume the pipeline after the user reviews the
+  // script (scenes → clips → assembly). Used by the image-driven review flow.
+  fastify.post<{ Params: { id: string } }>(
+    "/videos/:id/generate",
+    async (request, reply) => {
+      const user = request.currentUser!;
+      const { id } = request.params;
+
+      const [video] = await db
+        .select({ id: videos.id, status: videos.status, script: videos.script })
+        .from(videos)
+        .where(and(eq(videos.id, id), eq(videos.userId, user.id), isNull(videos.deletedAt)))
+        .limit(1);
+      if (!video) {
+        return reply.status(404).send({ error: { code: "NOT_FOUND", message: "Video not found." } });
+      }
+      if (video.status !== "SCRIPT_READY" || !video.script) {
+        return reply.status(409).send({ error: { code: "INVALID_STATE", message: "Video is not awaiting script approval." } });
+      }
+
+      // Fire and forget — resumes at scene planning (processVideo skips script gen
+      // when it sees SCRIPT_READY + a saved script).
+      void processVideo(video.id, video.id, user.id);
+
+      return reply.send({ data: { videoId: video.id } });
     },
   );
 

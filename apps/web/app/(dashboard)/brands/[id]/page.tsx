@@ -815,6 +815,14 @@ export default function BrandHubPage() {
                     <Film className="h-3.5 w-3.5" />
                     Create Video
                   </button>
+                  <button
+                    type="button"
+                    onClick={() => router.push(`/brands/${id}/image-video/new`)}
+                    className="flex items-center gap-1.5 rounded-lg border border-[var(--bg-border)] px-2.5 py-1.5 text-xs font-medium text-[var(--text-secondary)] transition-colors hover:border-[var(--accent-primary)]/40 hover:text-[var(--text-primary)]"
+                  >
+                    <ImageIcon className="h-3.5 w-3.5" />
+                    Animate Image
+                  </button>
                   <Button
                     asChild
                     variant="secondary"

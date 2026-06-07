@@ -212,6 +212,10 @@ export interface Video {
   videoType: VideoType;
   ugcVisualStyle: UGCVisualStyle | null;
   actionReelStyle: ActionReelStyle | null;
+  // Image-driven videos: user-uploaded source image (R2 path) used as the Grok
+  // reference anchor, and the podcast flag detected from that image.
+  sourceImageGcsPath: string | null;
+  isPodcast: boolean | null;
   ugcCharacterDescription: string | null;
   sceneCount: number;
   voiceSpeed: number;

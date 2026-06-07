@@ -125,6 +125,8 @@ All tables use `created_at` and `updated_at` timestamps. All UUID primary keys e
 | video_type | enum | always `talking`. DB enum still carries legacy `generated` / `action_reel` values for historical rows, but nothing creates or processes them — see note below |
 | ugc_visual_style | text nullable | talking visual style |
 | action_reel_style | text nullable | **dormant** — vestigial column from the removed action_reel type |
+| source_image_gcs_path | text nullable | image-driven videos: user-uploaded source image (R2 path). When set, overrides the brand character sheet as the Grok reference anchor for every clip (see §7.2, §6.8) |
+| is_podcast | bool nullable | image-driven videos: detected from the uploaded image (two people → podcast). Null falls back to the brand `character_type`. Drives the two-shot alternating scene logic |
 | voice_speed | real default 1.0 | |
 | scene_count | int default 0 | |
 | render_style | enum nullable | **dormant** — vestigial column from the removed generated type |
@@ -301,6 +303,10 @@ All routes require Clerk auth (`Authorization: Bearer <session_token>`) except:
 | GET | `/api/videos/:id/status-stream` | SSE polling every 2s: status, clipsDone, clipsTotal, queuePosition, estimatedWaitSeconds. |
 | POST | `/api/videos/:id/post` | Manually post video to Facebook. Body: `{ socialAccountId, postType, scheduledAt? }`. |
 | GET | `/api/videos/:id/post-status` | All post_schedules for a video. |
+| POST | `/api/videos/generate-single` | Create a single topic-based video (no content plan) and run the full pipeline. |
+| POST | `/api/videos/source-image-upload-url` | Image-driven flow: signed R2 upload URL for a source image. Body: `{ contentType }`. Returns `{ uploadUrl, gcsPath }`. |
+| POST | `/api/videos/from-image` | Image-driven flow: create a video from an uploaded image and generate its script via Claude vision, stopping at `SCRIPT_READY` for review. Body: `{ brandProfileId, sourceImageGcsPath, targetDurationSeconds? }`. Consumes quota. |
+| POST | `/api/videos/:id/generate` | Resume the pipeline after the user reviews/edits the script (scenes → clips → assembly). Requires status `SCRIPT_READY` + a saved script. |
 
 ### 6.3 Users (`/api/users`)
 
@@ -367,7 +373,7 @@ Authenticated with `X-Operator-Secret` header.
 | Method | Path | Description |
 |---|---|---|
 | GET | `/api/operator/queue/count` | Queued clip count. |
-| GET | `/api/operator/queue` | Atomically claim clips (FOR UPDATE SKIP LOCKED). Query: `batch_size` (default 30, max 50). Returns clip details including characterSheetUrl. |
+| GET | `/api/operator/queue` | Atomically claim clips (FOR UPDATE SKIP LOCKED). Query: `batch_size` (default 30, max 50). Returns clip details including characterSheetUrl. The anchor image is `COALESCE(videos.source_image_gcs_path, brand_profiles.character_sheet_gcs_path)` — an image-driven video's uploaded image overrides the brand sheet — signed and returned as `characterSheetUrl` (extension is unchanged). |
 | POST | `/api/operator/clips/:id/upload-url` | Get 30-min signed PUT URL for clip upload. |
 | POST | `/api/operator/clips/:id/complete` | Mark clip done, update scene, dispatch assembly if all clips complete. Body: `{ gcsPath }`. |
 | POST | `/api/operator/clips/:id/fail` | Mark clip failed. Body: `{ error }`. |
@@ -395,6 +401,7 @@ All calls use `claude-sonnet-4-6`. Title generation uses `claude-haiku-4-5-20251
 | Function | Purpose |
 |---|---|
 | `generateScript(brand, idea, targetDurationSeconds)` | Returns a plain text script (talking-only): sceneCount sentences, 12–16 words each. Podcast brands get an alternating two-host dialogue. |
+| `generateScriptFromImage(brand, image, targetDurationSeconds)` | **Vision.** Looks at a user-uploaded image (base64) and returns `{ script, isPodcast, layout }` via a `submit_script` tool call. One person → talking-head monologue; two people → alternating two-person podcast dialogue (Speaker A = LEFT/UPPER). `layout` captures the on-screen positions so lipsync lands on the right face. |
 | `generateTitle(idea)` | Returns 3–6 word title (haiku model). |
 | `generateDialogueSegments(script, sceneCount)` | Splits script into N segments: `[{ sceneIndex, dialogue }]`. Best-effort, non-fatal if fails. |
 | `splitScenes(script, audioDurationSeconds, ugcVisualStyle?, characterNote?, hasCharacterSheet?, isPodcast?)` | Returns `[{ sceneIndex, textExcerpt, visualPrompt, motionPrompt, durationHintSeconds }]`. Retry loop 3× on parse failure. Always 6s per clip. |
@@ -412,14 +419,16 @@ All calls use `claude-sonnet-4-6`. Title generation uses `claude-haiku-4-5-20251
 **Self-healing:** if plan was approved but video rows are missing (crash during approve transaction), recreates video rows from `plan.topics`.
 
 **Per-video pipeline (`processVideo`):**
-1. `generateScript()` → updates `videos.script`, status → SCRIPT_READY
+1. `generateScript()` → updates `videos.script`, status → SCRIPT_READY. **Resume gate:** if the video is already `SCRIPT_READY` with a saved script (image-driven flow, after user review), this step is skipped and the pipeline resumes at scenes.
 2. `generateTitle()` if title is missing
-3. `splitScenes()` → inserts `scenes` rows, status → SCENES_READY
+3. `splitScenes()` → inserts `scenes` rows, status → SCENES_READY. Podcast-ness comes from `video.is_podcast ?? (brand.character_type === "podcast")`, so per-video image detection drives the two-shot logic. `hasCharacterSheet` is true when the brand has a sheet **or** the video has a `source_image_gcs_path`.
 4. `generateDialogueSegments()` (best-effort) → stores in `videos.dialogue_segments`
 5. Inserts `clip_requests` rows (dialogue prepended to motionPrompt if present), status → CLIPS_QUEUED
 6. Increments `users.videosToday + 1`, `videosThisMonth + 1`
 7. Polls video status every 30s, timeout 30 minutes
 8. Returns `"COMPLETE" | "FAILED"`
+
+**Image-driven entry (`generateImageScript(videoId)`):** standalone single-video flow (no content plan; uses `videoId` as the SSE channel). Fetches the `source_image_gcs_path` from R2 as base64, calls `generateScriptFromImage()`, persists `script` + `is_podcast`, and stops at `SCRIPT_READY` for the user to review. The user then calls `POST /api/videos/:id/generate`, which invokes `processVideo` — it sees `SCRIPT_READY` + script and resumes at scene planning (see resume gate above).
 
 **After all videos complete:**
 - Calls `autoPostCompletedVideos()` — posts to Facebook if `postType !== "manual"`
@@ -454,6 +463,7 @@ All prompt builders live in `apps/api/prompts/`. They return structured input fo
 | File | Builder | Inputs |
 |---|---|---|
 | `script.ts` | `buildScriptMessages(brand, idea, targetDurationSeconds)` | Talking-only script. When `brand.character_type = podcast`: a strict turn-by-turn two-host dialogue (no speaker labels), one sentence per 6s clip, alternating Speaker A/B |
+| `script.ts` | `buildImageScriptMessages(brand, targetDurationSeconds)` | Image-driven script (vision). Claude analyses the attached image, counts people, notes layout, then writes a talking-head monologue (1 person) or alternating podcast dialogue (2 people). Paired with a `submit_script` tool call that also returns `isPodcast` + `layout` |
 | `talking.ts` | `buildTalkingSceneMessages(script, audioDurationSeconds, targetCount, ugcVisualStyle?, characterNote?, hasCharacterSheet?, isPodcast?)` | The sole scene director — 6s clips. `isPodcast` enables PODCAST DUO mode (two-shot, both presenters, one active speaker per line) |
 | `content-plan.ts` | `buildWeekPlanMessages(brand, postsPerDay, weekStartDate)` | Generates JSON TopicEntry array |
 | `character-sheet.ts` | `buildCharacterSheetPrompt(brand, feedback?)` | Returns GPT-image-2 prompt string. Default: character 2×3 reference grid. When `character_type = podcast`: a single two-shot podcast studio scene (both presenters) |
@@ -631,6 +641,8 @@ All under `app/(dashboard)/` with `AppSidebar` + `AppHeader` layout.
 | `/brands/[id]` | Brand detail — two-column hub: identity cards with inline edit + channels + content plans (left); character sheet preview/regenerate + delete brand (right) |
 | `/brands/[id]/onboard` | Claude-assistant brand setup/edit — works for both new and completed brands |
 | `/brands/[id]/character-sheet` | GPT-image-2 character sheet — post-onboarding setup destination |
+| `/brands/[id]/video/new` | Create a single topic-based video (no content plan) |
+| `/brands/[id]/image-video/new` | Image-driven video: upload an image → Claude writes the script from it (vision) → review/edit the script → approve & generate. Detects two-person podcasts. Entry point is the "Animate Image" button on the brand detail page |
 | `/brands/[id]/plan/new` | Choose posting cadence (1/2/3/5 per day) |
 | `/brands/[id]/plan/[planId]` | Content plan — draft state shows calendar grid for topic editing; post-approval shows pipeline kanban (Generating / Ready / Posted / Failed) with calendar as secondary view |
 | `/brands/[id]/plan/[planId]/progress` | Agentic progress view — status per video, activity feed |

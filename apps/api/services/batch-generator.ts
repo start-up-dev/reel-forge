@@ -4,7 +4,7 @@ import { brandProfiles, clipRequests, contentPlans, postSchedules, scenes, socia
 import { emitPlanEvent } from "../lib/plan-event-bus.js";
 import { generateSignedReadUrl } from "../lib/storage.js";
 import { uploadReelToFacebook } from "./facebook.js";
-import { generateDialogueSegments, generatePostCaption, generateScript, generateTitle, splitScenes } from "./claude.js";
+import { generateDialogueSegments, generatePostCaption, generateScript, generateScriptFromImage, generateTitle, splitScenes } from "./claude.js";
 import { sendBatchCompleteEmail } from "./email.js";
 import type { TopicEntry } from "./claude.js";
 
@@ -197,6 +197,65 @@ export async function postSingleVideoToFacebook(planId: string, videoId: string)
   }
 }
 
+// Fetch an R2 object as base64 for passing to Claude vision.
+async function fetchImageAsBase64(gcsPath: string): Promise<{ base64: string; mediaType: string }> {
+  const url = await generateSignedReadUrl(gcsPath, 60);
+  const res = await fetch(url);
+  if (!res.ok) throw new Error(`Failed to fetch source image (${res.status})`);
+  const mediaType = res.headers.get("content-type") ?? "image/png";
+  const buf = Buffer.from(await res.arrayBuffer());
+  return { base64: buf.toString("base64"), mediaType };
+}
+
+/**
+ * Phase 1 only, for image-driven videos: look at the uploaded image, write the
+ * script, detect podcast vs single talking head, and stop at SCRIPT_READY for the
+ * user to review. Resume the rest of the pipeline by calling processVideo, which
+ * skips straight to scene planning when it sees SCRIPT_READY + a saved script.
+ */
+export async function generateImageScript(videoId: string): Promise<void> {
+  const planId = videoId; // standalone single-video flow uses videoId as the SSE channel
+  const [video] = await db.select().from(videos).where(eq(videos.id, videoId)).limit(1);
+  if (!video) throw new Error("Video not found");
+  if (!video.brandProfileId) throw new Error(`Video ${videoId} has no brand profile attached`);
+  if (!video.sourceImageGcsPath) throw new Error(`Video ${videoId} has no source image`);
+
+  const [brand] = await db
+    .select()
+    .from(brandProfiles)
+    .where(eq(brandProfiles.id, video.brandProfileId))
+    .limit(1);
+  if (!brand) throw new Error(`Brand profile not found for video ${videoId}`);
+
+  try {
+    emitPlanEvent(planId, { type: "VIDEO_UPDATE", videoId, title: video.title, status: "SCRIPT_PENDING", message: "Scripting from your image…" });
+    await db.update(videos).set({ status: "SCRIPT_PENDING", updatedAt: new Date() }).where(eq(videos.id, videoId));
+
+    const image = await fetchImageAsBase64(video.sourceImageGcsPath);
+    const result = await generateScriptFromImage(brand, image, video.targetDurationSeconds);
+
+    // Image videos have no topic, so derive the title from the generated script.
+    const needsTitle = !video.title || video.title === "Untitled Video";
+    const firstLine = result.script.split("\n").map((l) => l.trim()).find(Boolean) ?? video.title;
+    const autoTitle = needsTitle ? await generateTitle(firstLine) : null;
+
+    await db.update(videos).set({
+      script: result.script,
+      isPodcast: result.isPodcast,
+      status: "SCRIPT_READY",
+      ...(autoTitle ? { title: autoTitle } : {}),
+      updatedAt: new Date(),
+    }).where(eq(videos.id, videoId));
+
+    emitPlanEvent(planId, { type: "VIDEO_UPDATE", videoId, title: autoTitle ?? video.title, status: "SCRIPT_READY", message: "Script ready for review" });
+  } catch (err) {
+    const messageText = err instanceof Error ? err.message : "Image script generation failed";
+    await db.update(videos).set({ status: "FAILED", error: messageText, updatedAt: new Date() }).where(eq(videos.id, videoId));
+    emitPlanEvent(planId, { type: "VIDEO_UPDATE", videoId, title: video.title, status: "FAILED", message: messageText });
+    throw err;
+  }
+}
+
 export async function processVideo(
   planId: string,
   videoId: string,
@@ -224,9 +283,12 @@ export async function processVideo(
     // Idempotent: already done, nothing to do.
     if (video.status === "COMPLETE") return "COMPLETE";
 
-    const hasCharacterSheet = Boolean(brand.characterSheetGcsPath);
+    const hasCharacterSheet = Boolean(brand.characterSheetGcsPath || video.sourceImageGcsPath);
     const effectiveUgcVisualStyle = video.ugcVisualStyle ?? brand.visualStyle ?? null;
     const characterNote = brand.characterDescription ?? null;
+    // Image-driven videos detect podcast-ness from the uploaded image (stored per
+    // video); everything else inherits it from the brand characterType.
+    const isPodcastVideo = video.isPodcast ?? (brand.characterType === "podcast");
 
     // If clip requests are already in the queue or assembly is running, skip
     // script/scenes regeneration and go straight to waiting for completion.
@@ -239,28 +301,36 @@ export async function processVideo(
       video.status === "ASSEMBLY_PROCESSING"
     );
 
+    // SCRIPT_READY with a saved script means the script was already generated and
+    // reviewed (image-driven flow) — skip regeneration and resume at scene planning.
+    const resumeFromScript = video.status === "SCRIPT_READY" && Boolean(video.script);
+
     let autoTitle: string | null = null;
+    let script = video.script ?? "";
 
     if (!resumeFromAssembly) {
-      // 1 — Generate script
-      emitPlanEvent(planId, { type: "VIDEO_UPDATE", videoId, title: video.title, status: "SCRIPT_PENDING", message: "Scripting…" });
+      if (!resumeFromScript) {
+        // 1 — Generate script
+        emitPlanEvent(planId, { type: "VIDEO_UPDATE", videoId, title: video.title, status: "SCRIPT_PENDING", message: "Scripting…" });
 
-      await db.update(videos).set({ status: "SCRIPT_PENDING", updatedAt: new Date() }).where(eq(videos.id, videoId));
+        await db.update(videos).set({ status: "SCRIPT_PENDING", updatedAt: new Date() }).where(eq(videos.id, videoId));
 
-      const needsTitle = !video.title || video.title === "Untitled Video";
-      const idea = video.idea ?? video.title;
-      const [script, autoTitleResult] = await Promise.all([
-        generateScript(brand, idea, video.targetDurationSeconds),
-        needsTitle ? generateTitle(idea) : Promise.resolve(null),
-      ]);
-      autoTitle = autoTitleResult;
+        const needsTitle = !video.title || video.title === "Untitled Video";
+        const idea = video.idea ?? video.title;
+        const [generatedScript, autoTitleResult] = await Promise.all([
+          generateScript(brand, idea, video.targetDurationSeconds),
+          needsTitle ? generateTitle(idea) : Promise.resolve(null),
+        ]);
+        script = generatedScript;
+        autoTitle = autoTitleResult;
 
-      await db.update(videos).set({
-        script,
-        status: "SCRIPT_READY",
-        ...(autoTitle ? { title: autoTitle } : {}),
-        updatedAt: new Date(),
-      }).where(eq(videos.id, videoId));
+        await db.update(videos).set({
+          script,
+          status: "SCRIPT_READY",
+          ...(autoTitle ? { title: autoTitle } : {}),
+          updatedAt: new Date(),
+        }).where(eq(videos.id, videoId));
+      }
 
       // 2 — Generate scenes
       emitPlanEvent(planId, { type: "VIDEO_UPDATE", videoId, title: autoTitle ?? video.title, status: "SCENES_PENDING", message: "Planning scenes…" });
@@ -273,7 +343,7 @@ export async function processVideo(
         effectiveUgcVisualStyle,
         characterNote,
         hasCharacterSheet,
-        brand.characterType === "podcast",
+        isPodcastVideo,
       );
 
       await db.delete(scenes).where(eq(scenes.videoId, videoId));

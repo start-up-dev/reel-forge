@@ -4,6 +4,7 @@ import { env } from "../lib/env.js";
 import type { BrandProfileRow } from "../lib/db/schema.js";
 import {
   buildIdeasMessages,
+  buildImageScriptMessages,
   buildScriptMessages,
   buildTalkingSceneMessages,
 } from "../prompts/index.js";
@@ -90,6 +91,92 @@ export async function generateScript(
   const script = message.content[0]?.type === "text" ? message.content[0].text.trim() : "";
   if (!script) throw new Error("Script generation returned empty.");
   return script;
+}
+
+// ─── Image-driven script generation (vision) ──────────────────────────────────
+
+export interface ImageScriptResult {
+  script: string;
+  // True when the uploaded image shows two people → route the rest of the
+  // pipeline through the existing podcast (two-shot, alternating) logic.
+  isPodcast: boolean;
+  // Plain-language description of the subjects' on-screen layout, e.g.
+  // "two people side by side — man on the LEFT, woman on the RIGHT". Carried
+  // into scene direction so lipsync lands on the correct face.
+  layout: string;
+}
+
+/**
+ * Looks at a user-uploaded image and writes the spoken script for the person(s)
+ * in it, detecting whether it is a single talking head or a two-person podcast.
+ * Used by the image-driven video flow (see batch-generator.processVideo).
+ */
+export async function generateScriptFromImage(
+  brand: BrandProfileRow,
+  image: { base64: string; mediaType: string },
+  targetDurationSeconds = 30,
+): Promise<ImageScriptResult> {
+  const { system, user } = buildImageScriptMessages(brand, targetDurationSeconds);
+
+  const message = await client.messages.create({
+    model: "claude-sonnet-4-6",
+    max_tokens: 1024,
+    ...(system ? { system } : {}),
+    tools: [
+      {
+        name: "submit_script",
+        description: "Submit the spoken script and the analysis of the uploaded image.",
+        input_schema: {
+          type: "object" as const,
+          properties: {
+            script: {
+              type: "string",
+              description: "The spoken script, one sentence per line, spoken words only.",
+            },
+            isPodcast: {
+              type: "boolean",
+              description: "True if the image shows two people (a two-person podcast); false for a single talking head.",
+            },
+            layout: {
+              type: "string",
+              description: "Short description of the subjects' on-screen layout (e.g. 'single person centre frame' or 'two people side by side — man LEFT, woman RIGHT').",
+            },
+          },
+          required: ["script", "isPodcast", "layout"],
+        },
+      },
+    ],
+    tool_choice: { type: "tool", name: "submit_script" },
+    messages: [
+      {
+        role: "user",
+        content: [
+          {
+            type: "image",
+            source: {
+              type: "base64",
+              media_type: image.mediaType as "image/jpeg" | "image/png" | "image/webp" | "image/gif",
+              data: image.base64,
+            },
+          },
+          { type: "text", text: user },
+        ],
+      },
+    ],
+  });
+
+  const toolUse = message.content.find(
+    (b): b is Anthropic.ToolUseBlock => b.type === "tool_use",
+  );
+  if (!toolUse) throw new Error("Image script generation returned no tool call.");
+  const result = toolUse.input as Partial<ImageScriptResult>;
+  const script = (result.script ?? "").trim();
+  if (!script) throw new Error("Image script generation returned empty script.");
+  return {
+    script,
+    isPodcast: Boolean(result.isPodcast),
+    layout: result.layout ?? "",
+  };
 }
 
 export async function generateTitle(idea: string): Promise<string> {

@@ -172,6 +172,12 @@ export const videos = pgTable(
     videoType: videoTypeEnum("video_type").notNull().default("generated"),
     ugcVisualStyle: text("ugc_visual_style"),
     actionReelStyle: text("action_reel_style"),
+    // User-uploaded source image to animate (image-driven videos). When set, this
+    // overrides the brand character sheet as the Grok reference anchor for every clip.
+    sourceImageGcsPath: text("source_image_gcs_path"),
+    // Per-video podcast flag. For image-driven videos this is detected from the
+    // uploaded image (two people → podcast); null falls back to the brand characterType.
+    isPodcast: boolean("is_podcast"),
     voiceSpeed: real("voice_speed").notNull().default(1.0),
     sceneCount: integer("scene_count").notNull().default(0),
     renderStyle: renderStyleEnum("render_style"),
