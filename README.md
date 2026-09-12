@@ -1,159 +1,238 @@
-# Turborepo starter
+# ReelForge
 
-This Turborepo starter is maintained by the Turborepo core team.
+**AI video generation platform that plans, produces, and auto-posts a week of Facebook Reels.**
 
-## Using this example
+Solo-built production system: TypeScript, Next.js, React, Node.js, Fastify, PostgreSQL, Drizzle ORM, Stripe, Clerk, Docker, FFmpeg, Claude, OpenAI, Chrome Extension (MV3).
 
-Run the following command:
+[Live product](https://aireelforge.com) · Built end-to-end by [Mahbub Rahman](https://github.com/start-up-dev)
 
-```sh
-npx create-turbo@latest
+![TypeScript](https://img.shields.io/badge/TypeScript-5.9-3178C6?logo=typescript&logoColor=white)
+![Next.js](https://img.shields.io/badge/Next.js-16-black?logo=nextdotjs)
+![React](https://img.shields.io/badge/React-19-61DAFB?logo=react&logoColor=black)
+![Node.js](https://img.shields.io/badge/Node.js-Fastify-339933?logo=nodedotjs&logoColor=white)
+![PostgreSQL](https://img.shields.io/badge/PostgreSQL-Neon-4169E1?logo=postgresql&logoColor=white)
+![Stripe](https://img.shields.io/badge/Stripe-Billing-635BFF?logo=stripe&logoColor=white)
+![Docker](https://img.shields.io/badge/Docker-FFmpeg_worker-2496ED?logo=docker&logoColor=white)
+
+<p align="center">
+  <img src="apps/video/public/launch_assets/hero-ui.png" alt="ReelForge landing page — automatic Facebook video maker" width="900" />
+</p>
+
+---
+
+## What it is
+
+ReelForge is a **set-and-go content machine**. A user connects a Facebook Page, reviews an AI-generated brand profile, approves a week of topics, and the platform does the rest:
+
+1. Claude writes scripts and splits them into scenes
+2. A Chrome MV3 operator generates clips with Grok Imagine
+3. An FFmpeg worker concatenates clips, burns Whisper subtitles, and mixes BGM
+4. The finished 1080×1920 MP4 is stored on Cloudflare R2 and can auto-post to Facebook
+
+This is a live SaaS product, not a tutorial or clone of a course project.
+
+---
+
+## Why this repo (for recruiters)
+
+Built **solo** as a senior full-stack AI engineer: product, architecture, API, web app, billing, auth, LLM pipeline, video worker, and browser operator.
+
+| Signal | What is in this codebase |
+| --- | --- |
+| Full-stack TypeScript | Next.js 16 app + Fastify 5 API + shared types package |
+| AI / LLM systems | Claude (scripts, scenes, week plans), GPT-image-2 (character sheets), Grok Imagine (clips), Whisper (subtitles) |
+| Backend / platform | REST APIs, SSE progress, Postgres schema, quota, Stripe webhooks, Facebook Graph |
+| Distributed work | Clip claim queue, Docker FFmpeg worker, signed object storage, concurrency semaphore |
+| Product / frontend | Dashboard, agentic onboarding, content calendar, billing, real-time pipeline UI |
+| Production concerns | Auth (Clerk), subscriptions (Stripe), email (Resend), OAuth, state machines, idempotent posting |
+
+---
+
+## Architecture
+
+```mermaid
+flowchart LR
+  subgraph Client
+    Web["Next.js 16 dashboard"]
+    Ext["Chrome MV3 operator"]
+  end
+
+  subgraph API["Fastify API"]
+    Routes["REST + SSE"]
+    Batch["Batch generator"]
+    Quota["Quota / billing"]
+  end
+
+  subgraph Data
+    PG["Neon PostgreSQL"]
+    R2["Cloudflare R2"]
+  end
+
+  subgraph AI
+    Claude["Claude Sonnet"]
+    Image["GPT-image-2"]
+    Grok["Grok Imagine"]
+    Whisper["Whisper"]
+  end
+
+  subgraph Worker
+    FF["FFmpeg + subtitles"]
+  end
+
+  Web --> Routes
+  Routes --> PG
+  Routes --> R2
+  Batch --> Claude
+  Batch --> Image
+  Ext --> Routes
+  Ext --> Grok
+  Ext --> R2
+  Routes --> FF
+  FF --> Whisper
+  FF --> R2
+  Routes --> FB["Facebook Graph API"]
+  Quota --> Stripe["Stripe"]
 ```
 
-## What's inside?
+**Monorepo (Turborepo + pnpm)**
 
-This Turborepo includes the following packages/apps:
-
-### Apps and Packages
-
-- `docs`: a [Next.js](https://nextjs.org/) app
-- `web`: another [Next.js](https://nextjs.org/) app
-- `@repo/ui`: a stub React component library shared by both `web` and `docs` applications
-- `@repo/eslint-config`: `eslint` configurations (includes `eslint-config-next` and `eslint-config-prettier`)
-- `@repo/typescript-config`: `tsconfig.json`s used throughout the monorepo
-
-Each package/app is 100% [TypeScript](https://www.typescriptlang.org/).
-
-### Utilities
-
-This Turborepo has some additional tools already setup for you:
-
-- [TypeScript](https://www.typescriptlang.org/) for static type checking
-- [ESLint](https://eslint.org/) for code linting
-- [Prettier](https://prettier.io) for code formatting
-
-### Build
-
-To build all apps and packages, run the following command:
-
-With [global `turbo`](https://turborepo.dev/docs/getting-started/installation#global-installation) installed (recommended):
-
-```sh
-cd my-turborepo
-turbo build
+```
+apps/
+  web/        Next.js 16 — landing, dashboard, billing, calendar
+  api/        Fastify — domain API, Claude, Stripe, Facebook, jobs
+  worker/     Docker FFmpeg assembler (concat, subtitles, BGM, upload)
+  extension/  Chrome MV3 — claims clip jobs, drives Grok Imagine
+packages/
+  types/      Shared domain types, enums, API contracts
+  ui/         Shared React component library
+  utils/      Pure helpers
 ```
 
-Without global `turbo`, use your package manager:
+---
 
-```sh
-cd my-turborepo
-npx turbo build
-pnpm dlx turbo build
-pnpm exec turbo build
+## Generation pipeline
+
+```
+Connect Facebook Page
+        ↓
+Brand onboarding (Claude proposes niche, tone, audience, character)
+        ↓
+Character sheet (GPT-image-2) → stored on R2
+        ↓
+Week plan (Claude) → review topics in calendar UI
+        ↓
+Approve → batch generator (max 3 videos in flight)
+        ↓
+Per video: script → scenes → clip_requests
+        ↓
+Operator claims clips → Grok Imagine → upload MP4s to R2
+        ↓
+Worker: normalize → concat → Whisper subtitles → BGM → final MP4
+        ↓
+Auto-post to Facebook (draft / scheduled) or leave for download
+        ↓
+Email: video ready + week-complete summary
 ```
 
-You can build a specific package by using a [filter](https://turborepo.dev/docs/crafting-your-repository/running-tasks#using-filters):
+Each video is a **state machine**:
 
-With [global `turbo`](https://turborepo.dev/docs/getting-started/installation#global-installation) installed:
+`DRAFT → SCRIPT → SCENES → CLIPS_QUEUED → CLIPS_PROCESSING → ASSEMBLY → COMPLETE | FAILED`
 
-```sh
-turbo build --filter=docs
-```
+Failed clips can enter `CLIPS_NEEDS_REVIEW` instead of silently dying.
 
-Without global `turbo`:
+---
 
-```sh
-npx turbo build --filter=docs
-pnpm exec turbo build --filter=docs
-pnpm exec turbo build --filter=docs
-```
+## Tech stack
 
-### Develop
+| Layer | Technology |
+| --- | --- |
+| Language | TypeScript 5.9 (strict, shared across apps) |
+| Web | Next.js 16, React 19, Tailwind CSS 4, Clerk |
+| API | Node.js, Fastify 5, Zod, Clerk, Stripe, Resend |
+| Database | PostgreSQL (Neon), Drizzle ORM, SQL migrations |
+| Storage | Cloudflare R2 (S3-compatible signed uploads/downloads) |
+| Auth | Clerk (web + API), Facebook OAuth for Pages |
+| Billing | Stripe Checkout, Customer Portal, webhooks, plan quotas |
+| LLM | Anthropic Claude (scripts, scenes, plans, dialogue) |
+| Image | OpenAI GPT-image-2 (character sheets) |
+| Video gen | xAI Grok Imagine, driven by a Chrome MV3 extension |
+| Assembly | FFmpeg in Docker, Whisper transcription, burned subtitles |
+| Realtime | Server-Sent Events (plan progress + per-video clip progress) |
+| Tooling | Turborepo, pnpm workspaces, ESLint, Prettier, Vitest |
 
-To develop all apps and packages, run the following command:
+---
 
-With [global `turbo`](https://turborepo.dev/docs/getting-started/installation#global-installation) installed (recommended):
+## Engineering highlights
 
-```sh
-cd my-turborepo
-turbo dev
-```
+**LLM orchestration, not a single prompt.** Scripts, scene splits, dialogue, week plans, titles, and captions are separate prompt modules with typed outputs. Brand context is injected so a week of videos stays on-voice.
 
-Without global `turbo`, use your package manager:
+**Operator pattern for video generation.** Clip jobs live in Postgres (`queued → processing → done/failed`). A Chrome extension claims work, runs Grok Imagine in a real browser tab, and uploads the result. The API never pretends a third-party generator is a stable HTTP API.
 
-```sh
-cd my-turborepo
-npx turbo dev
-pnpm exec turbo dev
-pnpm exec turbo dev
-```
+**Long-running work that the UI can watch.** Approving a week kicks off parallel video jobs (semaphore-capped). The dashboard subscribes over SSE and shows per-video status, clip progress, and calendar state.
 
-You can develop a specific package by using a [filter](https://turborepo.dev/docs/crafting-your-repository/running-tasks#using-filters):
+**Payments and quota as a product surface.** One-time $5 trial, Starter/Pro subscriptions, Stripe webhooks, daily/monthly counters, and a pure `checkQuota()` gate that does not mutate usage. Quota is enforced before generation, not after.
 
-With [global `turbo`](https://turborepo.dev/docs/getting-started/installation#global-installation) installed:
+**Video assembly as a worker, not a request.** A Docker worker downloads clips from R2, normalizes, concatenates, burns subtitles from Whisper, mixes BGM, and writes the final MP4. Homebrew FFmpeg is not the production path; the worker image is.
 
-```sh
-turbo dev --filter=web
-```
+**Social posting is idempotent.** Facebook Graph uploads are recorded in `post_schedules`. Retries do not double-post. Plans support draft, scheduled, or download-only.
 
-Without global `turbo`:
+**Shared contracts.** `@repo/types` is the source of truth for enums, API shapes, and domain objects. The web app, API, and extension do not redeclare the model.
 
-```sh
-npx turbo dev --filter=web
-pnpm exec turbo dev --filter=web
-pnpm exec turbo dev --filter=web
-```
+---
 
-### Remote Caching
+## Product screenshots
 
-> [!TIP]
-> Vercel Remote Cache is free for all plans. Get started today at [vercel.com](https://vercel.com/signup?utm_source=remote-cache-sdk&utm_campaign=free_remote_cache).
+**Brand list and channel connect**
 
-Turborepo can use a technique known as [Remote Caching](https://turborepo.dev/docs/core-concepts/remote-caching) to share cache artifacts across machines, enabling you to share build caches with your team and CI/CD pipelines.
+<img src="apps/video/public/launch_assets/brands-ui.png" alt="ReelForge brands dashboard with Facebook channel connect" width="900" />
 
-By default, Turborepo will cache locally. To enable Remote Caching you will need an account with Vercel. If you don't have an account you can [create one](https://vercel.com/signup?utm_source=turborepo-examples), then enter the following commands:
+**Brand workspace — character sheet, plans, Facebook Page**
 
-With [global `turbo`](https://turborepo.dev/docs/getting-started/installation#global-installation) installed (recommended):
+<img src="apps/video/public/launch_assets/brand-ui.png" alt="Brand workspace with AI character sheet and weekly content plans" width="900" />
 
-```sh
-cd my-turborepo
-turbo login
-```
+**Week calendar — generation in progress, scheduled posts**
 
-Without global `turbo`, use your package manager:
+<img src="apps/video/public/launch_assets/calender-ui.png" alt="Content plan calendar showing AI video generation progress and scheduled Facebook posts" width="900" />
 
-```sh
-cd my-turborepo
-npx turbo login
-pnpm exec turbo login
-pnpm exec turbo login
-```
+**Billing — trial, Starter, Pro, Stripe portal**
 
-This will authenticate the Turborepo CLI with your [Vercel account](https://vercel.com/docs/concepts/personal-accounts/overview).
+<img src="apps/video/public/launch_assets/billing-ui.png" alt="Billing page with Stripe plans and monthly video quota" width="900" />
 
-Next, you can link your Turborepo to your Remote Cache by running the following command from the root of your Turborepo:
+---
 
-With [global `turbo`](https://turborepo.dev/docs/getting-started/installation#global-installation) installed:
+## Database (high level)
 
-```sh
-turbo link
-```
+PostgreSQL via Drizzle. Core tables:
 
-Without global `turbo`:
+| Table | Role |
+| --- | --- |
+| `users` | Clerk ID PK, plan, Stripe IDs, daily/monthly quota |
+| `brand_profiles` | Niche, tone, visual style, character sheet path |
+| `social_accounts` | Connected Facebook Pages |
+| `content_plans` | Week of topics (JSONB), cadence, post mode |
+| `videos` | Per-video state machine, script, output path |
+| `scenes` | Prompt + duration per scene |
+| `clip_requests` | Operator queue: claim, retry, done/failed |
+| `post_schedules` | Facebook draft/scheduled/posted record |
 
-```sh
-npx turbo link
-pnpm exec turbo link
-pnpm exec turbo link
-```
+---
 
-## Useful Links
+## Skills this demonstrates
 
-Learn more about the power of Turborepo:
+**Languages & frameworks:** TypeScript, JavaScript, Node.js, React, Next.js, Fastify, HTML, CSS, SQL
 
-- [Tasks](https://turborepo.dev/docs/crafting-your-repository/running-tasks)
-- [Caching](https://turborepo.dev/docs/crafting-your-repository/caching)
-- [Remote Caching](https://turborepo.dev/docs/core-concepts/remote-caching)
-- [Filtering](https://turborepo.dev/docs/crafting-your-repository/running-tasks#using-filters)
-- [Configuration Options](https://turborepo.dev/docs/reference/configuration)
-- [CLI Usage](https://turborepo.dev/docs/reference/command-line-reference)
+**AI engineering:** LLM orchestration, prompt architecture, structured output, multi-model pipelines (text + image + video + speech), agentic batch jobs
+
+**Backend:** REST API design, PostgreSQL schema design, ORM, background workers, job queues, SSE, webhooks, idempotency, quota, file storage
+
+**Frontend:** App Router dashboards, auth-gated UX, real-time progress UI, design systems, onboarding flows
+
+**Infra & product:** Docker, object storage, Stripe billing, OAuth, email, Chrome extensions, monorepo tooling
+
+---
+
+## Status
+
+**Live at [aireelforge.com](https://aireelforge.com).** This repository is the production codebase, published as a portfolio piece.
+
+It is not an open-source starter and is not set up as a public clone-and-run project. If you are reviewing this for a role and want to walk through architecture, API contracts, or a specific subsystem, I am happy to do that in an interview.
