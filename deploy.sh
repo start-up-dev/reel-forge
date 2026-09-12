@@ -8,7 +8,7 @@
 #   ./deploy.sh web      - Deploy only the Web app
 
 # --- Configuration (EXACTLY from DEPLOYMENT_GCP.md) --------------------------
-PROJECT_ID="reelforge-493603"
+PROJECT_ID=*********
 REGION="us-central1"
 REPO_NAME="reelforge-repo"
 SERVICE_ACCOUNT="reel-forge-api@${PROJECT_ID}.iam.gserviceaccount.com"
@@ -21,10 +21,10 @@ WORKER_IMAGE="${REGISTRY}/worker:latest"
 WEB_IMAGE="${REGISTRY}/web:latest"
 
 # Exact URLs and Keys from the manual guide
-CLERK_PUB_KEY="pk_live_Y2xlcmsuYWlyZWVsZm9yZ2UuY29tJA"
-API_URL="https://api.viralshortai.app"
+CLERK_PUB_KEY="*********"
+API_URL="https://api.aireelforge.com"
 WEB_URL="https://aireelforge.com"
-WORKER_URL="https://worker.viralshortai.app"
+WORKER_URL="https://worker.aireelforge.com"
 RESEND_EMAIL="hello@aireelforge.com"
 
 # --- Functions ---------------------------------------------------------------
