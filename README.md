@@ -4,7 +4,9 @@
 
 Solo-built production system: TypeScript, Next.js, React, Node.js, Fastify, PostgreSQL, Drizzle ORM, Stripe, Clerk, Docker, FFmpeg, Claude, OpenAI, Chrome Extension (MV3).
 
-[Live product](https://aireelforge.com) · Built end-to-end by [Mahbub Rahman](https://github.com/start-up-dev)
+[Live product](https://aireelforge.com) · [Case study](https://makereal.io/work/reelforge)
+
+Mahbub Rahman — Senior Full-Stack AI Engineer, [Make Real LLC](https://makereal.io)
 
 ![TypeScript](https://img.shields.io/badge/TypeScript-5.9-3178C6?logo=typescript&logoColor=white)
 ![Next.js](https://img.shields.io/badge/Next.js-16-black?logo=nextdotjs)
@@ -33,9 +35,9 @@ This is a live SaaS product, not a tutorial or clone of a course project.
 
 ---
 
-## Why this repo (for recruiters)
+## What this codebase covers
 
-Built **solo** as a senior full-stack AI engineer: product, architecture, API, web app, billing, auth, LLM pipeline, video worker, and browser operator.
+Built **solo**: product, architecture, API, web app, billing, auth, LLM pipeline, video worker, and browser operator.
 
 | Signal | What is in this codebase |
 | --- | --- |
@@ -102,6 +104,7 @@ apps/
   api/        Fastify — domain API, Claude, Stripe, Facebook, jobs
   worker/     Docker FFmpeg assembler (concat, subtitles, BGM, upload)
   extension/  Chrome MV3 — claims clip jobs, drives Grok Imagine
+  video/      Remotion — launch video and product screenshots
 packages/
   types/      Shared domain types, enums, API contracts
   ui/         Shared React component library
@@ -158,7 +161,7 @@ Failed clips can enter `CLIPS_NEEDS_REVIEW` instead of silently dying.
 | Video gen | xAI Grok Imagine, driven by a Chrome MV3 extension |
 | Assembly | FFmpeg in Docker, Whisper transcription, burned subtitles |
 | Realtime | Server-Sent Events (plan progress + per-video clip progress) |
-| Tooling | Turborepo, pnpm workspaces, ESLint, Prettier, Vitest |
+| Tooling | Turborepo, pnpm workspaces, ESLint, Prettier, Vitest, GitHub Actions |
 
 ---
 
@@ -177,6 +180,8 @@ Failed clips can enter `CLIPS_NEEDS_REVIEW` instead of silently dying.
 **Social posting is idempotent.** Facebook Graph uploads are recorded in `post_schedules`. Retries do not double-post. Plans support draft, scheduled, or download-only.
 
 **Shared contracts.** `@repo/types` is the source of truth for enums, API shapes, and domain objects. The web app, API, and extension do not redeclare the model.
+
+**CI on every PR.** GitHub Actions runs `pnpm lint` and `pnpm check-types` across the monorepo.
 
 ---
 
@@ -217,22 +222,8 @@ PostgreSQL via Drizzle. Core tables:
 
 ---
 
-## Skills this demonstrates
-
-**Languages & frameworks:** TypeScript, JavaScript, Node.js, React, Next.js, Fastify, HTML, CSS, SQL
-
-**AI engineering:** LLM orchestration, prompt architecture, structured output, multi-model pipelines (text + image + video + speech), agentic batch jobs
-
-**Backend:** REST API design, PostgreSQL schema design, ORM, background workers, job queues, SSE, webhooks, idempotency, quota, file storage
-
-**Frontend:** App Router dashboards, auth-gated UX, real-time progress UI, design systems, onboarding flows
-
-**Infra & product:** Docker, object storage, Stripe billing, OAuth, email, Chrome extensions, monorepo tooling
-
----
-
 ## Status
 
-**Live at [aireelforge.com](https://aireelforge.com).** This repository is the production codebase, published as a portfolio piece.
+**Live at [aireelforge.com](https://aireelforge.com).** Write-up: [makereal.io/work/reelforge](https://makereal.io/work/reelforge). This repository is the production codebase, published as a portfolio piece.
 
 It is not an open-source starter and is not set up as a public clone-and-run project. If you are reviewing this for a role and want to walk through architecture, API contracts, or a specific subsystem, I am happy to do that in an interview.
